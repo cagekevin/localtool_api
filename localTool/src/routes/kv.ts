@@ -33,3 +33,13 @@ export async function handleKvSet(req: IncomingMessage, res: ServerResponse): Pr
   debouncedSaveDb();
   return json(res, { ok: true });
 }
+
+export async function handleKvDelete(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  const key = url.searchParams.get('key');
+  if (!key) return sendError(res, 'Missing key parameter', 400);
+
+  const db = await getDb();
+  run(db, 'DELETE FROM kv WHERE key = ?', [key]);
+  debouncedSaveDb();
+  return json(res, { ok: true });
+}

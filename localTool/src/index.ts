@@ -12,7 +12,7 @@ import os from 'node:os';
 import { createServer } from 'node:net';
 import { getDb, closeDb, getUploadDir } from './db/database.js';
 import { json, sendError } from './utils/helpers.js';
-import { handleKvGet, handleKvSet } from './routes/kv.js';
+import { handleKvGet, handleKvSet, handleKvDelete } from './routes/kv.js';
 import { handleUpload, handleRead, handleThumbnail, handleMkdir, handleMove, handleOpen, handleOpenDir, handleList } from './routes/files.js';
 import { handleTasksGet, handleTasksSave, handleTasksBatchSave, handleTasksDelete, handleTasksBatchDelete, handleTasksClear } from './routes/tasks.js';
 import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, handleResourcesDelete, handleResourcesClear, handleResourcesRescan } from './routes/resources.js';
@@ -131,6 +131,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
     if (pathname === '/api/kv/set' && method === 'POST') {
       return await handleKvSet(req, res);
+    }
+    if (pathname === '/api/kv/delete' && method === 'POST') {
+      return await handleKvDelete(req, res, url);
     }
 
     // ── 文件操作 ──
