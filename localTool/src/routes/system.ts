@@ -120,7 +120,15 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
     });
 
     res.writeHead(fetchRes.status, resHeaders);
-    res.end(resBody);
+    // 协议翻译：剥 {code, data} 信封，前端直接拿到 data
+    let finalBody: Buffer = resBody;
+    try {
+      const parsed = JSON.parse(resBody.toString('utf-8'));
+      if (parsed && typeof parsed === 'object' && 'code' in parsed && 'data' in parsed && !('error' in parsed)) {
+        finalBody = Buffer.from(JSON.stringify(parsed.data));
+      }
+    } catch { /* 非 JSON，原样透传 */ }
+    res.end(finalBody);
   } catch (e) {
     const elapsed = Date.now() - _proxyStart;
     const err = e as Error;
@@ -210,7 +218,15 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     });
 
     res.writeHead(fetchRes.status, resHeaders);
-    res.end(resBody);
+    // 协议翻译：剥 {code, data} 信封，前端直接拿到 data
+    let finalBody: Buffer = resBody;
+    try {
+      const parsed = JSON.parse(resBody.toString('utf-8'));
+      if (parsed && typeof parsed === 'object' && 'code' in parsed && 'data' in parsed && !('error' in parsed)) {
+        finalBody = Buffer.from(JSON.stringify(parsed.data));
+      }
+    } catch { /* 非 JSON，原样透传 */ }
+    res.end(finalBody);
   } catch (e) {
     const elapsed = Date.now() - _proxyStart;
     const err = e as Error;
