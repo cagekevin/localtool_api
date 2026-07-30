@@ -12,6 +12,9 @@ import { getUploadDir } from '../db/database.js';
 import { ensureDir, sanitizeFilename, resolveUploadTarget, writeUploadBuffer, writeUploadBufferAt, ensureThumbnailTarget } from '../utils/fileStore.js';
 import { json, parseMultipart, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
 
+const PORT = Number(process.env.PORT) || 18080;
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+
 // ── upload ──
 export async function handleUpload(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const contentType = req.headers['content-type'] || '';
@@ -41,9 +44,9 @@ async function handleUploadFormData(req: IncomingMessage, res: ServerResponse): 
     const thumbnailUrl = await tryGenerateThumbnail(savedPath, fileUrlPath);
 
     return json(res, {
-      url: fileUrlPath,
+      url: `${BASE_URL}${fileUrlPath}`,
       path: savedPath,
-      thumbnailUrl: thumbnailUrl || undefined,
+      thumbnailUrl: thumbnailUrl ? `${BASE_URL}${thumbnailUrl}` : undefined,
     });
   }
 
@@ -107,7 +110,7 @@ async function saveRemoteUrl(subfolder: string, fileUrl: string, filename?: stri
   }
 
   const thumbnailUrl = await tryGenerateThumbnail(savedPath, urlPath);
-  return { url: urlPath, path: savedPath, thumbnailUrl: thumbnailUrl || undefined };
+  return { url: `${BASE_URL}${urlPath}`, path: savedPath, thumbnailUrl: thumbnailUrl ? `${BASE_URL}${thumbnailUrl}` : undefined };
 }
 
 async function tryGenerateThumbnail(filePath: string, _urlPath: string): Promise<string | null> {
@@ -231,7 +234,7 @@ export async function handleThumbnail(req: IncomingMessage, res: ServerResponse,
   }
 
   // 返回 JSON {thumbnailUrl: string}，不是直接返回 JPEG 二进制
-  return json(res, { thumbnailUrl: thumbUrl });
+  return json(res, { thumbnailUrl: `${BASE_URL}${thumbUrl}` });
 }
 
 // ── mkdir ──
