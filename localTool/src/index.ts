@@ -9,6 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { getDb, closeDb, getUploadDir } from './db/database.js';
 import { json, sendError } from './utils/helpers.js';
@@ -93,6 +94,29 @@ function handleStaticFile(req: http.IncomingMessage, res: http.ServerResponse, u
     'Cache-Control': 'public, max-age=31536000', // 静态文件长期缓存
   });
   fs.createReadStream(resolvedPath).pipe(res);
+  return true;
+}
+
+// ── 画布前端页面托管（dist/ 静态资源）──
+const DIST_DIR = path.join(__dirname, '..', '..', 'dist');
+const FRONTEND_MIME: Record<string, string> = {
+  '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json',
+  '.woff2': 'font/woff2', '.ico': 'image/x-icon',
+};
+function handleFrontendPage(res: http.ServerResponse, urlPath: string): boolean {
+  const fileName = (urlPath === '/' || urlPath === '/index.html') ? 'index.html' : urlPath.replace(/^\//, '');
+  const filePath = path.join(DIST_DIR, fileName);
+  if (!fs.existsSync(filePath)) return false;
+  const ext = path.extname(filePath).toLowerCase();
+  const stat = fs.statSync(filePath);
+  res.writeHead(200, {
+    'Content-Type': FRONTEND_MIME[ext] || 'application/octet-stream',
+    'Content-Length': stat.size,
+    'Cache-Control': 'public, max-age=3600',
+  });
+  fs.createReadStream(filePath).pipe(res);
   return true;
 }
 
@@ -234,6 +258,30 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return await handleAdminImport(req, res);
     }
 
+    // ── sync/default 本地兜底（A2）──
+    if (pathname === '/api/sync/default' && method === 'GET') {
+      try {
+        const baselinePath = path.join(__dirname, '..', 'data', 'apiConfigs.baseline.json');
+        const raw = fs.readFileSync(baselinePath, 'utf-8');
+        const replaced = raw.replace(/\{VITE_API_BASE_URL\}/g, `http://127.0.0.1:${PORT}`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(replaced);
+        return;
+      } catch {
+        return json(res, { apiConfigs: [] }); // 降级：无基线文件时返空
+      }
+    }
+
+    // ── assets/upload 别名（L5）──
+    if ((pathname === '/api/assets/upload' || pathname === '/api/upload/app-asset') && method === 'POST') {
+      return await handleUpload(req, res);
+    }
+
+    // ── 画布前端页面托管（兜底 GET）──
+    if (method === 'GET' && !pathname.startsWith('/api/') && !pathname.startsWith('/plugin/') && !pathname.startsWith('/files/')) {
+      if (handleFrontendPage(res, pathname)) return;
+    }
+
     // ── 404 ──
     sendError(res, 'Not Found', 404);
   } catch (e) {
@@ -324,9 +372,17 @@ async function main(): Promise<void> {
     console.log('           /api/admin/export  /api/admin/import');
     console.log('    剪映:   /api/jianying/send');
     console.log('    平台:   /plugin/manifest.json  /api/workflow-apps/by-project/:id');
+    console.log('    画布:   /  (dist/ 静态托管)');
     console.log('');
     console.log('  按 Ctrl+C 停止');
     console.log('');
+
+    // 自动打开浏览器
+    const pageUrl = `http://127.0.0.1:${PORT}`;
+    try {
+      const openCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+      execSync(`${openCmd} "${pageUrl}"`, { timeout: 3000 });
+    } catch { /* 打开失败不阻塞服务 */ }
   });
 
   // 优雅退出
