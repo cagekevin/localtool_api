@@ -10,7 +10,7 @@ import { json, sendError } from '../utils/helpers.js';
 export async function handlePluginManifest(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   // 本地模式返回当前版本，不触发更新提示
   return json(res, {
-    version: '1.3.5',
+    version: '1.4.2',
     hasUpdate: false,
   });
 }

@@ -8,7 +8,7 @@ import { Readable } from 'node:stream';
 import { createGunzip, createInflate, createBrotliDecompress } from 'node:zlib';
 import { json, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
 
-const VERSION = '2.0.0-maomao-clone';
+const VERSION = '1.4.2';
 const PORT = Number(process.env.PORT) || 18080;
 const PROXY_TIMEOUT_MS = Number(process.env.PROXY_TIMEOUT) || 300000; // 默认 5min，原硬编码 15s
 

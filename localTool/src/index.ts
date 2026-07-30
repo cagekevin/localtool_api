@@ -21,7 +21,7 @@ import { handlePluginManifest, handleWorkflowAppsByProject } from './routes/plat
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
 
 const PORT = Number(process.env.PORT) || 18080;
-const VERSION = '2.0.0-maomao-clone';
+const VERSION = '1.4.2';
 
 // ── 端口冲突检测 ──
 function checkPortAvailable(port: number): Promise<void> {
