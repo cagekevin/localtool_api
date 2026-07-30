@@ -4,6 +4,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { Readable } from 'node:stream';
+import { createGunzip, createInflate, createBrotliDecompress } from 'node:zlib';
 import { json, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
 
 const VERSION = '2.0.0-maomao-clone';
@@ -77,6 +79,33 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
 
     clearTimeout(timeout);
 
+    // ── 流式转发：SSE 响应不缓冲，pipe 直传（本地解压 content-encoding 后送纯文本）──
+    const formResponseCt = fetchRes.headers.get('content-type') || '';
+    if (formResponseCt.includes('text/event-stream')) {
+      const streamHeaders: Record<string, string> = {};
+      const streamSkip = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
+      fetchRes.headers.forEach((value, key) => {
+        if (!streamSkip.has(key)) streamHeaders[key] = value;
+      });
+      res.writeHead(fetchRes.status, streamHeaders);
+
+      let bodyStream = Readable.fromWeb(fetchRes.body as any);
+      const ce = fetchRes.headers.get('content-encoding') || '';
+      if (ce === 'gzip' || ce === 'x-gzip') bodyStream = bodyStream.pipe(createGunzip());
+      else if (ce === 'deflate') bodyStream = bodyStream.pipe(createInflate());
+      else if (ce === 'br') bodyStream = bodyStream.pipe(createBrotliDecompress());
+
+      bodyStream.on('error', (err: Error) => {
+        console.error(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | stream error | ${err.message}`);
+        if (!res.writableEnded) res.destroy();
+      });
+
+      bodyStream.pipe(res);
+      const streamStart = Date.now() - _proxyStart;
+      console.log(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${method} ${targetUrl} | ${fetchRes.status} | started in ${streamStart}ms`);
+      return;
+    }
+
     const elapsed = Date.now() - _proxyStart;
     const resBody = Buffer.from(await fetchRes.arrayBuffer());
     console.log(`[proxy] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${method} ${targetUrl} | ${fetchRes.status} | ${elapsed}ms`);
@@ -140,6 +169,33 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     });
 
     clearTimeout(timeout);
+
+    // ── 流式转发：SSE 响应不缓冲，pipe 直传（本地解压 content-encoding 后送纯文本）──
+    const formResponseCt = fetchRes.headers.get('content-type') || '';
+    if (formResponseCt.includes('text/event-stream')) {
+      const streamHeaders: Record<string, string> = {};
+      const streamSkip = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
+      fetchRes.headers.forEach((value, key) => {
+        if (!streamSkip.has(key)) streamHeaders[key] = value;
+      });
+      res.writeHead(fetchRes.status, streamHeaders);
+
+      let bodyStream = Readable.fromWeb(fetchRes.body as any);
+      const ce = fetchRes.headers.get('content-encoding') || '';
+      if (ce === 'gzip' || ce === 'x-gzip') bodyStream = bodyStream.pipe(createGunzip());
+      else if (ce === 'deflate') bodyStream = bodyStream.pipe(createInflate());
+      else if (ce === 'br') bodyStream = bodyStream.pipe(createBrotliDecompress());
+
+      bodyStream.on('error', (err: Error) => {
+        console.error(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | stream error | ${err.message}`);
+        if (!res.writableEnded) res.destroy();
+      });
+
+      bodyStream.pipe(res);
+      const streamStart = Date.now() - _proxyStart;
+      console.log(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${body.method || 'POST'} ${body.url} | ${fetchRes.status} | started in ${streamStart}ms`);
+      return;
+    }
 
     const elapsed = Date.now() - _proxyStart;
     const resBody = Buffer.from(await fetchRes.arrayBuffer());
