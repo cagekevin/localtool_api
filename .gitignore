@@ -1,0 +1,18 @@
+# ── 依赖（体积大、可重装，不纳入版本库）──
+node_modules/
+
+# ── 构建产物（tsc 由 src 重建，localTool/dist 不纳入；根 dist/ 扩展产物保留以便回退）──
+localTool/dist/
+
+# ── Python 缓存 ──
+__pycache__/
+*.pyc
+
+# ── 系统 / 编辑器 / 项目数据 ──
+.DS_Store
+.codebuddy/
+
+# ── 闭源引擎二进制交付物（无源码、体积大，仅本地运行用）──
+*.exe
+一毛AI画布引擎Mac端Arm版
+一毛AI画布引擎Mac端Intel版
