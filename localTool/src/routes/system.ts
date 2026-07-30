@@ -12,7 +12,8 @@ const VERSION = '1.4.2';
 const PORT = Number(process.env.PORT) || 18080;
 const PROXY_TIMEOUT_MS = Number(process.env.PROXY_TIMEOUT) || 300000; // 默认 5min，原硬编码 15s
 
-// ── SSE 协议转换：提取 data: 行，去掉注释心跳，逐 JSON 块输出 ──
+// ── SSE 协议转换：透传 data: 行，去掉 : heartbeat 等 SSE 注释 ──
+// 前端期望标准 SSE 格式: data: {...json...}\n\n
 function createSSEParserTransform(): Transform {
   let buffer = '';
   return new Transform({
@@ -21,22 +22,24 @@ function createSSEParserTransform(): Transform {
     transform(chunk: Buffer, _encoding, callback) {
       buffer += chunk.toString('utf-8');
       const lines = buffer.split('\n');
-      // 最后一个可能是不完整的行，保留在 buffer
       buffer = lines.pop() || '';
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const payload = line.slice(6); // 去掉 "data: "
-          if (payload === '[DONE]') continue; // 跳过 SSE 结束标记
-          this.push(payload + '\n'); // 每行 JSON 对象
+        const trimmed = line.trimEnd();
+        // 前端跳过非 data: 开头的行，但需要 data: 前缀来识别
+        // SSE 注释行 (: heartbeat) 直接跳过
+        if (trimmed.startsWith('data: ')) {
+          this.push(trimmed + '\n');
+        } else if (!trimmed.startsWith(':')) {
+          // 透传其他非注释行（如空行 ∈ SSE 协议分隔符）
+          this.push(trimmed + '\n');
         }
-        // 跳过 ": heartbeat" 等注释行和空行
+        // :heartbeat 等注释行 → 丢弃
       }
       callback();
     },
     flush(callback) {
-      // 处理残留 buffer
-      if (buffer.startsWith('data: ') && buffer.slice(6) !== '[DONE]') {
-        this.push(buffer.slice(6) + '\n');
+      if (buffer.startsWith('data: ')) {
+        this.push(buffer + '\n');
       }
       callback();
     },
@@ -119,7 +122,7 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
         if (!streamSkip.has(key)) streamHeaders[key] = value;
       });
       // 覆盖 Content-Type，前端收到的是逐行 JSON（非标准 SSE）
-      streamHeaders['content-type'] = 'application/x-ndjson';
+      streamHeaders['content-type'] = 'text/event-stream';
       res.writeHead(fetchRes.status, streamHeaders);
 
       let bodyStream = Readable.fromWeb(fetchRes.body as any);
@@ -222,7 +225,7 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
       fetchRes.headers.forEach((value, key) => {
         if (!streamSkip.has(key)) streamHeaders[key] = value;
       });
-      streamHeaders['content-type'] = 'application/x-ndjson';
+      streamHeaders['content-type'] = 'text/event-stream';
       res.writeHead(fetchRes.status, streamHeaders);
 
       let bodyStream = Readable.fromWeb(fetchRes.body as any);
