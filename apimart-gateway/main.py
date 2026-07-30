@@ -897,6 +897,36 @@ async def confirm_task(task_id: str, request: Request):
     return ok({"status": "confirmed"})
 
 
+# ── G1: video 节点视频轮询 → alias /v1/tasks/{id}，Lovart 原生透传 ──
+@app.get("/v1/videos/{video_id}")
+async def get_video_poll(video_id: str, request: Request):
+    return await get_task(video_id, request)
+
+
+# ── G2: sd2Video 节点轮询 → alias /v1/tasks/{id}，Lovart 原生透传 ──
+@app.get("/v1/video/generations/{gen_id}")
+async def get_video_generation_poll(gen_id: str, request: Request):
+    return await get_task(gen_id, request)
+
+
+# ── G3: 绘图节点 draw/completions → 复用 IMAGE 生成 ──
+@app.post("/v1/draw/completions")
+async def draw_completions(request: Request):
+    client, e = resolve_client(request)
+    if e:
+        return e
+    try:
+        body = await request.json()
+    except Exception:
+        return err(400, "invalid JSON body", "invalid_request_error", 400)
+    # 字段兼容：前端 draw 节点发送 {model, prompt, aspectRatio, urls}
+    if "urls" in body and "image_urls" not in body:
+        body["image_urls"] = body["urls"]
+    if "aspectRatio" in body and "size" not in body:
+        body["size"] = body.pop("aspectRatio")
+    return await _do_submit(client, body, "IMAGE")
+
+
 @app.post("/v1/uploads/images")
 async def upload_image(request: Request):
     client, e = resolve_client(request)
