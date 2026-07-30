@@ -4,13 +4,44 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { createGunzip, createInflate, createBrotliDecompress } from 'node:zlib';
 import { json, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
 
 const VERSION = '1.4.2';
 const PORT = Number(process.env.PORT) || 18080;
 const PROXY_TIMEOUT_MS = Number(process.env.PROXY_TIMEOUT) || 300000; // 默认 5min，原硬编码 15s
+
+// ── SSE 协议转换：提取 data: 行，去掉注释心跳，逐 JSON 块输出 ──
+function createSSEParserTransform(): Transform {
+  let buffer = '';
+  return new Transform({
+    writableObjectMode: false,
+    readableObjectMode: false,
+    transform(chunk: Buffer, _encoding, callback) {
+      buffer += chunk.toString('utf-8');
+      const lines = buffer.split('\n');
+      // 最后一个可能是不完整的行，保留在 buffer
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const payload = line.slice(6); // 去掉 "data: "
+          if (payload === '[DONE]') continue; // 跳过 SSE 结束标记
+          this.push(payload + '\n'); // 每行 JSON 对象
+        }
+        // 跳过 ": heartbeat" 等注释行和空行
+      }
+      callback();
+    },
+    flush(callback) {
+      // 处理残留 buffer
+      if (buffer.startsWith('data: ') && buffer.slice(6) !== '[DONE]') {
+        this.push(buffer.slice(6) + '\n');
+      }
+      callback();
+    },
+  });
+}
 
 // ── GET /api/status ──
 export async function handleStatus(_req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -79,7 +110,7 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
 
     clearTimeout(timeout);
 
-    // ── 流式转发：SSE 响应不缓冲，pipe 直传（本地解压 content-encoding 后送纯文本）──
+    // ── 流式转发：SSE 响应不缓冲，解析 data: 行后逐 JSON 块 pipe ──
     const formResponseCt = fetchRes.headers.get('content-type') || '';
     if (formResponseCt.includes('text/event-stream')) {
       const streamHeaders: Record<string, string> = {};
@@ -87,6 +118,8 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
       fetchRes.headers.forEach((value, key) => {
         if (!streamSkip.has(key)) streamHeaders[key] = value;
       });
+      // 覆盖 Content-Type，前端收到的是逐行 JSON（非标准 SSE）
+      streamHeaders['content-type'] = 'application/x-ndjson';
       res.writeHead(fetchRes.status, streamHeaders);
 
       let bodyStream = Readable.fromWeb(fetchRes.body as any);
@@ -95,12 +128,15 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
       else if (ce === 'deflate') bodyStream = bodyStream.pipe(createInflate());
       else if (ce === 'br') bodyStream = bodyStream.pipe(createBrotliDecompress());
 
+      // SSE 解析：提取 data: 行，去掉 : heartbeat 等注释
+      const sseParser = createSSEParserTransform();
+
       bodyStream.on('error', (err: Error) => {
         console.error(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | stream error | ${err.message}`);
         if (!res.writableEnded) res.destroy();
       });
 
-      bodyStream.pipe(res);
+      bodyStream.pipe(sseParser).pipe(res);
       const streamStart = Date.now() - _proxyStart;
       console.log(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${method} ${targetUrl} | ${fetchRes.status} | started in ${streamStart}ms`);
       return;
@@ -178,14 +214,15 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
 
     clearTimeout(timeout);
 
-    // ── 流式转发：SSE 响应不缓冲，pipe 直传（本地解压 content-encoding 后送纯文本）──
-    const formResponseCt = fetchRes.headers.get('content-type') || '';
-    if (formResponseCt.includes('text/event-stream')) {
+    // ── 流式转发：SSE 响应不缓冲，解析 data: 行后逐 JSON 块 pipe ──
+    const jsonResponseCt = fetchRes.headers.get('content-type') || '';
+    if (jsonResponseCt.includes('text/event-stream')) {
       const streamHeaders: Record<string, string> = {};
       const streamSkip = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
       fetchRes.headers.forEach((value, key) => {
         if (!streamSkip.has(key)) streamHeaders[key] = value;
       });
+      streamHeaders['content-type'] = 'application/x-ndjson';
       res.writeHead(fetchRes.status, streamHeaders);
 
       let bodyStream = Readable.fromWeb(fetchRes.body as any);
@@ -194,12 +231,14 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
       else if (ce === 'deflate') bodyStream = bodyStream.pipe(createInflate());
       else if (ce === 'br') bodyStream = bodyStream.pipe(createBrotliDecompress());
 
+      const sseParser = createSSEParserTransform();
+
       bodyStream.on('error', (err: Error) => {
         console.error(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | stream error | ${err.message}`);
         if (!res.writableEnded) res.destroy();
       });
 
-      bodyStream.pipe(res);
+      bodyStream.pipe(sseParser).pipe(res);
       const streamStart = Date.now() - _proxyStart;
       console.log(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${body.method || 'POST'} ${body.url} | ${fetchRes.status} | started in ${streamStart}ms`);
       return;
