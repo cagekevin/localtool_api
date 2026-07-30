@@ -9,6 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { getDb, closeDb, getUploadDir } from './db/database.js';
@@ -20,6 +21,10 @@ import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, hand
 import { handleStatus, handleProxy, handleJianyingSend } from './routes/system.js';
 import { handlePluginManifest, handleWorkflowAppsByProject } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
+
+// ESM 兼容：Node.js ES 模块无 __dirname，手动构造
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT) || 18080;
 const VERSION = '1.4.2';
