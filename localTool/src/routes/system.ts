@@ -8,6 +8,7 @@ import { json, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js
 
 const VERSION = '2.0.0-maomao-clone';
 const PORT = Number(process.env.PORT) || 18080;
+const PROXY_TIMEOUT_MS = Number(process.env.PROXY_TIMEOUT) || 300000; // 默认 5min，原硬编码 15s
 
 // ── GET /api/status ──
 export async function handleStatus(_req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -65,7 +66,7 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15s 超时
+    const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
     const fetchRes = await fetch(targetUrl, {
       method,
@@ -96,7 +97,7 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
     const err = e as Error;
     console.error(`[proxy] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${method} ${targetUrl} | ${err.name === 'AbortError' ? 'TIMEOUT' : 'ERR'} | ${elapsed}ms | ${err.message}`);
     if (err.name === 'AbortError') {
-      sendError(res, 'Proxy request timed out (15s)', 504);
+      sendError(res, `Proxy request timed out (${PROXY_TIMEOUT_MS / 1000}s)`, 504);
     } else {
       sendError(res, `Proxy request failed: ${err.message}`, 502);
     }
@@ -129,7 +130,7 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
     const fetchRes = await fetch(body.url, {
       method: body.method || 'POST',
@@ -159,7 +160,7 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     const err = e as Error;
     console.error(`[proxy] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${body.method || 'POST'} ${body.url} | ${err.name === 'AbortError' ? 'TIMEOUT' : 'ERR'} | ${elapsed}ms | ${err.message}`);
     if (err.name === 'AbortError') {
-      sendError(res, 'Proxy request timed out (15s)', 504);
+      sendError(res, `Proxy request timed out (${PROXY_TIMEOUT_MS / 1000}s)`, 504);
     } else {
       sendError(res, `Proxy request failed: ${err.message}`, 502);
     }
