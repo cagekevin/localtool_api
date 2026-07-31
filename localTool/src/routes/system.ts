@@ -101,6 +101,12 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
   }
 
   try {
+    // 异步生成转同步：FormData 路径也需轮询
+    const ASYNC_PATTERN = /\/(images\/(generations|edits)|videos\/?$|video\/generations|draw\/completions)/;
+    if (ASYNC_PATTERN.test(targetUrl)) {
+      return handleAsyncPoll(req, res, targetUrl, method, headers, body.length > 0 ? body : undefined);
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
@@ -215,7 +221,7 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
 
     // 异步生图/生视转同步：前端期望同步返回 url，但网关只返回 task_id
     // proxy 拿到 task_id 后内部轮询到完成，把 image URL 作为同步响应返回
-    if (body.url && /\/(images\/generations|videos\/?$|video\/generations|draw\/completions)/.test(body.url)) {
+    if (body.url && /\/(images\/(generations|edits)|videos\/?$|video\/generations|draw\/completions)/.test(body.url)) {
       return handleAsyncPoll(req, res, body.url, body.method || 'POST', headers, fetchBody);
     }
   }
@@ -303,7 +309,7 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
 async function handleAsyncPoll(
   req: IncomingMessage, res: ServerResponse,
   submitUrl: string, method: string,
-  headers: Record<string, string>, body: string | undefined,
+  headers: Record<string, string>, body: string | Buffer | undefined,
 ): Promise<void> {
   const _start = Date.now();
   const POLL_INTERVAL = 3000;  // 每3秒轮询一次
@@ -311,7 +317,9 @@ async function handleAsyncPoll(
 
   try {
     // 1. 提交任务
-    const submitRes = await fetch(submitUrl, { method, headers, body });
+    // Buffer 转 Uint8Array 以兼容 fetch BodyInit 类型
+    const fetchBody: BodyInit | undefined = body instanceof Buffer ? new Uint8Array(body) : (body as string | undefined);
+    const submitRes = await fetch(submitUrl, { method, headers, body: fetchBody });
     if (!submitRes.ok) {
       const errText = await submitRes.text().catch(() => '');
       sendError(res, `提交失败: ${submitRes.status} ${errText}`, submitRes.status);
