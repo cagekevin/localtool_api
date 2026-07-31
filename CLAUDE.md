@@ -7,7 +7,7 @@
 - **项目本质**：用自研 `localTool`(Node/TS, :18080) + `apimart-gateway`(Python/FastAPI, :9004) **替换原版三个闭源可执行引擎**（`一毛本地引擎Win端.exe` / `一毛AI画布引擎Mac端Arm版` / `一毛AI画布引擎Mac端Intel版`）。
 - **分层铁律**：`localTool` = **一毛画布专属适配层**（为一毛画布而生，改它适配画布）；`apimart-gateway` = **通用第三方 AI API 中继**（不是为一毛画布写的，要通用、支持同步+异步双模）。
 - **唯一入口**：所有画布请求 → `localTool :18080 /api/proxy` → 网关 `:9004` → Lovart。`dist/` 前端也由 localTool 托管。
-- **端口红线**：`18080`(localTool) / `9004`(网关) 不可改；`dist/` 是混淆黑盒，**严禁手改**。
+- **端口红线**：`18080`(localTool) / `9004`(网关) 不可改；`dist/` 是混淆黑盒，**默认只读，经用户授权可改**（走 §7.1 规程）。
 - **启动**：`launch-all.ps1`(Win) / `launch-all.command`(Mac)；手动见 §3。
 - **致命前置**：**连 Lovart 必须开 VPN**（连 `lgw.lovart.ai:443`），否则网关 502。
 - **聊天独立**：`chat_completions` 走内部 `run_and_get`，**不碰** `_do_submit`；改图片同步逻辑不会弄坏聊天。
@@ -42,7 +42,7 @@
 
 | 目录/文件 | 职责 |
 |---|---|
-| `dist/` | 画布前端构建产物（混淆）。**❌ 黑盒，严禁手改**，改适配逻辑在 `localTool` 侧。 |
+| `dist/` | 画布前端构建产物（混淆）。**默认黑盒只读**，适配逻辑优先放 `localTool` 侧；**经用户授权可改**，见 §7.1。 |
 | `localTool/` | ★ 一毛画布专属适配层（Node/TS）。`src/index.ts` 入口，`src/routes/`(system/files/resources)，`src/db/`(SQLite)，`src/utils/fileStore.ts`(落盘)。 |
 | `apimart-gateway/` | ★ 通用 AI API 中继（Python）。`main.py` 主程序，`lovart_client.py` Lovart 客户端，`.env` 凭据（AK/SK/`LOVART_BASE_URL`/`OPEN_RELAY`）。 |
 | `launch-all.ps1` / `launch-all.command` | 一键启动器（Win / Mac），拉起网关+localTool+打开画布，含守护自动重启。 |
@@ -96,7 +96,7 @@ node dist/index.js     # 前台运行，看 [proxy] 日志；Ctrl+C 退出
 2. **`apimart-gateway` 通用中继**：保持协议翻译 + Lovart 中继的纯粹性；原生支持同步(`wait`)+异步(`task_id`)双模，服务一毛画布也服务未来任意调用方。**不为"多画布"在网关里写画布特例**。
 3. **唯一入口**：画布请求一律走 `localTool :18080 /api/proxy` → 网关 `:9004`。网关不绑死某个画布。
 4. **VPN 前置**：网关对外只连 `lgw.lovart.ai:443`，**必须开 VPN**。Win 未开 VPN 会静默 502（`All connection attempts failed`），非代码问题。
-5. **`dist/` 黑盒**：前端混淆构建产物，只分析不修改；适配在 localTool 侧做。
+5. **`dist/` 黑盒（默认只读）**：前端混淆构建产物，**默认只分析不修改**，适配优先在 localTool 侧做。**经用户明确授权后允许修改**，见 §7.1「`dist/` 修改规程」。
 
 ---
 
@@ -127,7 +127,7 @@ node dist/index.js     # 前台运行，看 [proxy] 日志；Ctrl+C 退出
 
 | 红线 | 说明 |
 |---|---|
-| ❌ 手改 `dist/` | 混淆黑盒，适配逻辑在 localTool 侧。 |
+| ⚠️ 手改 `dist/` | 混淆黑盒，**默认不改**，适配逻辑优先放 localTool 侧。**经用户明确授权后可改**，须遵守下方「`dist/` 修改规程」。 |
 | ❌ 动 `chat_completions` / `run_and_get` | 聊天独立路径，改图片同步不碰它。 |
 | ❌ 改 `18080`/`9004` 端口 | 写死在前端与启动脚本。 |
 | ❌ 改 `proxyMode=local-tool` 唯一入口 | 见 `02-断点三域梳理.md`。 |
@@ -140,7 +140,51 @@ node dist/index.js     # 前台运行，看 [proxy] 日志；Ctrl+C 退出
 1. 读本文档 + 对应 01-08 文档，确认影响范围（不瞎猜）
 2. 改 localTool 后：npm run build（tsc）→ node dist/index.js 验证
 3. 改网关后：确认异步默认、chat 不受影响、webhook 幂等
-4. 启动前确认 VPN 已开
+4. 改 dist/ 前：已拿到用户明确授权 + 走完 §7.1 规程
+5. 启动前确认 VPN 已开
+```
+
+---
+
+### 7.1 `dist/` 修改规程（授权后适用）
+
+> **默认态：只读。** 只有在用户明确说"可以改 dist / 授权修改前端"之后才启用本规程。
+
+**三问自检（任一为"是"就别改 dist）**
+```
+1. 这个需求能在 localTool 侧解决吗？        → 能 → 改 localTool
+2. 是接口字段/格式对不上吗？                 → 是 → localTool 剥信封对齐
+3. 是代理、落盘、同步化的问题吗？             → 是 → localTool 侧做
+```
+
+**操作规程**
+
+| 步骤 | 要求 |
+|---|---|
+| 1. 授权 | 用户明确授权，且**说明清楚改哪个文件、哪个函数、达成什么效果** |
+| 2. 备份 | 改前 `cp dist/assets/xxx.js dist/assets/xxx.js.bak`，或确保 git 工作区干净可回退 |
+| 3. 定位 | **每次重新 grep 定位**——混淆符号（`Bs`/`Vi`/`ua` 等）**换一次构建就全变**，绝不能凭记忆用旧符号名 |
+| 4. 最小改动 | 只改必要的那一个函数体，**不重排、不格式化、不整文件重写**（会破坏 sourcemap 与体积） |
+| 5. 记录 | 在 `docs/` 或 `daily/` 记录：文件、符号、原始片段、修改后片段、目的 |
+| 6. 验证 | 重启 localTool → 浏览器**硬刷新（禁用缓存）** → 验证目标功能 + 回归主流程（生图/生视/聊天） |
+| 7. 单独提交 | `dist/` 改动**单独 commit**，commit message 注明「授权手改 dist：<原因>」，便于整体回退 |
+
+**已知风险（必须同步告知用户）**
+
+| 风险 | 说明 |
+|---|---|
+| 🔴 自动升级清零 | 存在 `/extension/update`，「确认升级后由本地引擎自动替换当前 dist」→ **一次升级改动全丢**。改后应避免点「确认升级」，或升级后重新施加改动 |
+| 🔴 符号漂移 | 混淆变量名不稳定，**新版 dist 的定位串必然失效**，不可复用旧 patch |
+| 🟡 无源码追溯 | 改的是构建产物，无法从源码复现；必须靠 §7.1 step 5 的记录 |
+| 🟡 连带影响 | 混淆后函数常被多处复用，改一个函数可能影响预期外的调用方，务必回归主流程 |
+| 🟡 服务端校验 | 涉及鉴权/计费的前端改动，服务端仍会二次判定（402/403），前端改动可能无实际效果 |
+
+**红线内的红线（授权也不能做）**
+```
+❌ 整文件 prettier/webcrack 重写后回写 dist（只能用于离线分析，产物不得回写）
+❌ 改端口 18080 / 9004 的硬编码
+❌ 改 proxyMode=local-tool 唯一入口
+❌ 删除或绕过错误处理，导致失败被静默吞掉
 ```
 
 ---
@@ -193,7 +237,7 @@ node dist/index.js     # 前台运行，看 [proxy] 日志；Ctrl+C 退出
 
 ---
 
-## 8. 卡帕西编码准则 (Karpathy Rules)
+## 11. 卡帕西编码准则 (Karpathy Rules)
 
 ### 8.1 编码前思考
 不假设，不隐藏困惑。说明假设，多解释并存时全盘呈现，有更优解要提出，不清楚就停下询问。
