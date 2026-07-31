@@ -16,3 +16,4 @@ __pycache__/
 *.exe
 一毛AI画布引擎Mac端Arm版
 一毛AI画布引擎Mac端Intel版
+apimart-gateway/.env
