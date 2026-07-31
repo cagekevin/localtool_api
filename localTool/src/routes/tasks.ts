@@ -61,11 +61,18 @@ function taskToRow(task: Record<string, unknown>) {
 }
 
 function upsertTask(db: any, row: Record<string, unknown>) {
-  const keys = Object.keys(row);
-  const vals = Object.values(row);
+  // 真 UPSERT：先取现有行合并，避免 DELETE+INSERT 抹掉已落库的诊断字段（request_data / response_data / error_msg 等）
+  const existing = queryOne(db, `SELECT * FROM tasks WHERE task_id = ?`, [row.task_id]);
+  const merged = existing ? { ...existing, ...row } : row;
+  const keys = Object.keys(merged);
+  const vals = keys.map(k => merged[k]);
   const placeholders = keys.map(() => '?').join(', ');
-  run(db, `DELETE FROM tasks WHERE task_id = ?`, [row.task_id]);
-  run(db, `INSERT INTO tasks (${keys.join(', ')}) VALUES (${placeholders})`, vals);
+  const cols = keys.join(', ');
+  const updates = keys.map(k => `${k} = excluded.${k}`).join(', ');
+  run(db,
+    `INSERT INTO tasks (${cols}) VALUES (${placeholders})
+     ON CONFLICT(task_id) DO UPDATE SET ${updates}`,
+    vals);
 }
 
 export async function handleTasksGet(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {

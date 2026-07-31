@@ -25,6 +25,18 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from lovart_client import LovartClient, LovartError, close_http_client, _get_http_client
 
+# ── 网关日志原语（print + flush，零依赖） ──
+# P0-1：全链路可观测性基础设施。网关此前无任何日志设施（无 print/logging/_log），
+# 必须最先落地，否则所有后续打点代码都会 NameError。
+# 环境变量 LOG_LEVEL=debug 可启用 debug 级别输出（如 _extract_raw_urls 内部细节）。
+GATEWAY_LOG_LEVEL = (os.getenv("LOG_LEVEL") or "info").lower()
+
+def _log(msg: str, level: str = "info") -> None:
+    """网关统一日志：GATEWAY_LOG_LEVEL=debug 时连 debug 行也输出；flush=True 确保 launch-all 重定向到 .log 时不丢尾。"""
+    if level == "debug" and GATEWAY_LOG_LEVEL != "debug":
+        return
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] [{level}] {msg}", flush=True)
+
 LOVART_BASE = os.getenv("LOVART_BASE_URL", "https://lgw.lovart.ai")
 DEFAULT_AK = os.getenv("LOVART_ACCESS_KEY", "")
 DEFAULT_SK = os.getenv("LOVART_SECRET_KEY", "")
@@ -723,7 +735,19 @@ async def _submit_generation(request: Request, category: str):
     # 支持 ?wait=1 query string 同步返回（localTool FormData 路径拼 query string）
     if request.query_params.get("wait") == "1":
         body["wait"] = True
-    return await _do_submit(client, body, category)
+
+    # P0-3：生成提交阶段 traceId（此时 thread_id 尚未产生，网关自生成）。
+    # 前端可传 X-Trace-Id 头跨节点关联；未传则 uuid 自生成。
+    # 此 tid 会透传给 _do_submit → 写入 _TASK_META → [poll] 日志回读，
+    # 形成"提交 → 轮询"全链路可关联。
+    tid = request.headers.get("X-Trace-Id") or uuid.uuid4().hex[:12]
+    _log(f"[submit] traceId={tid} model={body.get('model','-')} "
+         f"ref_images_raw={len(body.get('reference_images') or [])} "
+         f"ref_videos_raw={len(body.get('reference_videos') or [])} "
+         f"ref_audios_raw={len(body.get('reference_audios') or [])} "
+         f"videos_raw={len(body.get('videos') or [])} "
+         f"prompt={(body.get('prompt') or '')[:80]!r}")
+    return await _do_submit(client, body, category, tid)
 
 def _cleanup_task_meta():
     if len(_TASK_META) > 500:
@@ -732,17 +756,22 @@ def _cleanup_task_meta():
         for k in expired:
             _TASK_META.pop(k, None)
 
-async def _do_submit(client, body: dict, category: str):
+async def _do_submit(client, body: dict, category: str, tid: str = None):
     _cleanup_task_meta()
     prompt = body.get("prompt") or body.get("input") or ""
     if not prompt:
         return err(400, "prompt is required", "invalid_request_error", 400)
 
+    # P0-2：reference_videos / reference_audios 静默丢弃修复。
+    # 711 行 metadata 提升已把 reference_videos/reference_audios 提到顶层，
+    # 但此处 741-745 行只读了 videos/audios → 视频/音频参考被静默丢弃。
+    # 修复：videos or reference_videos、audios or reference_audios。
+    # or 短路语义天然覆盖：不存在 / []（空列表 falsy）/ 单 dict 或字符串。
     raw_urls = _extract_raw_urls(
         body.get("image_urls") or body.get("images") or body.get("attachments")
     ) + _extract_raw_urls(body.get("reference_images")) \
-      + _extract_raw_urls(body.get("videos")) \
-      + _extract_raw_urls(body.get("audios"))
+      + _extract_raw_urls(body.get("videos") or body.get("reference_videos")) \
+      + _extract_raw_urls(body.get("audios") or body.get("reference_audios"))
     attachments = await _resolve_attachments(client, raw_urls)
     prefer = resolve_prefer_models(body.get("model", ""), category)
     webhook = body.get("webhook")
@@ -783,12 +812,20 @@ async def _do_submit(client, body: dict, category: str):
 
     task_id = "task_" + thread_id
     now = int(time.time())
+    # P0-3：tid 写入 _TASK_META，使 [poll] 日志可回读 traceId 与 [submit] 关联。
+    # 后台 _background_webhook_watcher 调 _check_and_fire_task 时无 HTTP 上下文，
+    # 此时 tid 来自 meta 而非 header（降级为 "-" 可接受）。
     _TASK_META[task_id] = {
         "kind": category, "project_id": project_id,
         "created": now, "webhook": webhook, "webhook_sent": False,
         "webhook_retries": 0, "webhook_last_attempt": 0,
-        "poll_count": 0,
+        "poll_count": 0, "tid": tid or "-",
     }
+
+    # P0-3：复用已算好的 raw_urls / attachments（不再重复调 _extract_raw_urls），
+    # 数字与真实送进 Lovart 的一致，不会误导。
+    _log(f"[submit:parse] traceId={tid or '-'} task_id={task_id} "
+         f"raw_urls={len(raw_urls)} attachments={len(attachments or [])}")
     
     wait = body.get("wait") or False
 
@@ -814,6 +851,8 @@ async def _do_submit(client, body: dict, category: str):
                 return ok([{"url": "", "status": "failed", "task_id": task_id,
                             "error": (data.get("error") or {}).get("message", "no artifact")}])
             await asyncio.sleep(3)
+        # P0-4：同步 wait 模式 504 超时埋点。配合 [poll] 日志区分"超时"vs"Lovart 卡住"。
+        _log(f"[submit:sync-timeout] traceId={tid or '-'} task_id={task_id} timeout={LOVART_TIMEOUT}s")
         return err(504, "同步等待生成结果超时", "timeout_error", 504)
     
     # 异步模式（默认）：返回 task_id，由调用方自行轮询或等待 webhook
@@ -843,6 +882,13 @@ async def _check_and_fire_task(task_id: str, client: LovartClient) -> Tuple[bool
         return False, lovart_err_to_response(le)
 
     status = st.get("status", "running")
+    # P0-4：轮询打点。同时打 lovart_raw（Lovart 原始状态）和 effective（网关改写后），
+    # 区分 done 防抖（lovart_raw=done, effective=running）vs 真卡住（lovart_raw=running 持续）。
+    # tid 来自 _TASK_META，后台 watcher 路径无 HTTP header 时降级为 "-"。
+    _log(f"[poll] traceId={meta.get('tid','-')} thread={thread_id} "
+         f"lovart_raw={st.get('status')} effective={status} "
+         f"poll={meta.get('poll_count')} "
+         f"raw_keys={list(st.keys()) if isinstance(st, dict) else type(st).__name__}")
 
     if status == "done":
         now = time.time()
@@ -868,11 +914,15 @@ async def _check_and_fire_task(task_id: str, client: LovartClient) -> Tuple[bool
     if status in ("pending", "queued", "submitted"):
         return False, ok(_task_view(task_id, "pending", 0, created))
 
+    # P0-4：第一处 AUTO_CONFIRM（status 路径，轮询探测到 pending_confirmation）。
+    # 872-876 行的 confirm 需要日志确认是否真正执行，否则排查者无法判断。
     if status == "pending_confirmation":
         if AUTO_CONFIRM:
             try:
                 await client.confirm(thread_id)
+                _log(f"[poll:confirm] traceId={meta.get('tid','-')} thread={thread_id} AUTO_CONFIRM triggered")
             except LovartError:
+                _log(f"[poll:confirm] traceId={meta.get('tid','-')} thread={thread_id} AUTO_CONFIRM FAILED")
                 pass
         return False, ok(_task_view(task_id, "processing", 50, created))
 
@@ -891,12 +941,16 @@ async def _check_and_fire_task(task_id: str, client: LovartClient) -> Tuple[bool
     except LovartError as le:
         return False, lovart_err_to_response(le)
 
+    # P0-4：第二处 AUTO_CONFIRM（get_result 路径，拿到结果后确认）。
+    # 这是真正常命中的确认点，若只补 872-876 而漏此，排查者会误判"AUTO_CONFIRM 未执行"（假阴性）。
     pc = result.get("pending_confirmation")
     if pc:
         if AUTO_CONFIRM:
             try:
                 await client.confirm(thread_id)
+                _log(f"[poll:confirm2] traceId={meta.get('tid','-')} thread={thread_id} AUTO_CONFIRM triggered (via get_result)")
             except LovartError:
+                _log(f"[poll:confirm2] traceId={meta.get('tid','-')} thread={thread_id} AUTO_CONFIRM FAILED (via get_result)")
                 pass
             return False, ok(_task_view(task_id, "processing", 60, created))
         return False, ok(_task_view(task_id, "processing", 60, created,
