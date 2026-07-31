@@ -1,0 +1,43 @@
+{
+  "apiConfigs": [
+    {
+      "name": "localTool 第三方 API",
+      "apiUrl": "http://127.0.0.1:9004",
+      "provider": "自托管",
+      "default": true,
+      "models": [
+        {
+          "id": "lovart-chat",
+          "type": "text",
+          "label": "Lovart 设计 Agent",
+          "streaming": true
+        },
+        {
+          "id": "flux.2-pro",
+          "type": "image",
+          "label": "FLUX.2 Pro"
+        },
+        {
+          "id": "flux.2-max",
+          "type": "image",
+          "label": "FLUX.2 Max"
+        },
+        {
+          "id": "seedream-5",
+          "type": "image",
+          "label": "Seedream V5"
+        },
+        {
+          "id": "seedance-2.0-fast",
+          "type": "video",
+          "label": "Seedance 2.0 Fast"
+        },
+        {
+          "id": "kling-v3",
+          "type": "video",
+          "label": "Kling V3"
+        }
+      ]
+    }
+  ]
+}
