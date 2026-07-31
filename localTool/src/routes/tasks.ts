@@ -31,6 +31,12 @@ function rowToTask(row: Record<string, unknown>) {
       try { task[camelKey] = JSON.parse(value); } catch { task[camelKey] = value; }
     } else { task[camelKey] = value; }
   }
+  // 补回 id 字段：前端（httpClient）的 diffAndPersistTasks 以任务对象的 `id` 作为去重 /
+  // diff 基准键（按 e.id 建 map）。但本接口原本只把 task_id 映射成 taskId 返回，未回传
+  // id，导致前端重载历史记录后 id 全为 undefined，diff map 全部 miss、整组被当作「新增」
+  // 重新写回，任务中心的「日志」每次打开都重复累加（见 daily/11-前端任务唯一标识梳理报告）。
+  // 此处令 id === taskId，使前端去重键在 reload 后仍能命中已有记录，避免重复写入。
+  task.id = task.taskId;
   return task;
 }
 
