@@ -51,13 +51,17 @@ const ALLOWED_TASK_COLUMNS = new Set([
 
 function taskToRow(task: Record<string, unknown>) {
   const row: Record<string, unknown> = {};
+  const droppedKeys: string[] = [];
   for (const [key, value] of Object.entries(task)) {
     const snakeKey = CAMEL_TO_SNAKE[key] || key;
-    if (!ALLOWED_TASK_COLUMNS.has(snakeKey)) continue; // 过滤前端运行时字段（status/loading/errorMessage 等）
+    if (!ALLOWED_TASK_COLUMNS.has(snakeKey)) {
+      droppedKeys.push(key);
+      continue; // 过滤前端运行时字段（status/loading/errorMessage 等）
+    }
     if (JSON_FIELDS.has(key) && typeof value === 'object' && value !== null) row[snakeKey] = JSON.stringify(value);
     else row[snakeKey] = value;
   }
-  return row;
+  return { row, droppedKeys };
 }
 
 function upsertTask(db: any, row: Record<string, unknown>) {
@@ -94,7 +98,9 @@ export async function handleTasksSave(req: IncomingMessage, res: ServerResponse)
   if (!body.taskId && !body.id) return sendError(res, 'Missing taskId or id field', 400);
 
   const db = await getDb();
-  upsertTask(db, taskToRow(body));
+  const { row, droppedKeys } = taskToRow(body);
+  if (droppedKeys.length) console.warn(`[taskToRow:dropped] ${droppedKeys.join(', ')}`);
+  upsertTask(db, row);
   debouncedSaveDb();
   return json(res, { ok: true });
 }
@@ -108,7 +114,9 @@ export async function handleTasksBatchSave(req: IncomingMessage, res: ServerResp
   try {
     for (const task of body) {
       if (!task.taskId && !task.id) continue;
-      upsertTask(db, taskToRow(task));
+      const { row, droppedKeys } = taskToRow(task);
+      if (droppedKeys.length) console.warn(`[taskToRow:dropped] ${droppedKeys.join(', ')}`);
+      upsertTask(db, row);
     }
     commitTx(db);
   } catch (e) {

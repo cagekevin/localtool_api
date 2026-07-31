@@ -23,6 +23,8 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from contract import normalize_body
+
 from lovart_client import LovartClient, LovartError, close_http_client, _get_http_client
 
 # ── 网关日志原语（print + flush，零依赖） ──
@@ -717,21 +719,11 @@ async def _submit_generation(request: Request, category: str):
         body = await request.json()
     except Exception:
         return err(400, "invalid JSON body", "invalid_request_error", 400)
-    # 字段兼容映射：画布视频节点字段名 → 网关标准字段名
-    if "metadata" in body and isinstance(body["metadata"], dict):
-        meta = body.pop("metadata")
-        for key in ("reference_images", "reference_videos", "reference_audios",
-                     "ratio", "duration", "watermark", "generate_audio"):
-            if key in meta and key not in body:
-                body[key] = meta[key]
-    if "ratio" in body and "aspect_ratio" not in body:
-        body["aspect_ratio"] = body.pop("ratio")
-    if "seconds" in body and "duration" not in body:
-        body["duration"] = body.pop("seconds")
-    if "input_reference" in body and "reference_images" not in body:
-        body["reference_images"] = body.pop("input_reference")
-    if "input_video" in body and "videos" not in body:
-        body["videos"] = body.pop("input_video")
+    # ── 字段翻译（见 contract.py）──
+    body, alias_hits = normalize_body(body)
+    if alias_hits:
+        _log(f"[submit:alias] hits={alias_hits}")
+
     # 支持 ?wait=1 query string 同步返回（localTool FormData 路径拼 query string）
     if request.query_params.get("wait") == "1":
         body["wait"] = True
