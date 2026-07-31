@@ -171,17 +171,22 @@ const replaced = raw.replace(/\{VITE_API_BASE_URL\}/g, `http://127.0.0.1:${PORT}
 
 ### 4.2 本地 `localTool` 是否实现了这两个路由
 
-**结论：没有实现。** 已核对：
+**结论：已补。** 2026-07-31 在 `localTool/src/routes/platform.ts` 新增 `handleBuiltin` 和 `handleModels`，返回静态兜底模型清单（数据来自 `apimart-gateway/main.py` Lovart 模型定义）。前端拉取时不再 404，本地"系统内置"模型下拉正常显示。
 
-- `localTool/src/routes/platform.ts` 只注册了 `/plugin/manifest.json` 与 `/api/workflow-apps/*` 两个 stub（本地模式返回空/待开发提示），**不含 `/public/platform/*`**。
-- `localTool/src/index.ts` 的路由表里只有明确的 `/api/status`、`/api/kv/*`、`/api/files/*`、`/api/resources`、`/api/tasks`、`/api/proxy` 等，**没有 `/public/platform/builtin` 或 `/public/platform/models` 的处理或代理转发**。
+> **旧版状态（已修正）**：此前 localTool 无此路由，请求 404 → 前端静默回退。详见下方历史记录。
+
+<details>
+<summary>旧版分析（保留备查）</summary>
+
+- `localTool/src/routes/platform.ts` 曾只注册了 `/plugin/manifest.json` 与 `/api/workflow-apps/*` 两个 stub，**不含 `/public/platform/*`**。
+- `localTool/src/index.ts` 的路由表里只有 `/api/status`、`/api/kv/*`、`/api/files/*`、`/api/resources`、`/api/tasks`、`/api/proxy` 等，**没有 `/public/platform/builtin` 或 `/public/platform/models`**。
 - `apimart-gateway/`（独立 Python 网关，端口 9004）源码中也检索不到 `builtin` / `platform` 路由。
 
-因此本地运行时这两个请求会 **404**，前端 `catch` 后打印 `console.warn("[builtinFavorites] 拉取内置模型失败")`，并回退到空/默认清单（不影响页面渲染，只是"系统内置"模型可能为空）。
+因此本地运行时这两个请求会 **404**，前端 `catch` 后打印 `console.warn("[builtinFavorites] 拉取内置模型失败")`，并回退到空/默认清单。
 
-> 也就是说，内置接口在本地由 **localTool 兜底为 404 → 前端静默回退**；真正的实现位于**远端中心服务/网关**（生产环境 baseURL 指向远端时才有数据）。旧版文档称"由远端/网关提供"方向正确，但需明确：本地并非"未对接"，而是本地 `localTool` 根本没有该路由，请求直接在本地 404 兜底。
+</details>
 
-因此：本地运行时普通节点的"系统内置"模型可能为空，但**特惠视频节点因模型随 `discountVideoModel` 硬编码下发，完全不依赖这两个接口，不受此影响**。
+> 内置接口在本地由 **localTool 静态清单兜底**（模型来自 Lovart 网关定义）；真正的动态实现位于**远端中心服务**（生产环境 baseURL 指向远端时才有完整数据）。本地兜底确保普通节点的"系统内置"模型下拉非空，特惠视频节点因模型随 `discountVideoModel` 硬编码下发，不受影响。
 
 ---
 
@@ -190,8 +195,8 @@ const replaced = raw.replace(/\{VITE_API_BASE_URL\}/g, `http://127.0.0.1:${PORT}
 ```
                  ┌──────────────────────────────────────────────┐
                  │  /public/platform/builtin  +  /public/platform/models │
-                 │  (baseURL 本地指向 127.0.0.1:PORT；localTool 无此   │
-                 │   路由 → 404 兜底；生产指向远端中心服务才有数据)      │
+                 │  (baseURL 本地指向 127.0.0.1:PORT；localTool 返回   │
+                 │   静态 Lovart 模型清单兜底；生产指向远端中心服务)      │
                  └───────────────────────┬──────────────────────┘
                                          │ 内置配置 (readonly:true)
                                          ▼
@@ -413,3 +418,104 @@ apiConfigs.filter(c => c.readonly /* 内置特惠 */ || c.allowInDiscount /* 显
 ---
 
 *本文件为探索性分析文档，结论基于静态代码推断 + 压缩产物片段还原，未运行实机验证。如需落地改造，建议先在 `localTool` 与远端中心服务中确认内置接口真实归属与鉴权方式。*
+
+---
+
+## 附录：6.8 节改造清单 —— 可直接粘贴的代码片段
+
+> **用途**：官方更新版本后，前端源码持有者拿到此附录，即可快速将特惠视频节点改造为"可切换第三方 API"。以下代码基于 6.8 节 Diff 级改造清单写成，变量名对齐文档中的混淆产物分析（`Y` = `apiConfigs`、`u2` = `discountVideoApiUrl`、`d2` = `discountVideoApiKey`），实际使用时替换为源码中的真实变量名。
+
+### A. apiConfig 初始化函数 —— 给特惠补 `.find(id) → url/key`
+
+**位置**：`apiConfigs` 合并后的初始化函数（各节点统一从这里取 `url`/`key`）
+
+```tsx
+// 在现有 video/audio/sd2Video 等节点的 .find 配对之后追加：
+
+// 特惠视频节点：与其他节点同款，从 apiConfigs 取 url/key
+const dvCfg = apiConfigs.find(cfg => cfg.id === discountVideoConfigId) || apiConfigs[0];
+if (dvCfg) {
+  setDiscountVideoUrl(dvCfg.url);
+  setDiscountVideoKey(dvCfg.key);
+}
+```
+
+> 注意：原先 `discountVideoApiUrl` / `discountVideoApiKey` 是节点配置对象里的固定字段。改后需要把它们改为 React state（如 `useState`），由上面这段赋值驱动。下游 `m3` 拼接和 `Bearer` 鉴权头**不改**，只是上游来源从固定常量变成了 `dvCfg.url` / `dvCfg.key`。
+
+### B1. 特惠面板 —— 挂 API 配置下拉
+
+**位置**：渲染特惠视频节点面板的 JSX 组件
+
+```tsx
+{/* 新增：API 配置下拉（复用普通节点已有组件，数据源 apiConfigs，内置排前 + 自建排后） */}
+<div className="api-config-selector">
+  <label>API 配置</label>
+  <select
+    value={discountVideoConfigId}
+    onChange={(e) => {
+      const selectedId = e.target.value;
+      localStorage.setItem('apiConfigId_discountVideo', selectedId);
+      // 触发 A 中的 .find 逻辑
+      const cfg = apiConfigs.find(c => c.id === selectedId);
+      if (cfg) {
+        setDiscountVideoUrl(cfg.url);
+        setDiscountVideoKey(cfg.key);
+        // 模型下拉也联动切换（见 B2）
+        setSelectedDiscountModel(cfg.models?.[0] || discountVideoModelList[0]);
+      }
+    }}
+  >
+    {/* 内置配置（readonly:true）排前 */}
+    {apiConfigs.filter(c => c.readonly).map(cfg => (
+      <option key={cfg.id} value={cfg.id}>
+        [内置] {cfg.name}
+      </option>
+    ))}
+    {/* 自建配置（readonly:false）排后 */}
+    {apiConfigs.filter(c => !c.readonly).map(cfg => (
+      <option key={cfg.id} value={cfg.id}>
+        [自建] {cfg.name}
+      </option>
+    ))}
+  </select>
+</div>
+```
+
+### B2. 模型下拉数据源联动
+
+**位置**：特惠面板中模型 `<select>` 的 `options` 来源
+
+```tsx
+{/* 模型下拉：选中 API 配置后用该配置的模型清单；未选时用硬编码 discountVideoModel 兜底 */}
+<select
+  value={selectedDiscountModel}
+  onChange={(e) => setSelectedDiscountModel(e.target.value)}
+>
+  {(discountVideoConfigId
+    ? (apiConfigs.find(c => c.id === discountVideoConfigId)?.models || discountVideoModelList)
+    : discountVideoModelList
+  ).map(modelName => (
+    <option key={modelName} value={modelName}>{modelName}</option>
+  ))}
+</select>
+```
+
+> 其中 `discountVideoModelList` = `discountVideoModel.split('\n')`（硬编码文本），`selectedDiscountModel` 是当前选中的模型名 state。
+
+### C. 可选白名单过滤（按需追加）
+
+```tsx
+{/* 若业务要求不能让任意第三方进特惠，在 B1 下拉 options 上加过滤 */}
+{apiConfigs
+  .filter(c => c.readonly || c.allowInDiscount)  // 内置特惠 + 显式允许的第三方
+  .map(cfg => (...))}
+```
+
+### 不动清单
+
+| 不动项 | 原因 |
+|--------|------|
+| `m3 = ${(url||'')...}/v1/gateway/task/${taskId}` | 上游 url 来源改了，下游拼接照常 |
+| `Authorization: Bearer ${key}` | key 改为由选中配置驱动即可，头本身不改 |
+| 其他节点（video/audio/sd2Video）的 `.find` 配对 | 已正常工作，勿动 |
+| `/public/platform/builtin`、`/models` 路由（localTool） | 已补静态兜底，本地可用 |

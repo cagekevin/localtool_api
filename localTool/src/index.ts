@@ -19,7 +19,7 @@ import { handleUpload, handleRead, handleThumbnail, handleMkdir, handleMove, han
 import { handleTasksGet, handleTasksSave, handleTasksBatchSave, handleTasksDelete, handleTasksBatchDelete, handleTasksClear } from './routes/tasks.js';
 import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, handleResourcesDelete, handleResourcesClear, handleResourcesRescan } from './routes/resources.js';
 import { handleStatus, handleProxy, handleJianyingSend } from './routes/system.js';
-import { handlePluginManifest, handleWorkflowAppsByProject } from './routes/platform.js';
+import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
 
 // ESM 兼容：Node.js ES 模块无 __dirname，手动构造
@@ -263,6 +263,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (pathname.startsWith('/api/workflow-apps/by-project/') && method === 'GET') {
       return await handleWorkflowAppsByProject(req, res, url);
     }
+    // 内置模型（本地静态兜底，数据来自 apimart-gateway Lovart 模型定义）
+    if (pathname === '/public/platform/builtin' && method === 'GET') {
+      return await handleBuiltin(req, res);
+    }
+    if (pathname === '/public/platform/models' && method === 'GET') {
+      return await handleModels(req, res);
+    }
 
     // ── 管理 ──
     if (pathname === '/api/admin/stats' && method === 'GET') {
@@ -392,6 +399,7 @@ async function main(): Promise<void> {
     console.log('           /api/admin/export  /api/admin/import');
     console.log('    剪映:   /api/jianying/send');
     console.log('    平台:   /plugin/manifest.json  /api/workflow-apps/by-project/:id');
+    console.log('    内置:   /public/platform/builtin  /public/platform/models');
     console.log('    画布:   /  (dist/ 静态托管)');
     console.log('');
     console.log('  按 Ctrl+C 停止');
