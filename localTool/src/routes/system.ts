@@ -151,14 +151,14 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
 
     // 透传响应头（排除 hop-by-hop）
     const resHeaders: Record<string, string> = {};
-    const skipHeaders = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding']);
+    // P0-3 会修改 body 长度，content-length 必须移除让 Node 自动计算
+    const skipHeaders = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
     fetchRes.headers.forEach((value, key) => {
       if (!skipHeaders.has(key)) {
         resHeaders[key] = value;
       }
     });
 
-    res.writeHead(fetchRes.status, resHeaders);
     // 协议翻译：剥 {code, data} 信封，前端直接拿到 data
     let finalBody: Buffer = resBody;
     try {
@@ -167,6 +167,8 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
         finalBody = Buffer.from(JSON.stringify(parsed.data));
       }
     } catch { /* 非 JSON，原样透传 */ }
+    // writeHead 不带 content-length → Node 自动 Transfer-Encoding: chunked 或计算实际长度
+    res.writeHead(fetchRes.status, resHeaders);
     res.end(finalBody);
   } catch (e) {
     const elapsed = Date.now() - _proxyStart;
@@ -261,14 +263,14 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     console.log(`[proxy] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${body.method || 'POST'} ${body.url} | ${fetchRes.status} | ${elapsed}ms`);
 
     const resHeaders: Record<string, string> = {};
-    const skipHeaders = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding']);
+    // P0-3 会修改 body 长度，content-length 必须移除让 Node 自动计算
+    const skipHeaders = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
     fetchRes.headers.forEach((value, key) => {
       if (!skipHeaders.has(key)) {
         resHeaders[key] = value;
       }
     });
 
-    res.writeHead(fetchRes.status, resHeaders);
     // 协议翻译：剥 {code, data} 信封，前端直接拿到 data
     let finalBody: Buffer = resBody;
     try {
@@ -277,6 +279,8 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
         finalBody = Buffer.from(JSON.stringify(parsed.data));
       }
     } catch { /* 非 JSON，原样透传 */ }
+    // writeHead 不带 content-length → Node 自动 Transfer-Encoding: chunked 或计算实际长度
+    res.writeHead(fetchRes.status, resHeaders);
     res.end(finalBody);
   } catch (e) {
     const elapsed = Date.now() - _proxyStart;
