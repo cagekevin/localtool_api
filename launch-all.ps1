@@ -5,8 +5,8 @@
 # 依次拉起：API 网关 (:9004)  +  本地服务 localTool (:18080)  +  打开画布
 #
 # 运行方式（Windows）：
-#   powershell -ExecutionPolicy Bypass -File .\launch-all.command
-# 也可直接把它改名 launch-all.ps1 后双击。
+#   powershell -ExecutionPolicy Bypass -File .\launch-all.ps1
+# 也可直接把它改名 launch-all.command 后运行。
 #
 # 参数：
 #   1   仅前台运行 localTool（方便看终端 [proxy] 日志，Ctrl+C 退出）
@@ -162,7 +162,7 @@ function Start-Watchdog {
     Start-Sleep -Seconds 1
     Open-Canvas
 
-    Write-Log "`n🛡️ 进入守护模式 (5秒轮询，掉线自动拉起)... [按 Ctrl+C 退出]" "Info"
+    Write-Log "`n🛡️ 进入守护模式 (5秒轮询，掉线自动重启)... [按 Ctrl+C 退出]" "Info"
     while ($true) {
         if (-not (Test-PortStatus -Port $Config.Gateway.Port -Name $Config.Gateway.Name -Quiet)) {
             Write-Log "  ⚠️ $(Get-Date -Format 'HH:mm:ss') 网关掉线，正在重启..." "Warn"

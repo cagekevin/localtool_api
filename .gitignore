@@ -17,3 +17,15 @@ __pycache__/
 一毛AI画布引擎Mac端Arm版
 一毛AI画布引擎Mac端Intel版
 apimart-gateway/.env
+
+# ── 自动生成的 Python 虚拟环境（启动脚本按需创建，无需入库）──
+apimart-gateway/venv/
+
+# ── 运行时日志（启动脚本落盘，含 [proxy] 转发明细）──
+apimart-gateway/apimart_9004.log
+apimart-gateway/apimart_9004.err.log
+localTool/localtool_18080.log
+localTool/localtool_18080.err.log
+
+# ── Windows 资源管理器缓存 ──
+Thumbs.db
