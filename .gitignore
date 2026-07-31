@@ -8,6 +8,9 @@ localTool/dist/
 __pycache__/
 *.pyc
 
+# ── dist 原版备份（美化前的单行压缩版，仅本地回退用）──
+dist-orig/
+
 # ── 系统 / 编辑器 / 项目数据 ──
 .DS_Store
 .codebuddy/
