@@ -186,7 +186,25 @@ node dist/index.js     # 前台运行，看 [proxy] 日志；Ctrl+C 退出
 
 | 脚本 | 作用 | 依赖 | 产物 |
 |---|---|---|---|
-| `script/format.js` | Prettier 格式化压平 `input.js` → 可读 `output.js` | `npm i prettier` | `output.js` |
+| `script/format转移.js` | Prettier 格式化压平 `input.js` → 可读 `output.js` | `npm i prettier` | `output.js` |
 | `script/advanced_format.js` | webcrack AST 反混淆 + Prettier，清超长 SVG/Base64 噪点 | `npm i webcrack prettier` | `output_advanced.js` |
 
 用法：`cd script && node format.js` / `node advanced_format.js`
+
+---
+
+## 8. 卡帕西编码准则 (Karpathy Rules)
+
+### 8.1 编码前思考
+不假设，不隐藏困惑。说明假设，多解释并存时全盘呈现，有更优解要提出，不清楚就停下询问。
+
+### 8.2 奥卡姆剃刀 · 简洁优先
+**如无必要，勿增实体。** 任何新增的依赖/文件/端点/开关，先问"删掉它有影响吗"——答不上来就是多余；多解释并存时取假设最少的那条。
+
+### 8.3 精准修改
+只碰必须碰的，匹配现有风格。拆解时清理提取后遗留的孤儿代码（App.js 中已被替代的函数/变量）。每行修改必须能追溯到明确目的。
+
+### 8.4 目标驱动执行
+定义成功标准，将任务转为可验证目标（如写测试验证）。多步骤任务先给出简短计划（`步骤 → 验证：检查项`）。
+
+> **生效标志**：diff 中不必要的改动更少、因过度复杂导致的重写更少、澄清问题在实现前而非犯错后提出。
