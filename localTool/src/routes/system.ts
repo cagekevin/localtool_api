@@ -205,13 +205,18 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
   if (fetchBody) {
     headers['Content-Type'] = 'application/json';
     // 网关 chat/completions 默认 stream=true，但前端非流式请求用 T.json() 解析
-    // 若客户端未明确要求 stream，强制 stream=false 让网关返回 JSON
     if (body.url?.includes('/chat/completions') && !fetchBody.includes('"stream"')) {
       try {
         const p = JSON.parse(fetchBody);
         p.stream = false;
         fetchBody = JSON.stringify(p);
       } catch { /* 解析失败保持原样 */ }
+    }
+
+    // 异步生图/生视转同步：前端期望同步返回 url，但网关只返回 task_id
+    // proxy 拿到 task_id 后内部轮询到完成，把 image URL 作为同步响应返回
+    if (body.url && /\/(images\/generations|videos\/?$|video\/generations|draw\/completions)/.test(body.url)) {
+      return handleAsyncPoll(req, res, body.url, body.method || 'POST', headers, fetchBody);
     }
   }
 
@@ -291,6 +296,78 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     } else {
       sendError(res, `Proxy request failed: ${err.message}`, 502);
     }
+  }
+}
+
+// ── 异步生图/生视转同步：提交→轮询→返回最终 URL ──
+async function handleAsyncPoll(
+  req: IncomingMessage, res: ServerResponse,
+  submitUrl: string, method: string,
+  headers: Record<string, string>, body: string | undefined,
+): Promise<void> {
+  const _start = Date.now();
+  const POLL_INTERVAL = 3000;  // 每3秒轮询一次
+  const MAX_WAIT = Math.min(PROXY_TIMEOUT_MS, 300000); // 最多等5分钟
+
+  try {
+    // 1. 提交任务
+    const submitRes = await fetch(submitUrl, { method, headers, body });
+    if (!submitRes.ok) {
+      const errText = await submitRes.text().catch(() => '');
+      sendError(res, `提交失败: ${submitRes.status} ${errText}`, submitRes.status);
+      return;
+    }
+    const submitData = await submitRes.json() as any;
+    const items: any[] = submitData?.data || submitData || [];
+    const taskId = items[0]?.task_id;
+    if (!taskId) {
+      // 无 task_id，可能是同步响应，原样返回
+      return json(res, submitData);
+    }
+
+    console.log(`[async-poll] task ${taskId} 已提交, 开始轮询...`);
+
+    // 2. 轮询直到完成
+    const pollUrl = submitUrl.replace(/\/v1\/(images\/generations|videos\/?$|video\/generations|draw\/completions)/, '/v1/tasks/' + taskId);
+    // 更可靠的方式：从 URL 提取 base
+    const baseUrl = submitUrl.replace(/\/v1\/.*/, '');
+    const taskUrl = `${baseUrl}/v1/tasks/${taskId}`;
+
+    const deadline = Date.now() + MAX_WAIT;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL));
+      const pollRes = await fetch(taskUrl, { headers });
+      if (!pollRes.ok) {
+        console.warn(`[async-poll] 轮询失败: ${pollRes.status}, 继续重试...`);
+        continue;
+      }
+      const pollData = await pollRes.json() as any;
+      const status = pollData?.data?.status || pollData?.status || '';
+      console.log(`[async-poll] ${taskId} status: ${status} (${Math.round((Date.now()-_start)/1000)}s)`);
+
+      if (status === 'completed') {
+        const result = pollData?.data?.result || pollData?.result || {};
+        const images = result?.images || [];
+        const videos = result?.videos || [];
+        const url = images[0]?.url?.[0] || videos[0]?.url?.[0] || '';
+        if (url) {
+          console.log(`[async-poll] ${taskId} 完成! URL: ${url.slice(0,80)}`);
+          // 返回前端期望的同步格式: {code:200, data: [{url:"..."}]}
+          const syncResp = { code: 200, data: [{ url, status: 'completed' }] };
+          return json(res, syncResp);
+        }
+      }
+      if (status === 'failed' || status === 'abort') {
+        const errMsg = pollData?.data?.error?.message || pollData?.error?.message || status;
+        sendError(res, `生成失败: ${errMsg}`, 500);
+        return;
+      }
+    }
+    sendError(res, `生成超时 (${MAX_WAIT/1000}s)`, 504);
+  } catch (e) {
+    const err = e as Error;
+    console.error(`[async-poll] error:`, err.message);
+    sendError(res, `异步轮询失败: ${err.message}`, 502);
   }
 }
 
