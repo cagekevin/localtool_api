@@ -6,7 +6,6 @@
 #
 # 运行方式（Windows）：
 #   powershell -ExecutionPolicy Bypass -File .\launch-all.ps1
-# 也可直接把它改名 launch-all.command 后运行。
 #
 # 参数：
 #   1   仅前台运行 localTool（方便看终端 [proxy] 日志，Ctrl+C 退出）
@@ -116,13 +115,16 @@ function Start-Gateway {
         & $venvPython -m pip install -r $reqFile 2>&1 | Out-Null
         $useVenv = $true
     }
-    $pythonExe = if ($useVenv) { $venvPython } else { "python" }
+    
+    # 优先使用 pythonw.exe (无控制台版本的 python)，如果没有则用普通 python 配合隐藏窗口
+    $pythonwExe = if ($useVenv) { Join-Path $dir "venv\Scripts\pythonw.exe" } else { "pythonw" }
+    $pythonExe = if (Get-Command $pythonwExe -ErrorAction SilentlyContinue) { $pythonwExe } else { if ($useVenv) { $venvPython } else { "python" } }
 
-    # 后台启动（仅监听本机 127.0.0.1），日志落盘
+    # 后台完全静默启动（使用 -WindowStyle Hidden 彻底隐藏黑框）
     Start-Process -FilePath $pythonExe -ArgumentList "-m uvicorn main:app --host 127.0.0.1 --port $($Config.Gateway.Port)" `
         -RedirectStandardOutput (Join-Path $dir "apimart_9004.log") `
         -RedirectStandardError (Join-Path $dir "apimart_9004.err.log") `
-        -NoNewWindow -WorkingDirectory $dir
+        -WindowStyle Hidden -WorkingDirectory $dir
 
     Start-Sleep -Seconds 3
     Write-Log "  ✅ AI 网关已启动 (日志: apimart-gateway\apimart_9004.log)" "Success"
@@ -144,10 +146,11 @@ function Start-LocalTool {
         Set-Location $dir
         node dist/index.js
     } else {
+        # 后台完全静默启动（使用 -WindowStyle Hidden 彻底隐藏 Node 的 CMD 弹窗）
         Start-Process -FilePath "node" -ArgumentList (Join-Path $dir "dist\index.js") `
             -RedirectStandardOutput (Join-Path $dir "localtool_18080.log") `
             -RedirectStandardError (Join-Path $dir "localtool_18080.err.log") `
-            -NoNewWindow -WorkingDirectory $dir
+            -WindowStyle Hidden -WorkingDirectory $dir
         Start-Sleep -Seconds 2
         Write-Log "  ✅ LocalTool 已启动 (日志: localTool\localtool_18080.log)" "Success"
         return $true
@@ -162,7 +165,7 @@ function Start-Watchdog {
     Start-Sleep -Seconds 1
     Open-Canvas
 
-    Write-Log "`n🛡️ 进入守护模式 (5秒轮询，掉线自动重启)... [按 Ctrl+C 退出]" "Info"
+    Write-Log "`n🛡️ 进入守护模式 (5秒轮询，掉线自动重启)... [按 Ctrl+C 退出控制台则关闭所有]" "Info"
     while ($true) {
         if (-not (Test-PortStatus -Port $Config.Gateway.Port -Name $Config.Gateway.Name -Quiet)) {
             Write-Log "  ⚠️ $(Get-Date -Format 'HH:mm:ss') 网关掉线，正在重启..." "Warn"
@@ -192,8 +195,8 @@ function Show-Dashboard {
 
     Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host "   [1] 启动 LocalTool (前台, 看 [proxy] 日志)"
-    Write-Host "   [2] 启动 网关 + LocalTool (后台 + 守护 + 打开画布)"
-    Write-Host "   [q] 退出" -ForegroundColor DarkGray
+    Write-Host "   [2] 启动 网关 + LocalTool (后台完全静默 + 守护 + 打开画布)"
+    Write-Host "   [q] 退出并清理后台进程" -ForegroundColor DarkGray
     Write-Host "========================================" -ForegroundColor Cyan
 }
 
@@ -212,7 +215,12 @@ while ($true) {
     switch ($CHOICE) {
         "1" { Start-LocalTool -RunInForeground }
         "2" { Start-Watchdog }
-        { $_ -match "^[qQ]$" } { Write-Log "👋 已退出"; exit 0 }
+        { $_ -match "^[qQ]$" } { 
+            Write-Log "👋 正在清理后台进程并退出..."
+            Clear-Port -Port $Config.Gateway.Port
+            Clear-Port -Port $Config.LocalTool.Port
+            exit 0 
+        }
         default { Write-Log "❌ 无效选择，请重试" "Error"; Start-Sleep -Seconds 1 }
     }
 
