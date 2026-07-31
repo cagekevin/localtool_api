@@ -199,9 +199,18 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     headers['Cookie'] = body.cookie;
   }
 
-  const fetchBody = (typeof body.body === 'string' && body.body) || undefined;
+  let fetchBody: string | undefined = (typeof body.body === 'string' && body.body) || undefined;
   if (fetchBody) {
     headers['Content-Type'] = 'application/json';
+    // 网关 chat/completions 默认 stream=true，但前端非流式请求用 T.json() 解析
+    // 若客户端未明确要求 stream，强制 stream=false 让网关返回 JSON
+    if (body.url?.includes('/chat/completions') && !fetchBody.includes('"stream"')) {
+      try {
+        const p = JSON.parse(fetchBody);
+        p.stream = false;
+        fetchBody = JSON.stringify(p);
+      } catch { /* 解析失败保持原样 */ }
+    }
   }
 
   try {
