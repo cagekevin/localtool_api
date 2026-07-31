@@ -362,6 +362,16 @@ def _task_view(task_id, status, progress, created, completed=None, actual_time=N
         d["actual_time"] = actual_time
     if result is not None:
         d["result"] = result
+        # 视频结果映射：Lovart 返回 result.videos[0].url[0]（见 lovart_to_apimart），
+        # 但前端轮询取 video_url/url 等候选（output.js:49622-47），需显式映射出来，否则视频 URL 取不到。
+        if isinstance(result, dict):
+            vids = result.get("videos") or []
+            if vids and isinstance(vids[0], dict):
+                vurl = vids[0].get("url")
+                if isinstance(vurl, list):
+                    vurl = vurl[0] if vurl else None
+                if vurl:
+                    d["video_url"] = vurl
     if error is not None:
         d["error"] = error
     return d
@@ -799,9 +809,9 @@ async def _do_submit(client, body: dict, category: str):
                 elif videos:
                     url = (videos[0].get("url") or [""])[0]
                 if url:
-                    return ok([{"url": url, "status": "completed"}])
+                    return ok([{"url": url, "status": "completed", "task_id": task_id}])
                 # 无产出则透传原错误信息
-                return ok([{"url": "", "status": "failed",
+                return ok([{"url": "", "status": "failed", "task_id": task_id,
                             "error": (data.get("error") or {}).get("message", "no artifact")}])
             await asyncio.sleep(3)
         return err(504, "同步等待生成结果超时", "timeout_error", 504)
@@ -811,6 +821,11 @@ async def _do_submit(client, body: dict, category: str):
     if webhook:
         asyncio.create_task(_background_webhook_watcher(task_id, client))
         
+    if category == "VIDEO":
+        # 视频节点前端按对象取轮询键：普通视频取 O.id（output.js:49584），
+        # discountVideo 取 P.task_id||P.id（output.js:49040）。返回对象结构使二者都能拿到 task_id；
+        # 图片节点按数组解析，保持原数组返回不变（见 daily/12-视频生成失败）。
+        return ok({"id": task_id, "status": "submitted", "task_id": task_id})
     return ok([{"status": "submitted", "task_id": task_id}])
 
 async def _check_and_fire_task(task_id: str, client: LovartClient) -> Tuple[bool, JSONResponse]:

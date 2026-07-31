@@ -102,7 +102,9 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
 
   try {
     // 异步生成转同步：注入 ?wait=1 请求网关同步返回（网关原生双模）
-    const ASYNC_PATTERN = /\/(images\/(generations|edits)|videos\/?$|video\/generations|draw\/completions)/;
+    // videos / video/generations 路径已移出本 pattern：普通视频节点与 sd2Video 前端均为「异步提交 + 轮询」设计，
+    // 注入 wait=1 会强制同步返回、且返回结构错位，导致前端取不到 task_id 去轮询（见 daily/12-视频生成失败）。
+    const ASYNC_PATTERN = /\/(images\/(generations|edits)|draw\/completions)/;
     if (ASYNC_PATTERN.test(targetUrl)) {
       let waitUrl = targetUrl;
       try {
@@ -246,7 +248,8 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
     }
 
     // 异步生图/生视转同步：注入 wait:true，网关原生同步返回
-    if (body.url && /\/(images\/(generations|edits)|videos\/?$|video\/generations|draw\/completions)/.test(body.url)) {
+    // videos / video/generations 路径移出：避免破坏视频节点与 sd2Video 的异步轮询（见 daily/12）
+    if (body.url && /\/(images\/(generations|edits)|draw\/completions)/.test(body.url)) {
       if (fetchBody) {
         try {
           const p = JSON.parse(fetchBody);
