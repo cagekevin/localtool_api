@@ -174,4 +174,19 @@ node dist/index.js     # 前台运行，看 [proxy] 日志；Ctrl+C 退出
 | 想不丢图 | 在 localTool 拿到 CDN url 后调 `saveRemoteUrl`，尽力而为 |
 | 字段对不上 | 画布硬编码读 `t.data[0].url`，localTool 侧剥 `{code,data}` 信封对齐 |
 | 查接口契约 | `01-接口兼容性审计.md.bak.md` + 分析 `dist/` 调用 |
-| 回退改动 | `git reset --hard HEAD~1`（每步单文件独立 commit） |
+| 回退改动 | `-ol --hard HEAD~1`（每步单文件独立 commit） |
+
+---
+
+---
+
+## 10. 辅助脚本（代码反混淆）
+
+`script/` 下两个 Node 辅助脚本（纯前端分析，不动主后端）：
+
+| 脚本 | 作用 | 依赖 | 产物 |
+|---|---|---|---|
+| `script/format.js` | Prettier 格式化压平 `input.js` → 可读 `output.js` | `npm i prettier` | `output.js` |
+| `script/advanced_format.js` | webcrack AST 反混淆 + Prettier，清超长 SVG/Base64 噪点 | `npm i webcrack prettier` | `output_advanced.js` |
+
+用法：`cd script && node format.js` / `node advanced_format.js`
