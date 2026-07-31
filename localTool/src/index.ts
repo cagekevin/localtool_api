@@ -29,6 +29,18 @@ const __dirname = path.dirname(__filename);
 const PORT = Number(process.env.PORT) || 18080;
 const VERSION = '1.4.2';
 
+// 高频轮询端点（心跳/配置同步/资源缓存）不打印，避免日志刷屏
+// 这些由画布前端每秒轮询，无业务价值；代理类已在 system.ts 单独打 [proxy] 日志
+const SILENT_LOG_PATHS = new Set([
+  '/api/status',
+  '/api/kv/get',
+  '/api/kv/set',
+  '/api/resources',
+  '/api/resources/rescan',
+  '/api/tasks',
+  '/api/proxy',
+]);
+
 // ── 端口冲突检测 ──
 function checkPortAvailable(port: number): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -146,7 +158,10 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     if (handleStaticFile(req, res, pathname)) return;
   }
 
-  console.log(`[${method}] ${pathname}`);
+  // 仅打印有意义的请求；高频轮询端点（见 SILENT_LOG_PATHS）静默处理
+  if (!SILENT_LOG_PATHS.has(pathname)) {
+    console.log(`[${method}] ${pathname}`);
+  }
 
   try {
     // ── 系统 ──

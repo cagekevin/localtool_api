@@ -636,6 +636,9 @@ async def images_edits(request: Request):
         "size": size,
         "images": attachments,
     }
+    # 支持 ?wait=1 query string 同步返回（localTool FormData 路径拼 query string）
+    if request.query_params.get("wait") == "1":
+        body["wait"] = True
     return await _do_submit(client, body, "IMAGE")
 
 @app.post("/v1/videos/generations")
@@ -707,6 +710,9 @@ async def _submit_generation(request: Request, category: str):
         body["reference_images"] = body.pop("input_reference")
     if "input_video" in body and "videos" not in body:
         body["videos"] = body.pop("input_video")
+    # 支持 ?wait=1 query string 同步返回（localTool FormData 路径拼 query string）
+    if request.query_params.get("wait") == "1":
+        body["wait"] = True
     return await _do_submit(client, body, category)
 
 def _cleanup_task_meta():
@@ -774,6 +780,33 @@ async def _do_submit(client, body: dict, category: str):
         "poll_count": 0,
     }
     
+    wait = body.get("wait") or False
+
+    if wait:
+        # 同步模式：内部轮询到完成，直接返回结果（复用 _check_and_fire_task）
+        deadline = time.time() + LOVART_TIMEOUT
+        while time.time() < deadline:
+            is_done, response = await _check_and_fire_task(task_id, client)
+            if is_done:
+                body_data = json.loads(response.body)
+                data = body_data.get("data", {})
+                result = data.get("result", {})
+                images = result.get("images", [])
+                videos = result.get("videos", [])
+                url = ""
+                if images:
+                    url = (images[0].get("url") or [""])[0]
+                elif videos:
+                    url = (videos[0].get("url") or [""])[0]
+                if url:
+                    return ok([{"url": url, "status": "completed"}])
+                # 无产出则透传原错误信息
+                return ok([{"url": "", "status": "failed",
+                            "error": (data.get("error") or {}).get("message", "no artifact")}])
+            await asyncio.sleep(3)
+        return err(504, "同步等待生成结果超时", "timeout_error", 504)
+    
+    # 异步模式（默认）：返回 task_id，由调用方自行轮询或等待 webhook
     # 启动异步 webhook 守护程序
     if webhook:
         asyncio.create_task(_background_webhook_watcher(task_id, client))
