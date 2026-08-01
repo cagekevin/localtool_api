@@ -1,0 +1,6 @@
+# 本地运行日志（由启动脚本生成，非源码）
+localtool_run.log
+localtool_err.log
+
+# 编译产物
+dist/
