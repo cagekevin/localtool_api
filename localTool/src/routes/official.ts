@@ -86,7 +86,7 @@ const OFFICIAL_DEFAULT_BASE = 'https://www.1mao.cc';
  * `g()` 只读 sessionStorage 不读 KV。所以这里读 KV 只是「锦上添花」的显式覆盖，
  * 不能指望它让前端请求改道到本转发层——真正改道需改前端 base（见文件尾部）。
  */
-async function readOfficialBase(req: IncomingMessage): Promise<string> {
+export async function readOfficialBase(req: IncomingMessage): Promise<string> {
   // 优先级 1：请求头显式覆盖
   const headerBase = officialBaseHeader(req);
   if (headerBase) return headerBase;
@@ -189,8 +189,22 @@ async function forwardGet(
     }
 
     // 成功（2xx）→ 写缓存（若为缓存性 bucket）
+    //
+    // 【为什么还要判 JSON】2026-08-01 实测教训：
+    // 官方同名路径存在「接口」与「前端页面」两套路由——
+    //   /api/user/info → 401 JSON（真接口）； /user/info → 200 text/html（页面）。
+    // 早期转发目标漏了 /api 前缀，官方返回 200 HTML 登录页，
+    // 因 `fetchRes.ok` 为真而被当作合法权益数据缓存 60s，前端会读到一坨 HTML。
+    // 路径已修正，此处再加一道类型防线：权益接口只接受 JSON，
+    // 任何非 JSON 的 2xx 一律视为「打错路由/被网关拦截」，透传但不缓存。
+    const ctype = (fetchRes.headers.get('content-type') || '').toLowerCase();
+    const isJson = ctype.includes('json');
     if (fetchRes.ok && cacheKey && opts.ttl) {
-      memCache.set(cacheKey, { data: body, status: fetchRes.status, headers: resHeaders, exp: Date.now() + opts.ttl });
+      if (isJson) {
+        memCache.set(cacheKey, { data: body, status: fetchRes.status, headers: resHeaders, exp: Date.now() + opts.ttl });
+      } else {
+        console.warn(`[official] 跳过缓存：期望 JSON 但收到 "${ctype || 'unknown'}" | GET ${target} —— 疑似打到官方页面路由或被网关拦截`);
+      }
     }
 
     // 透传官方原始状态码与 body（含 4xx/401/403，不包成 502）
@@ -226,7 +240,11 @@ async function forwardGet(
 // ── GET /api/user/info ──
 export async function handleOfficialUser(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const base = await readOfficialBase(req);
-  return forwardGet(res, req, `${base}/user/info`, {
+  // 注意：必须带 /api 前缀。实测（2026-08-01）官方两条路径行为不同：
+  //   GET https://www.1mao.cc/api/user/info → 401 {"error":"无效或过期的认证令牌"}（真接口）
+  //   GET https://www.1mao.cc/user/info     → 200 text/html（前端页面路由，非接口）
+  // 早期写成 `${base}/user/info` 会拿回 HTML 登录页并被当作成功响应缓存，故修正。
+  return forwardGet(res, req, `${base}/api/user/info`, {
     cacheKey: OFFICIAL_KEY_USER_INFO,
     ttl: CACHE_TTL[OFFICIAL_KEY_USER_INFO],
   });
@@ -235,7 +253,8 @@ export async function handleOfficialUser(req: IncomingMessage, res: ServerRespon
 // ── GET /api/user/model-entitlements ──
 export async function handleOfficialEntitlements(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const base = await readOfficialBase(req);
-  return forwardGet(res, req, `${base}/user/model-entitlements`, {
+  // 同 handleOfficialUser：必须带 /api 前缀，否则命中官方前端页面路由而非接口
+  return forwardGet(res, req, `${base}/api/user/model-entitlements`, {
     cacheKey: OFFICIAL_KEY_ENTITLEMENTS,
     ttl: CACHE_TTL[OFFICIAL_KEY_ENTITLEMENTS],
   });
@@ -246,7 +265,8 @@ export async function handleOfficialVipCheck(req: IncomingMessage, res: ServerRe
   const base = await readOfficialBase(req);
   const m = (url.pathname || '').match(/^\/api\/agent\/([^/]+)\/vip-check$/);
   const agentId = m ? m[1] : '';
-  return forwardGet(res, req, `${base}/agent/${agentId}/vip-check`); // 不传 cacheKey → 不缓存
+  // 同上：带 /api 前缀。不传 cacheKey → 不缓存（会员判定必须实时）
+  return forwardGet(res, req, `${base}/api/agent/${agentId}/vip-check`);
 }
 
 // ── POST /api/official/entitlements/invalidate（主动失效缓存）──

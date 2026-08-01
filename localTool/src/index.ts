@@ -22,6 +22,9 @@ import { handleStatus, handleProxy, handleJianyingSend } from './routes/system.j
 import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
 import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
+// catch-all 兜底透传：未命中本地具名路由的请求原样转发官方（详见 routes/passthrough.ts 文件头）
+// 这是「改 dist base 指向 18080」的硬前置——否则未接管的 /api/* 会直接 404。
+import { handlePassthrough } from './routes/passthrough.js';
 
 // ESM 兼容：Node.js ES 模块无 __dirname，手动构造
 const __filename = fileURLToPath(import.meta.url);
@@ -327,7 +330,28 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handleFrontendPage(res, pathname)) return;
     }
 
+    // ── catch-all 兜底透传（必须放在所有具名路由之后、404 之前）──
+    //
+    // 【为什么加这一层】2026-08-01 确立原则：不再区分「哪些请求该直连官方」，
+    // 全部走 localTool——即使目的地仍是官方，也经 localTool 转发。
+    // localTool 由此从「白名单路由服务」升级为「唯一出口网关」。
+    //
+    // 【为什么是硬前置】长期目标要改 dist，把前端 base 从官方地址改指 18080。
+    // 但上面的路由是逐条 `pathname === '...'` 精确匹配，未注册的一律落到下面的 404。
+    // 若先改 base 而没有本层，登录/支付/上传凭证等未接管接口会当场 404，功能损坏。
+    // 有了本层，改 base 就是零风险操作：未接管请求原样透传，行为不变，只多绕一跳。
+    //
+    // 【顺序为何关键】具名路由必须优先于本层。否则本地已实现的能力
+    //（如 /public/platform/builtin 的本地静态模型清单）会被透传到官方、被官方响应覆盖，
+    // 等于白实现。反过来，后续想接管任何接口，只需在上面加一条具名路由，
+    // 它自动优先命中，**dist 一行都不用再改**。
+    //
+    // 相关文档：docs/21 §六（执行前置）、docs/01 §〇（长期目标总纲）
+    if (await handlePassthrough(req, res, url)) return;
+
     // ── 404 ──
+    // 走到这里只剩「本地专属路径」（/files/、/plugin/）未命中的情况，
+    // 这类请求转发给官方没有意义，故由 passthrough 返回 false 交回此处。
     sendError(res, 'Not Found', 404);
   } catch (e) {
     console.error(`[error] ${pathname}:`, e);
@@ -418,7 +442,10 @@ async function main(): Promise<void> {
     console.log('    剪映:   /api/jianying/send');
     console.log('    平台:   /plugin/manifest.json  /api/workflow-apps/by-project/:id');
     console.log('    内置:   /public/platform/builtin  /public/platform/models');
+    console.log('    权益:   /api/user/info  /api/user/model-entitlements');
+    console.log('           /api/agent/:id/vip-check  /api/official/entitlements/invalidate');
     console.log('    画布:   /  (dist/ 静态托管)');
+    console.log('    兜底:   其余请求 → 透传官方（catch-all，日志前缀 [passthrough]）');
     console.log('');
     console.log('  按 Ctrl+C 停止');
     console.log('');
