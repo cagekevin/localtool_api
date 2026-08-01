@@ -16,6 +16,28 @@
 
 系统严格遵循分层铁律，请求的唯一入口为 `localTool`，网关作为纯粹的中转站。任何接口/报错/模型的归属，必须先分清是 **localTool / 网关 / 官方 1mao / kkidc** 哪一类，禁止含糊说"后端返回"。
 
+### 0. 三道关系与信息链路（总图）
+
+```
+浏览器/画布 (dist/)
+   │  唯一出口 proxyMode=local-tool，所有请求打到 localTool
+   ▼
+localTool :18080  ── 自研，整体对接 apimart-gateway
+   ├─ /api/proxy ──────► apimart-gateway :9004 ──► Lovart (lgw.lovart.ai，需 VPN)
+   │      （x-proxy-url 常态 = http://127.0.0.1:9004/...）
+   ├─ /api/proxy 透传 ─► kkidc (外部视频上游，原样透传)
+   └─ /public/platform/* ─► 本地静态兜底（自研替换官方 1mao，不连任何远端）
+   ▼
+官方 1mao（闭源，非自研）
+   └─ 仅当 localTool 未启动时，前端 fallback 裸直连；常态不参与链路
+```
+
+**关系要点**：
+- localTool ↔ apimart-gateway：经 `/api/proxy` 服务端转发，`x-proxy-url` 常态指向 `:9004`，再到 Lovart。
+- localTool ↔ 官方 1mao：官方 1mao 的平台接口由 localTool **自研替换**，常态不连；仅 fallback 裸连官方。
+- apimart-gateway ↔ 官方 1mao：**无直接关系**，网关只认 Lovart。
+- kkidc：localTool 透传的外部上游，非前端直连、也非网关直连。
+
 ### 1. 核心层：localTool (一毛画布专属适配层)
 
 * **技术栈与端口**：Node/TS，固定端口 `127.0.0.1:18080`。
