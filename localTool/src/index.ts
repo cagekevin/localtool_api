@@ -264,6 +264,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return await handleWorkflowAppsByProject(req, res, url);
     }
     // 内置模型（本地静态兜底，数据来自 apimart-gateway Lovart 模型定义）
+    // 这两个路由是【自研替换官方 1mao 平台接口】的预备实现：在自托管模式下
+    // 替代官方 1mao 的对应能力，返回本地静态常量，不连官方 1mao 也不实时连 Lovart。
     if (pathname === '/public/platform/builtin' && method === 'GET') {
       return await handleBuiltin(req, res);
     }
