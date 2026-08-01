@@ -13,8 +13,9 @@
 #   （无参数）交互菜单
 #
 # 日志：
-#   网关    apimart-gateway\apimart_9004.log / .err.log
-#   本地    localTool\localtool_18080.log / .err.log
+#   网关    apimart-gateway\logs\apimart_9004.log / .err.log
+#   本地    localTool\logs\localtool_18080.log / .err.log
+#   （所有运行日志统一收进各自模块的 logs\ 目录，已加入 .gitignore）
 # =====================================================================
 $ErrorActionPreference = "Continue"
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
@@ -120,14 +121,18 @@ function Start-Gateway {
     $pythonwExe = if ($useVenv) { Join-Path $dir "venv\Scripts\pythonw.exe" } else { "pythonw" }
     $pythonExe = if (Get-Command $pythonwExe -ErrorAction SilentlyContinue) { $pythonwExe } else { if ($useVenv) { $venvPython } else { "python" } }
 
+    # 日志统一收纳到模块自己的 logs\ 目录（避免散落在仓库根目录）
+    $logDir = Join-Path $dir "logs"
+    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
     # 后台完全静默启动（使用 -WindowStyle Hidden 彻底隐藏黑框）
     Start-Process -FilePath $pythonExe -ArgumentList "-m uvicorn main:app --host 127.0.0.1 --port $($Config.Gateway.Port)" `
-        -RedirectStandardOutput (Join-Path $dir "apimart_9004.log") `
-        -RedirectStandardError (Join-Path $dir "apimart_9004.err.log") `
+        -RedirectStandardOutput (Join-Path $logDir "apimart_9004.log") `
+        -RedirectStandardError (Join-Path $logDir "apimart_9004.err.log") `
         -WindowStyle Hidden -WorkingDirectory $dir
 
     Start-Sleep -Seconds 3
-    Write-Log "  ✅ AI 网关已启动 (日志: apimart-gateway\apimart_9004.log)" "Success"
+    Write-Log "  ✅ AI 网关已启动 (日志: apimart-gateway\logs\apimart_9004.log)" "Success"
     return $true
 }
 
@@ -146,13 +151,17 @@ function Start-LocalTool {
         Set-Location $dir
         node dist/index.js
     } else {
+        # 日志统一收纳到模块自己的 logs\ 目录（避免散落在仓库根目录）
+        $logDir = Join-Path $dir "logs"
+        New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
         # 后台完全静默启动（使用 -WindowStyle Hidden 彻底隐藏 Node 的 CMD 弹窗）
         Start-Process -FilePath "node" -ArgumentList (Join-Path $dir "dist\index.js") `
-            -RedirectStandardOutput (Join-Path $dir "localtool_18080.log") `
-            -RedirectStandardError (Join-Path $dir "localtool_18080.err.log") `
+            -RedirectStandardOutput (Join-Path $logDir "localtool_18080.log") `
+            -RedirectStandardError (Join-Path $logDir "localtool_18080.err.log") `
             -WindowStyle Hidden -WorkingDirectory $dir
         Start-Sleep -Seconds 2
-        Write-Log "  ✅ LocalTool 已启动 (日志: localTool\localtool_18080.log)" "Success"
+        Write-Log "  ✅ LocalTool 已启动 (日志: localTool\logs\localtool_18080.log)" "Success"
         return $true
     }
 }
