@@ -94,8 +94,8 @@ _IMAGE_RULES = [
     (("gpt-image-2-low", "gpt-image2-low", "gptimage2low"), "generate_image_gpt_image_2_low"),
     (("gpt-image-2-medium", "gpt-image2-medium", "gptimage2medium"), "generate_image_gpt_image_2_medium"),
     (("gpt-image-2", "gpt-image2", "gptimage2"), "generate_image_gpt_image_2"),
-    (("nano-banana-pro", "nano banana pro", "nanobananapro"), "generate_image_nano_banana_pro"),
-    (("nano-banana-2", "nano banana 2"), "generate_image_nano_banana_2"),
+    (("nano-bn-pro", "nano bn pro", "nanobnpro"), "generate_image_nano_banana_pro"),
+    (("nano-bn-2", "nano bn 2"), "generate_image_nano_banana_2"),
 ]
 
 _VIDEO_RULES = [
