@@ -43,7 +43,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **技术栈与端口**：Node/TS，固定端口 `127.0.0.1:18080`。
 * **定位**：一切"让画布好用"的适配都在此层完成，整体对接 **apimart-gateway（→Lovart）**。
 
-* **七类职责**：
+* **八类职责**：
   1. **前端托管**：托管 `dist/` 静态产物并自动打开浏览器。
   2. **代理转发**：画布所有请求（`proxyMode=local-tool`）的唯一入口 `/api/proxy`，负责协议翻译（剥 `{code,data}` 信封、SSE 过滤、异步转同步、超时），转发给网关或透传给 kkidc。
   3. **本地存储**：KV、任务、资源、文件 `/files/` 落盘（SQLite）。
@@ -51,6 +51,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
   5. **管理接口**：`/api/admin/*`（统计/清理/导入导出）。
   6. **上传/资产**：`/api/assets/upload`、`/api/upload/app-asset`。
   7. **网关自检引导**：读 apimart-gateway `.env` 校验 AK/SK、提示 VPN。
+  8. **官方权益接口转发**（`/api/user/info`、`/api/user/model-entitlements`、`/api/agent/:id/vip-check`）：官方 1mao 闭源，账号/权益/会员判定 100% 在官方远程；本层只做**中转 + 短缓存**（内存 Map，按 token hash 隔离），不取代官方判定、不伪造权限。默认转发目标为官方候选接入点（endpointConfig `s()[0]`，如 `https://www.1mao.cc`）。**注意**：前端权益 base 默认直连官方候选地址（`g()` 只读 sessionStorage 不读 KV），请求当前不经本层；需后续让前端把 base 指向 18080 才真正接管（见 `localTool/src/routes/official.ts` 尾部「后续补前端」）。
 
 > 注：② 的转发目标是 apimart-gateway；④ 是用来替换官方 1mao 的，两者边界清晰。
 

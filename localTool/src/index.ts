@@ -21,6 +21,7 @@ import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, hand
 import { handleStatus, handleProxy, handleJianyingSend } from './routes/system.js';
 import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
+import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
 
 // ESM 兼容：Node.js ES 模块无 __dirname，手动构造
 const __filename = fileURLToPath(import.meta.url);
@@ -271,6 +272,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
     if (pathname === '/public/platform/models' && method === 'GET') {
       return await handleModels(req, res);
+    }
+
+    // ── 官方权益接口转发层（docs/20）──
+    // 账号/权益/会员判定 100% 在官方远程；本层只做中转 + 短缓存，不取代官方判定。
+    if (pathname === '/api/user/info' && method === 'GET') {
+      return await handleOfficialUser(req, res);
+    }
+    if (pathname === '/api/user/model-entitlements' && method === 'GET') {
+      return await handleOfficialEntitlements(req, res);
+    }
+    if (/^\/api\/agent\/[^/]+\/vip-check$/.test(pathname) && method === 'GET') {
+      return await handleOfficialVipCheck(req, res, url);
+    }
+    if (pathname === '/api/official/entitlements/invalidate' && method === 'POST') {
+      return await handleOfficialInvalidate(req, res);
     }
 
     // ── 管理 ──
