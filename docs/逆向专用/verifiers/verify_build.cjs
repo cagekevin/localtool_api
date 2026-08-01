@@ -38,13 +38,47 @@ if (fs.existsSync(manifestPath)) {
   }
 } else expect(false, 'dist/manifest.json 缺失');
 
-// 3) 入口 HTML 存在且引用了脚本
+// 2b) 图标齐全（避免 Chrome 报 "Couldn't load icon" 后拒绝加载整个扩展）
+//     manifest 的 icons / action.default_icon 可能写成字符串或 {size: path} 对象
+function collectIconRefs(manifest) {
+  const refs = new Set();
+  const add = (v) => { if (typeof v === 'string') refs.add(v); else if (v && typeof v === 'object') Object.values(v).forEach((p) => typeof p === 'string' && refs.add(p)); };
+  if (manifest) { add(manifest.icons); add(manifest.action && manifest.action.default_icon); }
+  return [...refs];
+}
+if (manifest) {
+  const iconRefs = collectIconRefs(manifest);
+  for (const ref of iconRefs) {
+    const ip = path.join(DIST, ref.replace(/^\.?\//, ''));
+    const ok = fs.existsSync(ip) && fs.statSync(ip).size > 0;
+    expect(ok, `图标存在且非空: ${ref}`);
+  }
+  if (!iconRefs.length) expect(false, 'manifest 未声明任何图标 (icons/action.default_icon)');
+}
+
+// 3) 入口 HTML 存在且引用了脚本 + 样式完整（避免界面错乱「加载即崩」）
+const EXPECTED_CSS = ['src-DoQUrSOl.css', 'vendor-Qkhkn02K.css']; // 原始 dist 引用的真实业务样式表
 for (const html of ['index.html', path.join('share', 'index.html')]) {
   const p = path.join(DIST, html);
   expect(fs.existsSync(p), `dist/${html} 存在`);
   if (fs.existsSync(p)) {
     const t = fs.readFileSync(p, 'utf8');
     expect(/<script[^>]+src=/.test(t), `dist/${html} 含 <script src>`);
+    // 样式引用完整性：HTML 必须含真实样式 link，且被引用的 css 文件非空
+    const cssLinks = [...t.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["']/g)].map((m) => m[1]);
+    expect(cssLinks.length > 0, `dist/${html} 含 <link rel=stylesheet>`);
+    for (const href of cssLinks) {
+      // 按 HTML 所在目录解析相对路径（支持 ./assets/ 与 ../assets/）
+      const relBase = path.dirname(path.join(DIST, html));
+      const cp = path.resolve(relBase, href);
+      const ok = fs.existsSync(cp) && fs.statSync(cp).size > 0;
+      expect(ok, `样式文件存在且非空: ${href}`);
+    }
+    // 业务主样式必须被引用（缺失会导致布局全乱）
+    const joined = cssLinks.join(' ');
+    for (const must of EXPECTED_CSS) {
+      expect(cssLinks.some((h) => h.includes(must)), `dist/${html} 引用了必要样式 ${must}`);
+    }
   }
 }
 

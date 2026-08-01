@@ -96,7 +96,7 @@ if (fs.existsSync(PUBLIC_SRC)) {
 
 // dist 根的扩展必需文件（manifest / background / 图标 / wasm 等）补进 public/
 // 这些不在 dist/public/ 下，但扩展加载必须有 manifest.json
-const PUBLIC_ROOT_FILES = ['manifest.json', 'background.js'];
+const PUBLIC_ROOT_FILES = ['manifest.json', 'background.js', 'icon16.png', 'icon48.png', 'icon128.png'];
 for (const f of PUBLIC_ROOT_FILES) {
   copyIfExists(path.join(DIST, f), path.join(PUBLIC_DST, f));
 }

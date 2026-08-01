@@ -46,11 +46,13 @@ function run(cmd, label) {
 }
 
 function cp(src, dest) {
+  if (!fs.existsSync(src)) { console.log(`   ⚠️ 跳过(源不存在): ${path.relative(UNPACKED, src)}`); return; }
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(src, dest);
 }
 
 function cpDir(src, dest) {
+  if (!fs.existsSync(src)) { console.log(`   ⚠️ 跳过(源不存在): ${path.relative(UNPACKED, src)}`); return; }
   fs.mkdirSync(dest, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, e.name), d = path.join(dest, e.name);
@@ -71,10 +73,24 @@ fs.mkdirSync(path.join(PROJECT, 'src', 'bundle'), { recursive: true });
 fs.mkdirSync(path.join(PROJECT, 'share'), { recursive: true });
 
 // 拷贝源文件
+// §4：vendor-/rolldown-runtime-/__vite-browser-external- 虽被 extract_input 判定为「非业务 chunk」剔除，
+// 但其实是业务 chunk 的运行时依赖（React 实例在 vendor-Z 内），必须进工程供 Vite 解析。
+// 这里从 dist/assets/ 直接补拷（只拷贝，不走 webcrack）。
+const RUNTIME_CHUNK_RE = /^(vendor-|rolldown-runtime-|__vite-browser-external-)/;
+function collectRuntimeChunks() {
+  const dir = path.join(UNPACKED, 'dist', 'assets');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => RUNTIME_CHUNK_RE.test(f) && f.endsWith('.js'));
+}
+const RUNTIME = collectRuntimeChunks();
+// 运行时 chunk 名并入 OTHER 集合，供后续 walkFixImports（§5）识别改写
+OTHER.push(...RUNTIME);
+
 console.log('\n📦 拷贝源文件...');
-for (const f of [...DEEP, ...OTHER]) {
+for (const f of [...DEEP, ...RUNTIME, ...OTHER.filter(f => !RUNTIME.includes(f))]) {
   const s = path.join(SRC, f);
-  if (fs.existsSync(s)) { cp(s, path.join(WORK, 'src', 'bundle', f)); console.log(`   ✅ ${f}`); }
+  const srcFrom = fs.existsSync(s) ? s : path.join(UNPACKED, 'dist', 'assets', f);
+  if (fs.existsSync(srcFrom)) { cp(srcFrom, path.join(WORK, 'src', 'bundle', f)); console.log(`   ✅ ${f}`); }
   else { console.log(`   ⚠️ 缺失: ${f}`); }
 }
 
@@ -163,7 +179,10 @@ walkJs(path.join(WORK, 'src', 'bundle'), (fp) => {
 console.log('\n══════ ⑤ 组装工程 ══════');
 
 // 修复 _components/ 子目录中对外部 chunk 的相对路径
-const allChunkNames = [...DEEP, ...OTHER].map(x => x);
+// §5：改写集合改为「bundle 根所有 .js」，覆盖业务 chunk 与运行时 chunk（vendor/rolldown/__vite-browser-external），
+// 这样 _components/ 内对它们的 './X.js' 一律改写为 '../X.js'（原 fix_components_imports.cjs 逻辑固化）。
+const bundleRoot = path.join(WORK, 'src', 'bundle');
+const rootChunkNames = new Set(fs.existsSync(bundleRoot) ? fs.readdirSync(bundleRoot).filter((f) => f.endsWith('.js')) : []);
 function walkFixImports(dir) {
   if (!fs.existsSync(dir)) return;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -174,9 +193,8 @@ function walkFixImports(dir) {
         const fp = path.join(p, f2);
         let code = fs.readFileSync(fp, 'utf8');
         const old = code;
-        code = code.replace(/(from\s+)?['"`]\.\/([^'"`]+\.js)['"`]/g, (m, from, f) => {
-          if (f.includes('/') || f === 'shared.js') return m;
-          if (allChunkNames.includes(f)) return `${from || ''}'../${f}'`;
+        code = code.replace(/(from\s+)?['"`]\.\/([^'"`/]+\.js)['"`]/g, (m, from, name) => {
+          if (rootChunkNames.has(name)) return `${from || ''}'../${name}'`;
           return m;
         });
         if (code !== old) fs.writeFileSync(fp, code);
@@ -184,10 +202,25 @@ function walkFixImports(dir) {
     }
   }
 }
-walkFixImports(path.join(WORK, 'src', 'bundle'));
+walkFixImports(bundleRoot);
 
 cp(path.join(STATIC, 'index.html'), path.join(PROJECT, 'index.html'));
 cp(path.join(STATIC, 'share.html'), path.join(PROJECT, 'share', 'index.html'));
+
+// §3：原 HTML 引用 ./assets/<chunk>.js（原扩展构建产物路径），但源文件实际在 src/bundle/ 下。
+// 固化 fix_html_refs.cjs 逻辑：把 assets/<x>.js -> src/bundle/<x>.js，assets/<x>.css -> src/bundle/assets/<x>.css。
+function fixHtmlRefs(rel) {
+  const fp = path.join(PROJECT, rel);
+  if (!fs.existsSync(fp)) return;
+  let h = fs.readFileSync(fp, 'utf8');
+  h = h.replace(/(src|href)="(\.\.?\/)assets\/([^"]+\.js)"/g,
+    (m, attr, dot, name) => `${attr}="${dot}src/bundle/${name}"`);
+  h = h.replace(/(href)="(\.\.?\/)assets\/([^"]+\.css)"/g,
+    (m, attr, dot, name) => `${attr}="${dot}src/bundle/assets/${name}"`);
+  fs.writeFileSync(fp, h);
+}
+fixHtmlRefs('index.html');
+fixHtmlRefs('share/index.html');
 
 // 写入 vite.config.ts
   // 单 React 实例 shim：把 'react' 指向 vendor-Z 内联 React(Rr)，与入口 react-dom(Ir) 同一实例，
@@ -245,6 +278,8 @@ export const Fragment = __rt.Fragment;
   const viteConfig = `import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { transformWithEsbuild } from 'vite';
+import fs from 'fs';
+import path from 'path';
 // 单 React 实例：所有 'react' / 'react/jsx-runtime' 导入统一指向 vendor-Z 内联 React(Rr)，
 // 与入口 vendor react-dom(Ir) 同一实例，杜绝 Invalid hook call / 多实例。
 const reactShim = resolve(__dirname, 'src', 'bundle', '_react_shim.js');
@@ -271,6 +306,40 @@ export default defineConfig({
         return null;
       },
     },
+    {
+      // 构建后收尾：每次 npm run build 自动执行（此前手动/构建前补丁会被 Vite 重写 index.html 冲掉）。
+      // ① 拷贝图标（原始 dist/icon*.png 不在 public 内，Vite 不会自动带进 dist）
+      // ② 补回 src-DoQUrSOl.css 的 stylesheet 引用（逆向 JS 用 mapDeps 懒加载 CSS，Vite 静态分析抓不到）
+      // ③ 剥离 data:text/javascript 的 modulepreload（Rolldown 内联，违反 MV3 CSP）
+      name: 'post-build-fixups',
+      apply: 'build',
+      closeBundle() {
+        const distDir = path.resolve(__dirname, 'dist');
+        const origDist = path.resolve(__dirname, '..', '..', 'dist'); // 逆向专用/dist（原始发行）
+        if (!fs.existsSync(distDir)) return;
+        for (const n of ['icon16.png', 'icon48.png', 'icon128.png']) {
+          const from = path.join(origDist, n);
+          const to = path.join(distDir, n);
+          if (fs.existsSync(from) && !fs.existsSync(to)) fs.copyFileSync(from, to);
+        }
+        const targets = [
+          { f: path.join(distDir, 'index.html'), base: './assets/' },
+          { f: path.join(distDir, 'share', 'index.html'), base: '../assets/' },
+        ];
+        for (const { f, base } of targets) {
+          if (!fs.existsSync(f)) continue;
+          let h = fs.readFileSync(f, 'utf8');
+          if (!h.includes('src-DoQUrSOl.css')) {
+            const link = '<link rel="stylesheet" crossorigin href="' + base + 'src-DoQUrSOl.css">';
+            const idx = h.indexOf('</head>');
+            if (idx !== -1) h = h.slice(0, idx) + '    ' + link + '\\n    ' + h.slice(idx);
+          }
+          h = h.replace(/<link[^>]+rel="modulepreload"[^>]+href="data:text\\/javascript[^"]*"[^>]*>\\s*/g, '');
+          fs.writeFileSync(f, h);
+        }
+        console.log('  ✅ post-build 收尾：图标 + css 引用 + CSP data: 剥离已固化');
+      },
+    },
   ],
   build: {
     outDir: 'dist', emptyOutDir: true, target: 'esnext', modulePreload: false,
@@ -284,8 +353,27 @@ export default defineConfig({
   },
 });`;
 fs.writeFileSync(path.join(PROJECT, 'vite.config.ts'), viteConfig);
-cp(path.join(STATIC, 'tsconfig.json'), path.join(PROJECT, 'tsconfig.json'));
-cp(path.join(STATIC, 'tailwind.config.js'), path.join(PROJECT, 'tailwind.config.js'));
+// §2：tsconfig / tailwind 模板兜底。原生 dist 不产出这两个文件，
+// 若 step0_raw/static 也没有，则用内置模板生成，避免 cp 缺失 + 工程缺配置。
+const TS_TEMPLATE = JSON.stringify({
+  compilerOptions: { target: 'ESNext', module: 'ESNext', moduleResolution: 'Bundler', jsx: 'react-jsx', strict: false, esModuleInterop: true, skipLibCheck: true, allowJs: true, lib: ['ESNext', 'DOM', 'DOM.Iterable'], types: ['chrome', 'react', 'react-dom'] },
+  include: ['src'],
+}, null, 2);
+const TAILWIND_TEMPLATE = `/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './share/index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  theme: { extend: {} },
+  plugins: [],
+};
+`;
+function ensureTemplate(srcRel, destRel, template) {
+  const src = path.join(STATIC, srcRel);
+  const dest = path.join(PROJECT, destRel);
+  if (fs.existsSync(src)) cp(src, dest);
+  else { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest, template, 'utf8'); console.log(`   📄 内置模板生成: ${destRel}`); }
+}
+ensureTemplate('tsconfig.json', 'tsconfig.json', TS_TEMPLATE);
+ensureTemplate('tailwind.config.js', 'tailwind.config.js', TAILWIND_TEMPLATE);
 cpDir(path.join(STATIC, 'public'), path.join(PROJECT, 'public'));
 cpDir(path.join(WORK, 'src'), path.join(PROJECT, 'src'));
 // 写入单 React 实例 shim（'react' 经 vite alias 指向这两个文件 -> vendor 单实例）
@@ -296,12 +384,19 @@ console.log('   🧼 终检伪迹清理...');
 run(`node "${path.join(SCRIPTS, 'clean_project.cjs')}" "${path.join(PROJECT, 'src', 'bundle')}"`, 'clean');
 console.log('   ✅ 配置 / public / 源码');
 
-// CSS 占位文件（消除 Vite 警告）
+// CSS 占位文件（消除 Vite 警告 + 保证真实样式不丢失）
+// 优先从「原始 dist/assets/」拷贝真实 CSS（若提取阶段没有带出），缺失才写占位符。
+// 注意：绝不能把已存在的真实 CSS 覆盖成空占位符，否则构建产物样式为 0 字节 → 界面错乱。
 const cssDir = path.join(PROJECT, 'src', 'bundle', 'assets');
+const DIST_ASSETS = path.join(UNPACKED, 'dist', 'assets');
 fs.mkdirSync(cssDir, { recursive: true });
-['src-BsO0T5Vc.css', 'vendor-Qkhkn02K.css'].forEach(css => {
+['src-BsO0T5Vc.css', 'vendor-Qkhkn02K.css', 'src-DoQUrSOl.css', 'httpClient-DFxwm5B3.css'].forEach(css => {
   const p = path.join(cssDir, css);
-  if (!fs.existsSync(p)) fs.writeFileSync(p, '/* 逆向还原自动生成 */');
+  const real = path.join(DIST_ASSETS, css);
+  if (!fs.existsSync(p)) {
+    if (fs.existsSync(real)) cp(real, p); // 用原始真实样式
+    else fs.writeFileSync(p, '/* 逆向还原自动生成 */'); // 仅兜底占位
+  }
 });
 
 // package.json (含 react 依赖)
@@ -312,6 +407,49 @@ fs.writeFileSync(path.join(PROJECT, 'package.json'), JSON.stringify({
   dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
   devDependencies: { '@types/chrome': '^0.0.279', '@types/react': '^19.0.0', '@types/react-dom': '^19.0.0', typescript: '^5.6.3', vite: '^5.4.11' },
 }, null, 2));
+
+// ⑤ 修正产物 dist/index.html 的样式引用
+// 逆向 JS 用 mapDeps 懒加载 CSS（非静态 import），Vite 构建时无法静态分析，
+// 会把 stylesheet link 漏掉或只注入其中一个，导致界面错乱（布局丢失/上下颠倒）。
+// 这里直接从「原始 dist」的 index.html 提取所有 stylesheet <link>，强制回写产物 HTML。
+(function fixDistHtmlCss() {
+  const origHtml = path.join(STATIC, 'index.html');
+  const distHtml = path.join(PROJECT, 'dist', 'index.html');
+  if (!fs.existsSync(origHtml) || !fs.existsSync(distHtml)) return;
+  const orig = fs.readFileSync(origHtml, 'utf8');
+  const cssLinks = [...orig.matchAll(/<link[^>]+rel="stylesheet"[^>]*>/g)].map(m => m[0]);
+  if (!cssLinks.length) return;
+  let html = fs.readFileSync(distHtml, 'utf8');
+  // 移除产物中已有的 stylesheet（避免重复/空引用），再统一插入原始真实引用
+  html = html.replace(/<link[^>]+rel="stylesheet"[^>]*>\s*/g, '');
+  const headClose = html.indexOf('</head>');
+  if (headClose === -1) return;
+  html = html.slice(0, headClose) + cssLinks.join('\n    ') + '\n    ' + html.slice(headClose);
+  fs.writeFileSync(distHtml, html);
+  console.log(`   🎨 已修正 dist/index.html 样式引用: ${cssLinks.length} 个 CSS`);
+})();
+
+// ⑥ 剥离产物 HTML 中 data:text/javascript 的 modulepreload（MV3 CSP 报错根因）
+// Rolldown 构建时即便 modulePreload:false 仍会把小模块内联成 data: URL 的 <link rel=modulepreload>，
+// 而 MV3 扩展 CSP「script-src 'self' 'wasm-unsafe-eval'」禁止 data: 来源脚本 → 加载即报
+// "Loading the script 'data:text/javascript...' violates the following Content Security Policy"。
+// 这些 data: preload 是冗余（真实入口是 ./assets/*.js 普通 <script type=module>，符合 CSP），直接剥离即可。
+(function stripDataUrlPreload() {
+  const targets = [
+    path.join(PROJECT, 'dist', 'index.html'),
+    path.join(PROJECT, 'dist', 'share', 'index.html'),
+  ];
+  for (const f of targets) {
+    if (!fs.existsSync(f)) continue;
+    let html = fs.readFileSync(f, 'utf8');
+    const stripped = html.replace(/<link[^>]+rel="modulepreload"[^>]+href="data:text\/javascript[^"]*"[^>]*>\s*/g, '');
+    if (stripped !== html) {
+      fs.writeFileSync(f, stripped);
+      const n = (html.match(/data:text\/javascript/g) || []).length - (stripped.match(/data:text\/javascript/g) || []).length;
+      console.log(`   🛡️ 已剥离 ${f.split(PROJECT)[1]} 中 ${n} 个 data: modulepreload（消除 CSP 报错）`);
+    }
+  }
+})();
 
 // 统计 & 清理
 const count = fs.readdirSync(path.join(PROJECT, 'src', 'bundle'), { recursive: true }).length;
