@@ -50,10 +50,9 @@ import uuid
 from typing import Any, Dict, Optional, Tuple, List
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-# 假设这两个模块在您的环境中存在
 from contract import normalize_body
 from lovart_client import LovartClient, LovartError, close_http_client, _get_http_client
 
