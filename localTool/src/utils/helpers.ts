@@ -59,13 +59,20 @@ export function parseMultipart(
     req.on('end', () => {
       const raw = Buffer.concat(chunks);
       const contentType = req.headers['content-type'] || '';
-      const boundaryMatch = contentType.match(/boundary=(.+)/);
+      // 健壮提取 boundary：兼容带引号（boundary="..."）、前后空白、空格分隔的情况。
+      // 早期正则 /boundary=(.+)/ 会把引号/空格一起捕获进 boundary，导致 sep 与
+      // body 实际分隔符（--abc，无引号）不匹配 → parts 为空 → file/fileUrl 解析不到 → 400。
+      const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
       if (!boundaryMatch) {
         resolve({ fields: {}, files: {} });
         return;
       }
 
-      const boundary = boundaryMatch[1];
+      const boundary = (boundaryMatch[1] || boundaryMatch[2] || '').trim();
+      if (!boundary) {
+        resolve({ fields: {}, files: {} });
+        return;
+      }
       const sep = Buffer.from(`--${boundary}`);
       const parts: Buffer[] = [];
       let start = 0;

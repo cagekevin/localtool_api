@@ -270,10 +270,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // 内置模型（本地静态兜底，数据来自 apimart-gateway Lovart 模型定义）
     // 这两个路由是【自研替换官方 1mao 平台接口】的预备实现：在自托管模式下
     // 替代官方 1mao 的对应能力，返回本地静态常量，不连官方 1mao 也不实时连 Lovart。
-    if (pathname === '/public/platform/builtin' && method === 'GET') {
+    // 注意：前端 fetchBuiltin/Xi 实际请求带 /api 前缀（/api/public/platform/*），
+    // 故此处注册须带 /api 前缀，否则 404（docs/01 变更#1 复测发现的前后端前缀错位）
+    if (pathname === '/api/public/platform/builtin' && method === 'GET') {
       return await handleBuiltin(req, res);
     }
-    if (pathname === '/public/platform/models' && method === 'GET') {
+    if (pathname === '/api/public/platform/models' && method === 'GET') {
       return await handleModels(req, res);
     }
 

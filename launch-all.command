@@ -191,24 +191,15 @@ cleanup() {
 trap cleanup INT TERM
 
 # ── 路由 ──
+# 无参双击：直接进守护模式（一键拉起网关+localTool+打开画布），避免交互菜单在
+# .command 双击场景下拿不到输入而直接 exit（docs 复测发现：双击只打印状态就退出）。
+#   1 → 前台仅跑 localTool（看 [proxy]/[official] 日志，Ctrl+C 退出）
+#   2 / 无参 → 后台守护模式（掉线自动重启 + 打开画布）
 case "${1:-}" in
   1) start_localtool "1" ;;
-  2) start_watchdog ;;
   "")
-    while true; do
-      show_dashboard
-      echo
-      read "CHOICE?👉 请选择操作 (1/2/q): "
-      case "$CHOICE" in
-        1) start_localtool "1" ;;
-        2) start_watchdog ;;
-        q|Q) cleanup ;;
-        *) err "❌ 无效选择，请重试"; sleep 1 ;;
-      esac
-      if [ "$CHOICE" != "1" ]; then
-        echo; read "CONT?按回车键返回菜单..."
-      fi
-    done
+    log "🚀 无参启动：进入守护模式（网关 + 本地工具 + 画布）..."
+    start_watchdog
     ;;
-  *) err "❌ 未知参数: $1 (可用 1 / 2 / 无参)"; exit 1 ;;
+  *) start_watchdog ;;   # 2 或其他参数一律守护模式
 esac
