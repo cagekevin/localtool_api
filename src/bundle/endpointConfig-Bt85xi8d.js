@@ -27,8 +27,7 @@ function s() {
     url: o(`http://154.219.102.152:3012`)
   }];
   try {
-    // [base→18080] 自研唯一出口网关（docs/01 变更#1）；官方更新重打须按 s()/l() 语义重新定位，勿套旧行号
-    let t = JSON.parse(`[{"label":"本地引擎","url":"http://127.0.0.1:18080"},{"label":"主接入点","url":"https://www.1mao.cc"},{"label":"备用接入点1","url":"https://1mao.16iai.com"},{"label":"备用接入点2","url":"http://154.219.102.152:3012"}]`);
+    let t = JSON.parse(`[{"label":"主接入点","url":"https://www.1mao.cc"},{"label":"备用接入点1","url":"https://1mao.16iai.com"},{"label":"备用接入点2","url":"http://154.219.102.152:3012"}]`);
     if (!Array.isArray(t)) return e;
     let n = t.map((e) => ({
       label: String(e?.label || e?.url || ``).trim(),
@@ -41,8 +40,7 @@ function s() {
 }
 var c = s();
 function l() {
-  // [base→18080] 自研唯一出口网关（docs/01 变更#1）；官方更新重打须按 s()/l() 语义重新定位，勿套旧行号
-  return c[0]?.url || o(`http://127.0.0.1:18080`);
+  return c[0]?.url || o(`http://154.219.102.152:3012`);
 }
 function u() {
   try {
