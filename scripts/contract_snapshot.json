@@ -33,10 +33,10 @@
       "localTool/src/routes/official.ts": 13,
       "localTool/src/routes/passthrough.ts": 2,
       "localTool/src/routes/resources.ts": 1,
-      "localTool/src/routes/system.ts": 1,
+      "localTool/src/routes/system.ts": 8,
       "public/background.js": 2
     },
-    "total": 33
+    "total": 40
   },
   "port_9004": {
     "desc": "apimart-gateway 固定端口 9004（前端经变量拼接，故 bundle 内无字面量）",
@@ -46,9 +46,10 @@
       "apimart-gateway"
     ],
     "hits": {
+      "localTool/src/routes/system.ts": 4,
       "localTool/src/utils/netProxy.ts": 1
     },
-    "total": 1
+    "total": 5
   },
   "api_proxy_path": {
     "desc": "代理转发唯一入口 /api/proxy；localTool 负责剥信封/异步转同步",
@@ -61,10 +62,10 @@
       "src/bundle/httpClient-BknZwXjG_components/shared.js": 4,
       "localTool/src/index.ts": 3,
       "localTool/src/routes/official.ts": 1,
-      "localTool/src/routes/system.ts": 1,
+      "localTool/src/routes/system.ts": 3,
       "localTool/src/utils/netProxy.ts": 1
     },
-    "total": 10
+    "total": 12
   },
   "x_proxy_url_header": {
     "desc": "代理上游地址头 x-proxy-url（常态指向 :9004）",
@@ -105,9 +106,9 @@
     "hits": {
       "src/bundle/App-BX6o9fW5_components/Vr.jsx": 1,
       "src/bundle/App-BX6o9fW5_components/shared.js": 1,
-      "localTool/src/routes/system.ts": 2
+      "localTool/src/routes/system.ts": 5
     },
-    "total": 4
+    "total": 7
   },
   "kv_canvas_state_v1": {
     "desc": "画布状态持久化 KV 键 canvas-state-v1",
