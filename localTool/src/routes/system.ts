@@ -10,7 +10,89 @@ import { json, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js
 
 const VERSION = '1.4.2';
 const PORT = Number(process.env.PORT) || 18080;
+const APIMART_PORT = Number(process.env.APIMART_PORT) || 9004; // apimart-gateway 端口（见 CLAUDE.md 端口铁律）
 const PROXY_TIMEOUT_MS = Number(process.env.PROXY_TIMEOUT) || 300000; // 默认 5min，原硬编码 15s
+
+/**
+ * 自指网关 URL 重写：把「打回 localTool 自身的特惠视频 /api/v1/gateway/* 请求」重写到 apimart-gateway。
+ * 见 handleProxyJson 中 [fix:特惠视频] 注释。仅对「host 是 localTool 自身 18080」且
+ * 「路径以 /api/v1/gateway/ 开头」的 URL 生效，其余 URL 原样返回，零副作用。
+ */
+function rewriteSelfGatewayUrl(url: string, selfPort: number): string {
+  try {
+    const u = new URL(url);
+    const isSelfHost = u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '::1';
+    const selfPortMatch = u.port === String(selfPort);
+    if (isSelfHost && selfPortMatch && u.pathname.startsWith('/api/v1/gateway/')) {
+      // 去掉 /api 前缀（apimart-gateway 路由无 /api，见 main.py 的 /v1/gateway/*）
+      const newPath = u.pathname.replace(/^\/api/, '');
+      u.hostname = '127.0.0.1';
+      u.port = String(APIMART_PORT);
+      u.pathname = newPath;
+      const rewritten = u.toString();
+      console.log(`[proxy:rewrite] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${url} -> ${rewritten}`);
+      return rewritten;
+    }
+  } catch { /* 无法解析则原样返回 */ }
+  return url;
+}
+
+/**
+ * GET /api/v1/gateway/task/:taskId —— 特惠视频任务查询（App 全局 setInterval 直连）
+ *
+ * 背景（见变更 #6）：特惠视频的 discountVideoApiUrl 被前端 Kn()/lt() 处理成
+ * `http://127.0.0.1:18080/api`。特惠节点内部轮询走 /api/proxy（已被 rewriteSelfGatewayUrl 转发 9004），
+ * 但 App 组件的全局 setInterval（App-BX6o9fW5_components/Vr.jsx 约 L1310）【直接 fetch】
+ * `http://127.0.0.1:18080/api/v1/gateway/task/{taskId}`，不走 /api/proxy。
+ * 该直连请求被 localTool catch-all 透传官方 → 404「任务未找到或已被清理」。
+ * 故本路由把此直连查询转发到 apimart-gateway 9004，并把响应的 `code:200` 改成 `code:1`
+ * （Vr.jsx 特惠全局轮询用 `c.code === 1 && c.data` 识别，见 L1355）。
+ */
+export async function handleGatewayTask(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+): Promise<void> {
+  const taskId = url.pathname.replace(/^\/api\/v1\/gateway\/task\//, '');
+  if (!taskId) {
+    return sendError(res, 'Missing task id', 400);
+  }
+  const target = `http://127.0.0.1:${APIMART_PORT}/v1/gateway/task/${encodeURIComponent(taskId)}`;
+  const auth = req.headers['authorization'] as string | undefined;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+  try {
+    const fetchRes = await fetch(target, {
+      method: 'GET',
+      headers: auth ? { Authorization: auth, Accept: '*/*' } : { Accept: '*/*' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    const raw = Buffer.from(await fetchRes.arrayBuffer());
+    // 转换 apimart `{code:200, data}` → 前端期望 `{code:1, data}`（仅改 code，其余透传）
+    let out: Buffer = raw;
+    try {
+      const parsed = JSON.parse(raw.toString('utf-8'));
+      if (parsed && typeof parsed === 'object' && 'data' in parsed && parsed.code === 200) {
+        parsed.code = 1;
+        out = Buffer.from(JSON.stringify(parsed));
+      }
+    } catch { /* 非 JSON 原样透传 */ }
+    res.writeHead(fetchRes.status, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.end(out);
+  } catch (e) {
+    clearTimeout(timeout);
+    const err = e as Error;
+    if (err.name === 'AbortError') {
+      sendError(res, `Gateway task query timed out (${PROXY_TIMEOUT_MS / 1000}s)`, 504);
+    } else {
+      sendError(res, `Gateway task query failed: ${err.message}`, 502);
+    }
+  }
+}
 
 // ── SSE 协议转换：透传 data: 行，去掉 : heartbeat 等 SSE 注释 ──
 // 前端期望标准 SSE 格式: data: {...json...}\n\n
@@ -229,6 +311,16 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
   if (!body || !body.url) {
     return sendError(res, 'Missing url in JSON body', 400);
   }
+
+  // ── [fix:特惠视频] 自指重写 → apimart-gateway ──
+  // 特惠视频节点 discountVideoApiUrl 经前端 Kn()/lt() 处理成 `http://127.0.0.1:18080/api`
+  // （docs/01 变更#1 base→18080 后，`$e(Je)`=Kn(g())=base+/api），提交 `S=`${x}/v1/gateway/generate``
+  // 即 body.url = `http://127.0.0.1:18080/api/v1/gateway/generate`。它又打回 localTool 自身，
+  // 无 `/api/v1/gateway/*` 具名路由 → 被 catch-all 透传官方 1mao → 官方 400
+  // "Unknown or disabled model / channel"（www.1mao.cc 不认识 seedance-2.0-fast）。
+  // 修复：检测到目标 host 是 localTool 自身 18080 且路径以 /api/v1/gateway/ 开头时，
+  // 重写到 apimart-gateway 9004 并去掉 /api 前缀（apimart 路由无 /api，见 main.py /v1/gateway/*）。
+  body.url = rewriteSelfGatewayUrl(body.url, PORT);
 
   const headers: Record<string, string> = { ...body.headers };
   if (body.cookie) {

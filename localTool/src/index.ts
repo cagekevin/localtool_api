@@ -18,7 +18,7 @@ import { handleKvGet, handleKvSet, handleKvDelete } from './routes/kv.js';
 import { handleUpload, handleRead, handleThumbnail, handleMkdir, handleMove, handleOpen, handleOpenDir, handleList } from './routes/files.js';
 import { handleTasksGet, handleTasksSave, handleTasksBatchSave, handleTasksDelete, handleTasksBatchDelete, handleTasksClear } from './routes/tasks.js';
 import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, handleResourcesDelete, handleResourcesClear, handleResourcesRescan } from './routes/resources.js';
-import { handleStatus, handleProxy, handleJianyingSend } from './routes/system.js';
+import { handleStatus, handleProxy, handleJianyingSend, handleGatewayTask } from './routes/system.js';
 import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
 import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
@@ -253,6 +253,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // ── 代理 ──
     if (pathname === '/api/proxy' && method === 'POST') {
       return await handleProxy(req, res);
+    }
+
+    // ── 特惠视频任务查询（App 全局 setInterval 直连，见 system.ts handleGatewayTask）──
+    // 必须放在 catch-all 兜底之前，否则被透传官方 → 404「任务未找到或已被清理」
+    if (/^\/api\/v1\/gateway\/task\/[^/]+$/.test(pathname) && method === 'GET') {
+      return await handleGatewayTask(req, res, url);
     }
 
     // ── 剪映 ──
