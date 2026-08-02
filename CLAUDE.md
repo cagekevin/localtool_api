@@ -103,6 +103,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **唯一入口**：localTool 的 `/files/` 是唯一文件入口，Python 网关不直接落盘。
 * **不丢图增强**：localTool 拿到 CDN url 后调 `saveRemoteUrl`（基于 `sha1(url)` 幂等）转存本地。
 * **降级策略**：下载失败仍返回 CDN 链接 + WARN，**绝不抛 500 阻断生图**。
+* **出站代理（2026-08-02）**：localTool 是独立 Node 进程，原生 `fetch` **不继承浏览器/系统代理**。若外部 CDN（如 Lovart `a.lovart.ai`）在本机需经代理才能访问，`saveRemoteUrl` 直连会超时 → 表现 `POST /api/files/upload 400`。统一封装 `localTool/src/utils/netProxy.ts` 的 `fetchWithProxy`：**直连优先 → 失败读代理环境变量（`HTTPS_PROXY`>`HTTP_PROXY`>`ALL_PROXY`，大小写兼容）→ 无则探测本机常见代理端口（`7897/7890/1087/1080/8888/8118`）→ 用 `node:https`+`tls.connect` CONNECT 隧道经代理重试**。本地目标（`127.0.0.1`/`localhost`/内网）永不走代理。适用点：`files.ts` 的 `saveRemoteUrl`（下载 CDN 图）与 `handleReadProxy`（`x-proxy-url` 外部代理读）；`/api/proxy`→`:9004`、`official.ts`/`passthrough.ts`→官方（直连可达）**不涉及**。
 
 ---
 
