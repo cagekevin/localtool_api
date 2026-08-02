@@ -4265,7 +4265,9 @@ ${C}`;
         throw Error(typeof n == `string` ? n : `请求失败: ${N.status}`);
       }
       let P = await N.json();
-      let F = _shared.P.task_id || _shared.P.id;
+      // [fix:task_id] 原误用共享 _shared.P（非本次提交响应），导致"未返回任务 ID"；改用刚解析的局部 P。
+      // （docs/01 变更#2。官方重打须按"特惠视频提交后解析响应取 task_id"语义定位。）
+      let F = P.task_id || P.id;
       if (!F) {
         throw Error(`未返回任务 ID`);
       }
