@@ -102,7 +102,8 @@ _IMAGE_RULES = [
     (("nano-banana-2", "nano banana 2"), "generate_image_nano_banana_2"),
 ]
 _VIDEO_RULES = [
-    (("seedance-2.0-fast", "seedance-v2-0-fast", "seedance 2.0 fast"), "generate_video_seedance_v2_0_fast"),
+    (("seedance-2.0-fast", "seedance-v2-0-fast", "seedance 2.0 fast",
+      "seedance_2_fast", "seedance-2-fast", "seedance 2 fast"), "generate_video_seedance_v2_0_fast"),
     (("seedance-2", "seedance2", "seedance-v2", "seedance 2"), "generate_video_seedance_v2_0"),
     (("kling-v3-omni", "kling-3-omni", "kling 3 omni"), "generate_video_kling_v3_omni"),
 ]
