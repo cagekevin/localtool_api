@@ -66,7 +66,38 @@ export default defineConfig({
           h = h.replace(/<link[^>]+rel="modulepreload"[^>]+href="data:text\/javascript[^"]*"[^>]*>\s*/g, '');
           fs.writeFileSync(f, h);
         }
-        console.log('  ✅ post-build 收尾：图标 + css 引用 + CSP data: 剥离已固化');
+
+        // ④ Bug B 修复（docs/22 §2.6 / §七 次修）：分享页不应再加载主应用入口 main。
+        //   成因：main/share 共享 __vitePreload 辅助，Rollup 把它归到 main 并让 share 反向
+        //   import main → share 页跑双 createRoot 挂同一 #root。此处从产物层剔除 main 的
+        //   注入与 share 对 main 的 import，使分享页只跑一次 createRoot（share 自己的）。
+        const shareHtml = path.join(distDir, 'share', 'index.html');
+        if (fs.existsSync(shareHtml)) {
+          let sh = fs.readFileSync(shareHtml, 'utf8');
+          sh = sh.replace(/\s*<script[^>]*src="[^"]*main-CYvt_zul\.js"[^>]*>\s*<\/script>\s*/g, '');
+          // 清理删除后残留的紧贴换行（</script><script），保持可读
+          sh = sh.replace(/<\/script><script/g, '</script>\n    <script');
+          fs.writeFileSync(shareHtml, sh);
+        }
+        const shareJs = path.join(distDir, 'assets', 'share-CyPsaet6.js');
+        if (fs.existsSync(shareJs)) {
+          let sj = fs.readFileSync(shareJs, 'utf8');
+          // 剥离 share 对 main 的 import（该 import 仅用于空依赖的 __vitePreload 包裹）。
+          // 本地别名（minify 后为随机单字母）从 import 行动态提取，避免硬编码失效。
+          const impM = sj.match(/^import\{_ as ([A-Za-z_$][\w$]*)\}from"\.\/main-CYvt_zul\.js";/);
+          if (impM) {
+            const n = impM[1];
+            sj = sj.replace(`import{_ as ${n}}from"./main-CYvt_zul.js";`, '');
+            // 内层空依赖 __vitePreload 包裹退化为直接调用（[] => 无预载，等值）
+            sj = sj.replace(new RegExp(`await ${n}\\(async\\(\\)=>\\{`), 'await(async()=>{');
+            sj = sj.replace(/\},\[\],import\.meta\.url\)/, '})()');
+            fs.writeFileSync(shareJs, sj);
+          } else {
+            console.warn('  ⚠️ Bug B: share-CyPsaet6.js 未匹配到 main import，跳过（可能已剥离或结构变化）');
+          }
+        }
+
+        console.log('  ✅ post-build 收尾：图标 + css 引用 + CSP data: 剥离 + Bug B(share 去 main) 已固化');
       },
     },
   ],

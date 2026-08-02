@@ -53,7 +53,19 @@
 > - **静态验证（已通过）**：重建后 `dist/assets/` 只剩 1 个 `vendor-Z-adA07W.js`，`adA07W2` 消失；全部 8 个业务模块（`main`/`share`/`App`/`ShareAppPage`/`_react_shim`/`_jsx_runtime`/`httpClient`/`mediabunny`）的 React 符号 100% 指向同一份 vendor；`npm run test:smoke` **ALL PASS**（含 `dist 重复 chunk  PASS`）。
 > - **真机结果（验收通过）**：打开带 Three.js 的画布页，`useMemo` 崩溃消失、`Multiple instances of Three.js` 警告消失。**以真机报错消失为唯一验收标准——本次闭环达成。**
 > - **对旧记录的重要修正**：§九「试错 #1」曾记录 S1 真机仍崩（报错栈含 `adA07W2`）。经本次在干净重建产物 + 真机复测，S1 **成功**。旧记录的真机失败疑因测试时的产物陈旧 / 未随最新源码重建（`adA07W2` 只在该陈旧产物中存在），并非 S1 本身无效。详见 §九「试错 #3」。
-> - **遗留（非本次修复范围）**：`dist/share/index.html` 仍同时注入 `main-CYvt_zul.js` 与 `share-CyPsaet6.js`（报告 §2.6 Bug B / 双 `createRoot`）。该问题与 React 双实例不同源，本次未处理，另立跟踪。
+> - **遗留跟踪更新（2026-08-03）：Bug B 也已修复并真机验证通过**。见下方「Bug B 修复已真机验证闭环」。
+
+> ## ✅ Bug B（分享页双 createRoot）修复已真机验证闭环（2026-08-03）
+>
+> **方案（产物层兜底，`vite.config.ts` 的 `post-build-fixups` 插件新增 ④ 步骤）已实施，真机测试通过，分享页正常。**
+>
+> - **改动**：`vite.config.ts` 的 `closeBundle` 中，构建后：
+>   1. 从 `dist/share/index.html` 剔除 `main-CYvt_zul.js` 的 `<script>` 注入；
+>   2. 从 `dist/assets/share-CyPsaet6.js` 剥离对 `main` 的 `import`，并将内层空依赖的 `__vitePreload` 包裹（`[]` 无预载）退化为直接调用。
+> - **成因（§2.6 Bug B）**：main/share 共享 `__vitePreload` 辅助，Rollup 把它归到 main 并让 share 反向 import main → 分享页同时加载两个入口、跑两次 `createRoot` 挂同一 `#root`。
+> - **先尝试但放弃**：源码给 `share-CyPsaet6.js` 的 `__vite__mapDeps` 改名（方案 2）——实测 Vite 仍让 share import main（共享的是 `__vitePreload` 而非 mapDeps，Vite 自动注入、源码改名无效），已回退，改走产物层兜底。
+> - **静态验证（已通过）**：`dist/share/index.html` 只加载 `share-CyPsaet6.js`、不再注入 main；`share-CyPsaet6.js` 不再 import main、含 1 个 `createRoot`；`dist/index.html` 正常含 main 的 1 个 `createRoot`；`npm run test:smoke` **ALL PASS**。
+> - **真机结果（验收通过）**：分享页正常显示、不再双挂载。闭环达成。
 
 ---
 
@@ -426,6 +438,6 @@ npm run test:smoke                        # 期望 dist 重复 chunk PASS
 - **成功归因（高置信度，与 §2.2 机制一致）**：源 HTML 的 vendor `modulepreload` 把 `vendor-Z-adA07W.js` 变成 entry 身份，与 `manualChunks` 强制命名的同名 chunk 冲突 → Rollup 追加 `2` 后缀产出 `adA07W2`。于是 `main` 用无2版 vendor 的 react-dom 渲染 App，而 App 的 hooks 经静态改写解析到 `adA07W2` 的 React → dispatcher 为 null → `useMemo` 崩溃。删掉 preload 后 vendor 只剩"被 import 的 manualChunk"一个身份，双 vendor / 双 React 实例消除，崩溃根除。
 - **避坑记录（供参考，非指导）**：**真机测试前务必用最新源码 `npm run build` 干净重建 `dist/`，并确认 `dist/assets/` 无陈旧 `adA07W2.js` 残留**。此前「试错 #1」误判 S1 失败，极可能正是测试时产物陈旧所致——陈旧产物里仍有 `adA07W2`，导致真机复现了旧崩溃。
 
-### 遗留跟踪（非本次修复范围）
+### 遗留跟踪（已闭环）
 
-- **Bug B（§2.6 / 方向 C）**：`dist/share/index.html` 仍同时注入 `main-CYvt_zul.js` 与 `share-CyPsaet6.js`，分享页跑双 `createRoot` 挂载同一 `#root`。与本次修复的 React 双实例**不同源**，需另立任务处理（可选落点见 §七 次修）。验收标准：`dist/share/index.html` 不再注入 `main-CYvt_zul.js`。
+- **Bug B（§2.6 / 方向 C）**：`dist/share/index.html` 同时注入 `main-CYvt_zul.js` 与 `share-CyPsaet6.js`，分享页跑双 `createRoot` 挂载同一 `#root`。✅ **已于 2026-08-03 修复并真机验证通过**（`post-build-fixups` ④ 剔除 share 页 main 注入 + 剥离 share 对 main 的 import），见报告顶部「Bug B 修复已真机验证闭环」。验收标准达成：`dist/share/index.html` 不再注入 `main-CYvt_zul.js`。
