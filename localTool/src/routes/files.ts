@@ -11,6 +11,7 @@ import path from 'node:path';
 import { getUploadDir } from '../db/database.js';
 import { ensureDir, sanitizeFilename, resolveUploadTarget, writeUploadBuffer, writeUploadBufferAt, ensureThumbnailTarget } from '../utils/fileStore.js';
 import { json, parseMultipart, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
+import { fetchWithProxy } from '../utils/netProxy.js';
 
 const PORT = Number(process.env.PORT) || 18080;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -101,7 +102,9 @@ async function saveRemoteUrl(subfolder: string, fileUrl: string, filename?: stri
   ensureDir(path.dirname(savedPath));
 
   if (!fs.existsSync(savedPath)) {
-    const response = await fetch(fileUrl);
+    // 直连优先，失败走代理（跨平台：读环境变量或探测 127.0.0.1:7897 等常见本机代理端口）。
+    // 解决了 localTool 进程 fetch 不继承浏览器代理、导致下载 Lovart CDN 图超时 400 的问题。
+    const response = await fetchWithProxy(fileUrl);
     if (!response.ok) {
       throw new Error(`Failed to download fileUrl: ${response.status}`);
     }
@@ -190,7 +193,8 @@ async function handleReadProxy(req: IncomingMessage, res: ServerResponse, proxyU
   }
 
   try {
-    const fetchRes = await fetch(proxyUrl, {
+    // 代理读可能指向外部 CDN（如 Lovart），用 fetchWithProxy 支持跨平台代理
+    const fetchRes = await fetchWithProxy(proxyUrl, {
       method: proxyMethod,
       headers: proxyHeaders,
     });
