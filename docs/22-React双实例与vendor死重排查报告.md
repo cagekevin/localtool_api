@@ -45,6 +45,18 @@
 
 ---
 
+> ## ✅ 修复已真机验证闭环（2026-08-03）
+>
+> **方案 S1（删除源 HTML 的 vendor `modulepreload` 行）已实施，真机测试通过，报错消失。**
+>
+> - **改动**：删 `index.html` / `share/index.html` / `public/share/index.html` 三处 `<link rel="modulepreload" ... vendor-Z-adA07W.js>`（各删 1 行）。
+> - **静态验证（已通过）**：重建后 `dist/assets/` 只剩 1 个 `vendor-Z-adA07W.js`，`adA07W2` 消失；全部 8 个业务模块（`main`/`share`/`App`/`ShareAppPage`/`_react_shim`/`_jsx_runtime`/`httpClient`/`mediabunny`）的 React 符号 100% 指向同一份 vendor；`npm run test:smoke` **ALL PASS**（含 `dist 重复 chunk  PASS`）。
+> - **真机结果（验收通过）**：打开带 Three.js 的画布页，`useMemo` 崩溃消失、`Multiple instances of Three.js` 警告消失。**以真机报错消失为唯一验收标准——本次闭环达成。**
+> - **对旧记录的重要修正**：§九「试错 #1」曾记录 S1 真机仍崩（报错栈含 `adA07W2`）。经本次在干净重建产物 + 真机复测，S1 **成功**。旧记录的真机失败疑因测试时的产物陈旧 / 未随最新源码重建（`adA07W2` 只在该陈旧产物中存在），并非 S1 本身无效。详见 §九「试错 #3」。
+> - **遗留（非本次修复范围）**：`dist/share/index.html` 仍同时注入 `main-CYvt_zul.js` 与 `share-CyPsaet6.js`（报告 §2.6 Bug B / 双 `createRoot`）。该问题与 React 双实例不同源，本次未处理，另立跟踪。
+
+---
+
 > 状态：**已定位根因并给出修复方案，可作为修复立项依据**。早期版本断言"结构性双实例、不可修、硬删失败"与原稿"chunk 内部双份 React"均与源码/配置/产物实测冲突，已修订。
 > 排查日期：2026-08-02
 > **末次审计：2026-08-02（全文逐条实测复核）**——本轮对报告内每一条"待核实/待验证"断言重跑了实测，共更正 5 处事实错误，其中 1 处为结论级：
@@ -383,13 +395,15 @@ npm run test:smoke                        # 期望 dist 重复 chunk PASS
 ## 九、试错日志（AI 避坑清单 · 每次失败必记录）
 
 > **本章节为错误记录区**：仅记录真机实测失败的方法与现象，供后续 AI 避坑参考。后续 AI 自行判断如何排查，**本记录不预设方向、不给方案建议**。登记内容：方法 / 做法 / 真机结果 / 失败现象。验收以真机报错栈消失为准。
+>
+> ✅ **2026-08-03 更正**：下方「试错 #1」记录的 S1 失败，经本次**干净重建产物 + 真机复测**已证伪——S1 确证成功（见文末「试错 #3 · 成功」）。旧记录真机失败疑因测试时产物陈旧（`adA07W2` 仅存在于陈旧产物），并非 S1 无效。
 
 ### 试错 #1 — 方法 S1：删除源 HTML 中 vendor 的 `modulepreload` 行（主修）
 
 - **做法**：删 `index.html` / `share/index.html` / `public/share/index.html` 三处 `<link modulepreload ... vendor-Z-adA07W.js>`。
 - **对照构建结果（静态）**：`adA07W2` 消失，`dist/assets/` 只剩 `vendor-Z-adA07W.js`（无2版一份）；`__vite__mapDeps` 依赖数组引用的 vendor 名也是 `vendor-Z-adA07W.js`（与唯一 React 副本同名）；质量门 `dist 重复 chunk` PASS；`npm run test:smoke` ALL PASS；全产物含 `react.transitional.element` 的文件数 = **1**（即确证只有一份 React 实例）。
-- **真机结果**：仍报同样的 `useMemo` 崩溃 + `Multiple instances of Three.js`，报错栈含 `adA07W2`。与静态"只剩一份 React"的结论矛盾，根因未定位（见下方"当前未决根因"）。
-- **失败根因（未定位）**：S1 后产物静态层确证单实例（只剩 1 个 React 文件、mapDeps 指向它、质量门 PASS），但真机仍崩。说明 S1 未触及真正的运行时双实例路径，双实例另有成因，待新方法排查。
+- **真机结果**：⚠️ 此条已被「试错 #3」推翻。旧记录"仍报同样的 `useMemo` 崩溃 + `Multiple instances of Three.js`，报错栈含 `adA07W2`"——疑为测试时产物陈旧（未随最新源码重建，`adA07W2` 只存在于陈旧产物），并非 S1 本身无效。
+- **失败根因（未定位，已被成功复测推翻）**：S1 后产物静态层确证单实例（只剩 1 个 React 文件、mapDeps 指向它、质量门 PASS），但真机仍崩。说明 S1 未触及真正的运行时双实例路径，双实例另有成因，待新方法排查。——经 2026-08-03 干净重建 + 真机复测，S1 已修复，此归因作废。
 - **避坑记录（供参考，非指导）**：S1 静态层确证单实例（只剩 1 个 React 文件、质量门 PASS），但真机仍报 `useMemo` 崩溃。即"产物质检 PASS / 静态单实例"与"真机修复"在本项目中不一致，后续 AI 可注意此现象。
 
 ### 试错 #2 — 方法 S2：S1 + 在 `post-build-fixups` 剔除 share 页 `main-CYvt_zul.js` 的 `<script>`
@@ -402,4 +416,16 @@ npm run test:smoke                        # 期望 dist 重复 chunk PASS
 ### 当前未决根因（待新方法验证）
 
 - **已实证（静态层，强证据）**：未改动的原始工作区 `npm run build` 后，`dist/assets/` 同时产出 `vendor-Z-adA07W.js` 与 `vendor-Z-adA07W2.js` 两个完整 React 副本（各 ~1.7MB）；所有业务模块静态 `import` 指向 `adA07W2`；HTML 第 9 行 `<link modulepreload>` 声明无2版、第 12 行 `<script>` 加载 `adA07W2`；`main`/`share`/`httpClient` 的 `__vite__mapDeps` 依赖数组含 `./vendor-Z-adA07W.js`。真机栈 `useMemo@adA07W2` + `fi@(无2版)` 证明运行时两份都被实例化、dispatcher 不互通 → 崩溃。
-- **S1 的静态验证**：删三处 vendor preload 后重新 build，产物仅 1 个 React 文件、mapDeps 也指向它、质量门 PASS。但真机复跑仍报同样的 `useMemo` 崩溃，故 S1 未解决运行时双实例问题，根因仍未定位（后续 AI 自行排查）。
+- **S1 的静态验证**：删三处 vendor preload 后重新 build，产物仅 1 个 React 文件、mapDeps 也指向它、质量门 PASS。但真机复跑仍报同样的 `useMemo` 崩溃，故 S1 未解决运行时双实例问题，根因仍未定位（后续 AI 自行排查）。——⚠️ 此段"S1 真机仍崩"结论已被 2026-08-03 复测推翻，见下方「试错 #3 · 成功」。
+
+### 试错 #3 — 方法 S1（干净重建产物 + 真机复测）【✅ 成功 · 验收通过】
+
+- **做法**：删除 `index.html` / `share/index.html` / `public/share/index.html` 三处 `<link rel="modulepreload" ... vendor-Z-adA07W.js>`（各删 1 行），随后用最新源码 `npm run build` **干净重建** `dist/` 再真机测试。
+- **静态验证（已通过）**：重建后 `dist/assets/` 只剩 1 个 `vendor-Z-adA07W.js`，`adA07W2` 彻底消失；全部 8 个业务模块（`main`/`share`/`App`/`ShareAppPage`/`_react_shim`/`_jsx_runtime`/`httpClient`/`mediabunny`）的 React 符号 100% 指向同一份 vendor；`dist/index.html` 只剩单 vendor 的 `<script>`；`npm run test:smoke` **ALL PASS**（含 `dist 重复 chunk  PASS`）。
+- **真机结果（✅ 验收通过）**：打开带 Three.js 的画布页，`useMemo` 崩溃**消失**、`Multiple instances of Three.js` 警告**消失**。真机报错栈消失，闭环达成。
+- **成功归因（高置信度，与 §2.2 机制一致）**：源 HTML 的 vendor `modulepreload` 把 `vendor-Z-adA07W.js` 变成 entry 身份，与 `manualChunks` 强制命名的同名 chunk 冲突 → Rollup 追加 `2` 后缀产出 `adA07W2`。于是 `main` 用无2版 vendor 的 react-dom 渲染 App，而 App 的 hooks 经静态改写解析到 `adA07W2` 的 React → dispatcher 为 null → `useMemo` 崩溃。删掉 preload 后 vendor 只剩"被 import 的 manualChunk"一个身份，双 vendor / 双 React 实例消除，崩溃根除。
+- **避坑记录（供参考，非指导）**：**真机测试前务必用最新源码 `npm run build` 干净重建 `dist/`，并确认 `dist/assets/` 无陈旧 `adA07W2.js` 残留**。此前「试错 #1」误判 S1 失败，极可能正是测试时产物陈旧所致——陈旧产物里仍有 `adA07W2`，导致真机复现了旧崩溃。
+
+### 遗留跟踪（非本次修复范围）
+
+- **Bug B（§2.6 / 方向 C）**：`dist/share/index.html` 仍同时注入 `main-CYvt_zul.js` 与 `share-CyPsaet6.js`，分享页跑双 `createRoot` 挂载同一 `#root`。与本次修复的 React 双实例**不同源**，需另立任务处理（可选落点见 §七 次修）。验收标准：`dist/share/index.html` 不再注入 `main-CYvt_zul.js`。
