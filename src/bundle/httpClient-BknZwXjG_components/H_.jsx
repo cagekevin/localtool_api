@@ -4267,7 +4267,9 @@ ${C}`;
         throw Error(typeof n == `string` ? n : `请求失败: ${N.status}`);
       }
       let P = await N.json();
-      let F = _pollState.P.task_id || _pollState.P.id;
+      // [fix:task_id] 原误用模块级 _pollState.P（旧值/0），导致"未返回任务 ID"；改用刚解析的 P。
+      // （原始混淆变量 _pollState.P 在特惠视频提交流程未赋值，取到 0 → task_id 缺失。官方重打须按此语义定位。）
+      let F = P.task_id || P.id;
       if (!F) {
         throw Error(`未返回任务 ID`);
       }
