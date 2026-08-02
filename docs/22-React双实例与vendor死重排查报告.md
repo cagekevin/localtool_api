@@ -382,8 +382,7 @@ npm run test:smoke                        # 期望 dist 重复 chunk PASS
 
 ## 九、试错日志（AI 避坑清单 · 每次失败必记录）
 
-> **本章节为强制记录区**：任何被尝试过且**真机验证失败**的方法都必须在此登记，供后续 AI 避免重复踩坑。登记格式：方法 / 做法 / 真机结果 / 失败根因 / 避坑提示。
-> 验收标准唯一：**真机报错栈消失**（含 `useMemo` 崩溃 + `Multiple instances of Three.js` 警告）。产物质检 PASS、静态分析"只剩一份 vendor"均**不足为凭**（已有反例）。
+> **本章节为错误记录区**：仅记录真机实测失败的方法与现象，供后续 AI 避坑参考。后续 AI 自行判断如何排查，**本记录不预设方向、不给方案建议**。登记内容：方法 / 做法 / 真机结果 / 失败现象。验收以真机报错栈消失为准。
 
 ### 试错 #1 — 方法 S1：删除源 HTML 中 vendor 的 `modulepreload` 行（主修）
 
@@ -391,19 +390,16 @@ npm run test:smoke                        # 期望 dist 重复 chunk PASS
 - **对照构建结果（静态）**：`adA07W2` 消失，`dist/assets/` 只剩 `vendor-Z-adA07W.js`（无2版一份）；`__vite__mapDeps` 依赖数组引用的 vendor 名也是 `vendor-Z-adA07W.js`（与唯一 React 副本同名）；质量门 `dist 重复 chunk` PASS；`npm run test:smoke` ALL PASS；全产物含 `react.transitional.element` 的文件数 = **1**（即确证只有一份 React 实例）。
 - **真机结果**：仍报同样的 `useMemo` 崩溃 + `Multiple instances of Three.js`，报错栈含 `adA07W2`。与静态"只剩一份 React"的结论矛盾，根因未定位（见下方"当前未决根因"）。
 - **失败根因（未定位）**：S1 后产物静态层确证单实例（只剩 1 个 React 文件、mapDeps 指向它、质量门 PASS），但真机仍崩。说明 S1 未触及真正的运行时双实例路径，双实例另有成因，待新方法排查。
-- **避坑提示（后续 AI 必读）**：
-  1. **产物质检 PASS / 静态"只剩一份 vendor/React"不足以证明真机修复**——已有 S1 反例（静态单实例、真机仍崩）。验收唯一标准：**真机报错栈消失**。
-  2. 排查加载路径须同时看 HTML 声明（`modulepreload`/`script`）与产物 `__vite__mapDeps` 依赖数组两者，勿过度推断"两者均指向同一文件即为单实例"——本例中静态指向同一文件仍真机双实例。
+- **避坑记录（供参考，非指导）**：S1 静态层确证单实例（只剩 1 个 React 文件、质量门 PASS），但真机仍报 `useMemo` 崩溃。即"产物质检 PASS / 静态单实例"与"真机修复"在本项目中不一致，后续 AI 可注意此现象。
 
 ### 试错 #2 — 方法 S2：S1 + 在 `post-build-fixups` 剔除 share 页 `main-CYvt_zul.js` 的 `<script>`
 
 - **做法**：先执行 S1，并在 `vite.config.ts` 的 `post-build-fixups` 插件 `closeBundle` 中加正则剔除 `dist/share/index.html` 里 `../assets/main-CYvt_zul.js` 的 `<script>`（意图消除分享页双 `createRoot`）。
 - **真机结果**：❌ 未单独真机验证即被撤销（因发现 S1 本身真机已崩，叠加此改动风险更高）；且逻辑上剔除 main script 会破坏 `main`/`share` 共享的 `__vite__mapDeps` 链路，可能导致分享页白屏或功能缺失。
 - **失败根因**：基于原报告"方向 A 已排除、崩溃源于 share 双 createRoot（方向 C）"的**错误前提**。真机已证伪方向 A 排除（无2版确实执行），故"消除 share 双 createRoot"并非崩溃根因，此改动属无的放矢且引入新风险。
-- **避坑提示**：原报告 §2.6 / §四 的"方向 A 已排除 / 双 vendor 非崩溃原因"结论**已被真机推翻**，任何基于该结论的衍生方案（含 S2 次修）均不可信，勿复用。
+- **避坑记录（供参考，非指导）**：S2 基于原报告"方向 A 已排除、崩溃源于 share 双 createRoot"的前提，但真机已证伪该前提（无2版 vendor 确实在运行时执行），故 S2 的出发点不成立。后续 AI 可注意此前提已被推翻。
 
 ### 当前未决根因（待新方法验证）
 
 - **已实证（静态层，强证据）**：未改动的原始工作区 `npm run build` 后，`dist/assets/` 同时产出 `vendor-Z-adA07W.js` 与 `vendor-Z-adA07W2.js` 两个完整 React 副本（各 ~1.7MB）；所有业务模块静态 `import` 指向 `adA07W2`；HTML 第 9 行 `<link modulepreload>` 声明无2版、第 12 行 `<script>` 加载 `adA07W2`；`main`/`share`/`httpClient` 的 `__vite__mapDeps` 依赖数组含 `./vendor-Z-adA07W.js`。真机栈 `useMemo@adA07W2` + `fi@(无2版)` 证明运行时两份都被实例化、dispatcher 不互通 → 崩溃。
-- **S1 的静态验证**：删三处 vendor preload 后重新 build，产物仅 1 个 React 文件、mapDeps 也指向它、质量门 PASS。但真机复跑仍报同样的 `useMemo` 崩溃，故 S1 未解决运行时双实例问题，根因仍未定位。
-- **后续方向（均未验证，仅供排查参考，非结论）**：调整 `manualChunks` 使 vendor 不再被复制出 `2` 后缀；或将 `__vite__mapDeps` 依赖数组里的 `./vendor-Z-adA07W.js` 重定向到与 `import` 相同的稳定产物；或彻底去掉无2版"被两份加载机制引用"。以上均需真机验证闭环方可采信。
+- **S1 的静态验证**：删三处 vendor preload 后重新 build，产物仅 1 个 React 文件、mapDeps 也指向它、质量门 PASS。但真机复跑仍报同样的 `useMemo` 崩溃，故 S1 未解决运行时双实例问题，根因仍未定位（后续 AI 自行排查）。
