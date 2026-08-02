@@ -199,6 +199,28 @@ for (const [f, n] of topDeps) L.push(`| \`${f}\` | ${n} |`);
 L.push('');
 L.push('## 六、同名影子文件警示（重要）');
 L.push('');
+// 6.1 src/bundle/ 内部跨目录同名文件（真·影子文件：AI 改一个极易漏另一个）
+const byBase = {};
+for (const f of allCompFiles) {
+  if (!f.dir) continue; // 顶层 chunk 不参与同名比对
+  const base = f.rel.split('/').pop();
+  (byBase[base] = byBase[base] || []).push(f.rel);
+}
+const shadow = Object.entries(byBase).filter(([, arr]) => arr.length > 1).sort((a, b) => b[1].length - a[1].length);
+if (shadow.length) {
+  L.push('> ⚠ **`src/bundle/` 内部同名影子文件**：以下文件名在多个 `_components` 目录中重复出现，是「改一处漏一处」最高危陷阱。改其中之一前，必须逐个确认所有同名文件是否要同步改，改完跑 `npm run contracts` + `npm run build`。');
+  L.push('');
+  L.push('| 同名文件 | 出现目录数 | 落点（按目录） |');
+  L.push('|---|---|---|');
+  for (const [base, arr] of shadow) {
+    const dirs = [...new Set(arr.map((r) => r.split('/')[0]))].join(' · ');
+    L.push(`| \`${base}\` | ${arr.length} | ${dirs} |`);
+  }
+  L.push('');
+} else {
+  L.push('- `src/bundle/` 内部暂未发现跨目录同名影子文件。');
+  L.push('');
+}
 L.push('- `public/assets/*.js` 是 1.4.0 时期遗留的**死副本**（12 个 JS 已于 2026-08-02 删除），被 build 产物覆盖不生效。grep 该路径若再现，是缓存/未清理产物，勿改。');
 L.push('- `public/assets/*.css`（src-DoQUrSOl.css / httpClient-DFxwm5B3.css / vendor-Qkhkn02K.css）是**活文件**，Vite 不产出，由 post-build-fixups 补引用，保留勿删。');
 L.push('- `dist/` 是构建产物，运行时只读它；改前端一律改 `src/bundle/` 后 `npm run build` 回灌（见 CLAUDE.md §四.2/§四.5）。');

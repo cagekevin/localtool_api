@@ -174,6 +174,8 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 - **`src/bundle/BUNDLE_MAP.md`**：自动生成的逆向源码地图（chunk 表 / 大文件特征索引 / 反向索引 / 高危文件标记 / 同名影子文件警示）。AI 改 `src/bundle/` 前**必读**，按特征反查落点，不凭混淆文件名判断职责。由 `npm run map` 重建。
 - **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §二点五。
 
+> **铁律：BUNDLE_MAP.md / CONTRACTS.md 一律由工具重建，禁止手改。** 这两份是自动生成物，手改会被下次 `npm run map` / `npm run contracts -- --md` 覆盖，且会漏掉自动检测（如同名影子文件扫描）。要改地图内容，改 `scripts/gen_bundle_map.cjs` 或 `scripts/contract_scan.cjs` 后重跑。其中第六章「同名影子文件警示」由生成器自动扫描 `src/bundle/` 跨目录同名文件得出（如 `shared.js` 4 处、`Tr.jsx` 等各 2 处），是防「改一处漏一处」的最高危提示，勿删。
+
 ---
 
 ## 五、 运维排障速查 (Quick Reference)
