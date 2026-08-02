@@ -15,6 +15,8 @@
 2. **API 地址也是写死的**：特惠视频节点除了模型列表硬编码，连 **API 地址也用独立的 `discountVideoApiUrl` 配置字段写死**（来源为节点配置对象 `e3[v.discountVideo]`，并非 `apiConfigs` 下拉可选项），不取 `apiConfigs` 里某条配置的 `apiUrl`。也就是说"用哪个接口、发往哪里"都是特惠专属字段，第三方 API 没有注入点。
 3. **特惠视频节点绑定固定内置配置 `apiConfigId_discountVideo`**：该 ID 在初始化时存入 `localStorage`，节点面板只展示自己的 `discountVideoModel` 列表与 `discountVideoApiUrl`，**没有"切换 API 配置"的下拉入口**，用户没有任何路径把第三方 API 选进来。
 
+> **【现状更新 2026-08-02】以上"硬隔离"结论已被打破——特惠视频节点现已能显示并选中第三方 API 里的视频模型。** 落地方式**没有**采用第 6 节（新增 UI / 改 url/key 来源）的探索方案，而是走了一条更轻的"注入式"路径：在 `localTool/data/apiConfigs.baseline.json` 的 tehuishipin 条目下挂 video 模型，前端在运行时把这些 video 模型 id 经 `setDiscountVideoApiConfigModels` 注入全局，并由 `Ki()` 合并进 `discountVideoModel` 列表回灌特惠面板。详见 **第 9 节 · 实际落地方案**。注意：本方案**不改**特惠节点的 API 地址/鉴权来源（仍走 `discountVideoApiUrl`/`discountVideoApiKey` 锁死的特惠通道），只扩展"可选模型清单"，因此不引入计费隔离风险（与第 6.4 担忧的"绕过特惠计费"不同）。
+
 > 关于 `readonly` 的澄清（修正旧版误区）：普通节点的"API 配置"下拉**并非只显示第三方**。实际合并逻辑见第 2 节——`readonly: true` 的系统内置项与 `readonly: false` 的用户自建项**都会进入下拉**，只是内置项排在前面。特惠视频节点"看不到第三方"不是因为被 `readonly` 过滤掉了，而是因为它**压根不走这条 `apiConfigs` 下拉逻辑**（它用的是自己的 `discountVideoModel`/`discountVideoApiUrl`）。
 
 下面逐层展开证据。
@@ -218,8 +220,10 @@ const replaced = raw.replace(/\{VITE_API_BASE_URL\}/g, `http://127.0.0.1:${PORT}
 
 ---
 
-## 6. 如果要让特惠视频节点同时显示第三方 API（探索性方案）
+## 6. 如果要让特惠视频节点同时显示第三方 API（探索性方案 · ⚠️ 未采用）
 
+> **状态（2026-08-02）**：本节是 2026-07-31 的探究性方案，**实际落地未采用本方案**（见第 9 节）。本节保留作为"完整重构特惠节点"的备选路线，但当前线上版本走的是更轻的"注入式"路径，与本节第 6.7/6.8 的"加 API 配置下拉 + 改 url/key 来源"思路不同。
+>
 > 本节基于对 `dist` 压缩产物的静态分析给出改造路线。当前**只有前端压缩产物、无前端源码**，因此下列改动点以"应改哪里、改成什么样"描述，落地时需在对应源码位置（打包前的 TSX/TS）实现。所有论断均可在 `App-BX6o9fW5.js` / `httpClient-BknZwXjG.js` 中找到对应证据。
 
 ### 6.0 先厘清：为什么现在"同时显示"做不到
@@ -418,6 +422,122 @@ apiConfigs.filter(c => c.readonly /* 内置特惠 */ || c.allowInDiscount /* 显
 ---
 
 *本文件为探索性分析文档，结论基于静态代码推断 + 压缩产物片段还原，未运行实机验证。如需落地改造，建议先在 `localTool` 与远端中心服务中确认内置接口真实归属与鉴权方式。*
+
+---
+
+## 9. 实际落地方案（2026-08-02 · 注入式最小改动）
+
+> **与第 6 节的关系**：第 6 节是"完整重构特惠节点（加 UI + 改 url/key 来源）"的探索方案，**未采用**。本节省力、零回归、不碰计费通道，实际已上线。
+> **核心思路**：不新增 UI、不改特惠节点的 API 地址/鉴权来源，**只把 baseline 里第三方 API 的视频模型 id 注入到 `discountVideoModel` 列表**，让特惠面板"能选到"这些模型。选中后生成请求**仍走锁死的 `discountVideoApiUrl`/`discountVideoApiKey` 特惠通道**（由 Vr.jsx 的 `pi='tehuishipin'` → `lr(o.url)`/`dr(o.key)` 注入，网关地址 = localTool），因此**不引入第 6.4 担忧的计费绕过风险**。
+
+### 9.1 数据流（落地后）
+
+```
+localTool/data/apiConfigs.baseline.json
+   │  tehuishipin 条目新增 video 模型（seedance-2.0-fast / seedance-2 / kling-v3-omni）
+   │  + 顶层 discountVideoModel 字段（兜底清单）
+   ▼
+localTool /api/sync/default 直接读 baseline 原样返回（index.ts 已支持）
+   ▼
+Vr.jsx (App-BX6o9fW5) 拿到 apiConfigs → Y state
+   │  useEffect 遍历 Y，抽取每个 config.models 里 type==='video' 的 id
+   │  → setDiscountVideoApiConfigModels(ids)   // 注入全局模块变量
+   ▼
+httpClient-BknZwXjG_components/shared.js
+   │  Ki() 读取 discountVideoApiConfigModels，合并进 discountVideoModel 列表
+   │  （无论云端 Ni 是否加载，都追加，去重）
+   ▼
+特惠面板模型下拉（discountVideoModel）出现第三方 video 模型 ✅
+   │ 选中后提交
+   ▼
+特惠通道：discountVideoApiUrl(=localTool 网关) + discountVideoApiKey(运行时 We() 自动生成)
+   → /v1/gateway/generate
+```
+
+### 9.2 具体改动清单（4 处文件）
+
+#### 改动 1 · `localTool/data/apiConfigs.baseline.json`（数据层）
+
+- tehuishipin 条目**修正 + 扩充**：补 `id:'tehuishipin'`、`url:'{VITE_API_BASE_URL}'`、`key:''`、`readonly:true`（此前 Url/apiUrl 大写、缺字段）；`models` 数组内新增 3 个 video 模型：
+  ```json
+  { "id": "seedance-2.0-fast", "type": "video", "label": "Seedance 2.0 Fast" },
+  { "id": "seedance-2",        "type": "video", "label": "Seedance 2" },
+  { "id": "kling-v3-omni",     "type": "video", "label": "Kling V3 Omni" }
+  ```
+- 文件**顶层新增** `discountVideoModel` 字段（换行分隔的兜底清单，含上述 3 个 + 原默认）：
+  ```json
+  "discountVideoModel": "seedance_2_fast\nseedance-2.0-fast\nseedance-2\nkling-v3-omni"
+  ```
+
+#### 改动 2 · `httpClient-BknZwXjG_components/shared.js`（主模块，模型清单合并逻辑）
+
+- 在 `var Mi = null; var Ni = [];`（约 2217 行）之后新增全局变量 + setter：
+  ```js
+  var discountVideoApiConfigModels = [];
+  function setDiscountVideoApiConfigModels(e) {
+    discountVideoApiConfigModels = e || [];
+    zi();   // 全局 forceUpdate（遍历 Li 订阅者），触发特惠面板刷新
+  }
+  ```
+- 改写 `Ki()`（原约 2398 行）—— **关键修复**：原逻辑在"云端 Ni 已加载"分支只返回 `isDiscountVideo` 模型，导致注入的第三方 video 模型被过滤掉（这正是首版上线后下拉为空的根因）。改为**两个分支都追加** `discountVideoApiConfigModels`（去重）：
+  ```js
+  function Ki() {
+    let e;
+    if (Ni.length > 0) {
+      e = Ni.filter(t => { return t.isDiscountVideo; }).map(t => { return t.modelName; });
+    } else {
+      e = $i();
+    }
+    if (discountVideoApiConfigModels.length > 0) {
+      let n = new Set(e);
+      e = [...e, ...discountVideoApiConfigModels.filter(t => { return !n.has(t); })];
+    }
+    return e;
+  }
+  ```
+- 主 `export { ... }` 末尾追加导出 `setDiscountVideoApiConfigModels`（经 `httpClient-BknZwXjG.js` 的 `export *` 透传）。
+
+#### 改动 3 · `App-BX6o9fW5_components/shared.js`（facade 层）
+
+> 该文件是 Vr.jsx 实际 import 的 facade，它显式 `import { ... } from '../httpClient-BknZwXjG.js'` 并显式 re-export。**两个 shared.js 同名 `Y` 是混淆重名、非同一数据**（facade 的 `Y`=Ar 常量，Vr.jsx 的 `Y`=apiConfigs state），子组件不能直接读 Vr 的 apiConfigs，故必须走"全局 setter"桥接。
+
+- import 列表末尾补 `setDiscountVideoApiConfigModels`（来自 `../httpClient-BknZwXjG.js`）。
+- export 列表末尾补 `setDiscountVideoApiConfigModels`。
+
+#### 改动 4 · `App-BX6o9fW5_components/Vr.jsx`（主 App，注入触发点）
+
+- import 段引入 `setDiscountVideoApiConfigModels`。
+- 在依赖 `[Y, ai, si, li, di, pi, mi, hi]` 的 useEffect（约 794 行后，原 `lr(o.url)/dr(o.key)` 特惠配对之后）追加：
+  ```js
+  let discountVideoModels = [];
+  for (let e of Y) {
+    let t = e.models;
+    if (Array.isArray(t)) {
+      for (let n of t) {
+        if (n.type === 'video' && n.id) { discountVideoModels.push(n.id); }
+      }
+    }
+  }
+  setDiscountVideoApiConfigModels(discountVideoModels);
+  ```
+
+### 9.3 生效条件与验证
+
+- **必做**：重启 localTool（重新读 baseline）+ **刷新浏览器插件加载新打包产物**（`npm run build` 回灌 `dist/`）。首版因只重启 localTool、未刷新插件，导致下拉仍空。
+- **构建/质量门**：`npm run build` 成功 → `node scripts/rename.cjs` 同步 readable → `node scripts/smoke_test.cjs` ALL PASS。
+- **真机验收**：打开特惠视频节点，模型下拉出现 Seedance 2.0 Fast / Seedance 2 / Kling V3 Omni；选中后走 localTool 网关 `/v1/gateway/generate`（key 由 `We()` 运行时自动注入）。
+
+### 9.4 与第 6 节方案的关键差异（为何选注入式）
+
+| 维度 | 第 6 节探索方案 | 9.x 实际落地 |
+|---|---|---|
+| 是否新增 UI | 是（特惠面板加 API 配置下拉） | 否，复用现有 `discountVideoModel` 下拉 |
+| 是否改 url/key 来源 | 是（特惠改由选中 apiConfig 驱动） | 否（仍走锁死特惠通道，无计费绕过风险） |
+| 改动面 | 2 函数 + 1 组件挂载，较大 | 4 处文件、每处数行，最小 |
+| 计费隔离风险 | 有（需白名单 `allowInDiscount` 加固） | 无（地址/鉴权不变） |
+| 用户能否切换 API | 能（下拉选不同第三方） | 不能（但需求本就只要求"能选到第三方视频模型"，已满足） |
+
+> 结论：用户 2026-08-02 确认"如果能被识别为内置模型也可以"，即接受这些模型作为特惠清单项出现即可，不要求切换 API 配置入口——故注入式最小方案恰满足需求。若未来需"用户自选第三方 API 配置并切换通道"，再启用第 6 节方案（届时务必补 §6.4 计费隔离）。
 
 ---
 
