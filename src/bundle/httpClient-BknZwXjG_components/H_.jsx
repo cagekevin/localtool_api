@@ -4421,7 +4421,7 @@ ${C}`;
           }
           if (n.status === 404 && ee < L) {
             ee++;
-            return _shared.R();
+            return R();
           }
           let r = await n.json().catch(() => {
             return {};
@@ -4431,7 +4431,10 @@ ${C}`;
         let r = await n.json();
         let i = r.status;
         if (i === `success` || i === `succeeded` || i === `completed`) {
-          let t = r.result?.url || r.resultUrl;
+          // [fix:特惠视频取链接] apimart-gateway 的视频链接映射到顶层 video_url（main.py task_view
+          // 把 Lovart result.videos[0].url[0] 显式映射出 video_url）。此前只取 r.result?.url / r.resultUrl
+          // 均 undefined → 误报「未找到视频链接」。补 r.video_url 与 result.videos[0].url[0] 兜底。
+          let t = r.video_url || r.result?.url || r.resultUrl || r.result?.videos?.[0]?.url?.[0];
           if (!t && r.responseData?.debug_extracted_url) {
             t = r.responseData.debug_extracted_url;
           }
@@ -4536,15 +4539,15 @@ ${C}`;
             });
           }
           ee++;
-          return _shared.R();
+          return R();
         } else if (i === `failed`) {
           throw Error(r.error || r.message || `任务执行失败`);
         } else {
           ee++;
-          return _shared.R();
+          return R();
         }
       };
-      await _shared.R();
+      await R();
     } catch (t) {
       if (t.name === `AbortError` || t.message === `已取消`) {
         console.log(`Video generation aborted`);

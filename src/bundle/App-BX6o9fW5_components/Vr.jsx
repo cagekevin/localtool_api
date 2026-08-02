@@ -3278,7 +3278,7 @@ grok-video-3`);
               <Component721 viewBox={`0 0 20.7624 28.8621`} xmlns={`http://www.w3.org/2000/svg`} xmlnsXlink={`http://www.w3.org/1999/xlink`} width={`24`} height={`24`} fill={`none`}>
                 <Component720 d={`M20.7624 0C0.868225 2.29614 0.393066 20.877 0 28.8621L1.21155 28.8621C1.21155 21.9207 4.94049 21.4546 8.42853 20.6113C13.6559 19.3462 17.0903 14.3184 17.95 10.2493L15.8051 9.17358L16.9758 7.71509C18.1466 6.25684 19.2449 4.14502 20.7624 0L20.7624 0Z`} fill={`rgb(210,2,7)`} fillRule={`evenodd`} />
               </Component721>
-              <Component722 className={`text-white font-bold text-lg italic tracking-wider`}>{`一毛AI`}</Component722>
+              <Component722 className={`text-white font-bold text-lg italic tracking-wider`}>{`猫猫画布`}</Component722>
               <Component724 className={`absolute left-0 top-full mt-2 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl opacity-0 invisible group-hover/logo:opacity-100 group-hover/logo:visible transition-all duration-300 delay-500 z-50 overflow-hidden whitespace-nowrap p-1`}>
                 <Component723 onClick={e => {
                 e.stopPropagation();
@@ -4483,9 +4483,9 @@ sora`} />
                     <Component1130 viewBox={`0 0 20.7624 28.8621`} xmlns={`http://www.w3.org/2000/svg`} xmlnsXlink={`http://www.w3.org/1999/xlink`} width={`28`} height={`28`} fill={`none`}>
                       <Component1129 d={`M20.7624 0C0.868225 2.29614 0.393066 20.877 0 28.8621L1.21155 28.8621C1.21155 21.9207 4.94049 21.4546 8.42853 20.6113C13.6559 19.3462 17.0903 14.3184 17.95 10.2493L15.8051 9.17358L16.9758 7.71509C18.1466 6.25684 19.2449 4.14502 20.7624 0L20.7624 0Z`} fill={`rgb(210,2,7)`} fillRule={`evenodd`} />
                     </Component1130>
-                    <Component1131 className={`text-2xl font-black tracking-wider text-white italic`}>{`一毛AI`}</Component1131>
+                    <Component1131 className={`text-2xl font-black tracking-wider text-white italic`}>{`猫猫画布`}</Component1131>
                   </Component1132>
-                  <Component1133 className={`text-sm text-gray-400 font-medium tracking-widest mt-1`}>{`省钱就用一毛AI`}</Component1133>
+                  <Component1133 className={`text-sm text-gray-400 font-medium tracking-widest mt-1`}>{`省钱就用猫猫画布`}</Component1133>
                 </Component1134>
               </Component1135>
               <Component1136 className={`px-8 pb-10 pt-2 bg-[#151414]`}>
