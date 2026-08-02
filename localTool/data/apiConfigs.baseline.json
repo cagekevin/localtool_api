@@ -1,9 +1,12 @@
 {
   "apiConfigs": [
     {
+      "id": "tehuishipin",
       "name": "localTool 第三方 API",
-      "apiUrl": "http://127.0.0.1:9004",
+      "url": "{VITE_API_BASE_URL}",
+      "key": "",
       "provider": "自托管",
+      "readonly": true,
       "default": true,
       "models": [
         {
@@ -54,5 +57,6 @@
         }
       ]
     }
-  ]
+  ],
+  "discountVideoModel": "seedance_2_fast\nseedance-2.0-fast\nseedance-2\nkling-v3-omni"
 }

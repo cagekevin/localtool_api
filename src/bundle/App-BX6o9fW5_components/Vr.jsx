@@ -23,7 +23,7 @@ import _cmp_Cr from "./Cr.jsx";
 import _cmp_Ft from "./Ft.jsx";
 import _cmp_vn from "./vn.jsx";
 import _cmp_Mn from "./Mn.jsx";
-import { Rt, Qe, ge, kt, Me, ut, ot, st, ve, he, qe, kr, Ae, ft, Ie, ze, Ue, ke, Pr, V, ar, Bt, mt, Ze, Oe, Rr, Jt, qt, We, je, Ct, $e, Je, lt, z, B, an, Lr, At, Ar, Ee, Ir, Fe, it, Fr, Ke, vt, bt, St, wt, Rn, Wn, Xn, sr, er, _, C, be, Et, _t, ln, Dn, at, gt, Or, Er, In, Ve, Dr, Un, fr, De, Nn, Fn, Bn, Hn, Kn, Jn, nr, ir, lr, dr, hr, _r, yr, kn, pr, L, q, En, Yt, H, Dt, J, A, xn, et, me, rn, Yn, or, Zn, Te, g, cr, ur, dt, pt, tt, M, P, K, cn, Re, Tt, fn, bn, yn, _n, on, jr, Nr, Mr, Pt, tr, rr, Gn, qn, mr, gr, xt, yt, ht, He, S, rt, Xe, Wt, Br, Kt, un, Pe, Le, Be, Ge, _e, ye, xe, Se, Ce, we, I, Pn, zn, Vn, On, An, vr, br, Ht, Mt, jt, Nt, Vt, U, O, E, Sn, Tn, D, Ut, Ne, Gt, _Component16, _Component35, _Component21, _Component31, _Component5, F, _Component10, _Component36, _Component26, _Component1, _Component37, N, _Component39, Ye, _Component33, _Component25, T, _Component6, _Component32, _Component3, _Component44, _Component45, _Component4, _Component46, R } from "./shared.js";
+import { Rt, Qe, ge, kt, Me, ut, ot, st, ve, he, qe, kr, Ae, ft, Ie, ze, Ue, ke, Pr, V, ar, Bt, mt, Ze, Oe, Rr, Jt, qt, We, je, Ct, $e, Je, lt, z, B, an, Lr, At, Ar, Ee, Ir, Fe, it, Fr, Ke, vt, bt, St, wt, Rn, Wn, Xn, sr, er, _, C, be, Et, _t, ln, Dn, at, gt, Or, Er, In, Ve, Dr, Un, fr, De, Nn, Fn, Bn, Hn, Kn, Jn, nr, ir, lr, dr, hr, _r, yr, kn, pr, L, q, En, Yt, H, Dt, J, A, xn, et, me, rn, Yn, or, Zn, Te, g, cr, ur, dt, pt, tt, M, P, K, cn, Re, Tt, fn, bn, yn, _n, on, jr, Nr, Mr, Pt, tr, rr, Gn, qn, mr, gr, xt, yt, ht, He, S, rt, Xe, Wt, Br, Kt, un, Pe, Le, Be, Ge, _e, ye, xe, Se, Ce, we, I, Pn, zn, Vn, On, An, vr, br, Ht, Mt, jt, Nt, Vt, U, O, E, Sn, Tn, D, Ut, Ne, Gt, _Component16, _Component35, _Component21, _Component31, _Component5, F, _Component10, _Component36, _Component26, _Component1, _Component37, N, _Component39, Ye, _Component33, _Component25, T, _Component6, _Component32, _Component3, _Component44, _Component45, _Component4, _Component46, R, setDiscountVideoApiConfigModels } from "./shared.js";
 import * as _shared from "./shared.js";
 import * as W from "react";
 import * as G from "react";
@@ -792,6 +792,18 @@ grok-video-3`);
       kn(l.url);
       jn(l.key);
     }
+    let discountVideoModels = [];
+    for (let e of Y) {
+      let t = e.models;
+      if (Array.isArray(t)) {
+        for (let n of t) {
+          if (n.type === 'video' && n.id) {
+            discountVideoModels.push(n.id);
+          }
+        }
+      }
+    }
+    setDiscountVideoApiConfigModels(discountVideoModels);
   }, [Y, ai, si, li, di, pi, mi, hi]);
   let [_i, vi] = W.useState({
     type: `FREE`,
