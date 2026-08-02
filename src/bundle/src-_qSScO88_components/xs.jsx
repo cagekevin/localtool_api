@@ -1,8 +1,6 @@
 // TODO(全局, 无需 import): codedWidth, codedHeight, displayWidth, displayHeight, microsecondTimestamp, microsecondDuration, hasAlpha, constructor, ArrayBuffer, SharedArrayBuffer, TypeError, primaries, transfer, matrix, fullRange, left, width, height, timestamp, duration, alpha, willReadFrequently, num, den, type, data, clone, rotation, encodeOptions, Uint8Array, format, layout, colorSpace, visibleRect, _doNotCopy, close, allocationSize, copyTo, stack, error, hasError, stride, offset, toVideoFrame, draw, CanvasRenderingContext2D, OffscreenCanvasRenderingContext2D, sx, sy, sWidth, sHeight, drawWithFit, _rotateSourceRegion, toCanvasImageSource, transform, fit, crop, canvas, age, setRotation, setTimestamp, setDuration, setEncodeOptions
 import { we, bs, ys, Qe, Ms, Ds, a, Ne, vs, Ze, _s, Os, js, Ps, S, ps, ms, Ns, v, y, b, _, As, ks, _e, Ss, Ts, ws, Ye } from "./shared.js";
 import * as _shared from "./shared.js";
-// 本地可变状态（原 _shared.Es 为 ESM 命名空间只读属性，无法直接写入；此处改为可写本地状态，仅本模块自维护 canvas 池 age 自增计数）
-const _canvasPoolState = { Es: _shared.Es };
 var xs = class e {
   get codedWidth() {
     return this.visibleRect.width;
@@ -797,7 +795,7 @@ var xs = class e {
     for (let e of Ts) {
       if (e.canvas.width === f.width && e.canvas.height === f.height) {
         p = e.canvas;
-        e.age = _canvasPoolState.Es++;
+        e.age = _shared.Es++;
         break;
       }
     }
@@ -820,7 +818,7 @@ var xs = class e {
       }
       Ts.push({
         canvas: p,
-        age: _canvasPoolState.Es++
+        age: _shared.Es++
       });
     }
     let h = p.getContext(`2d`, {

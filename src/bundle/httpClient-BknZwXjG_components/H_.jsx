@@ -21,8 +21,6 @@ import _cmp_Di from "./Di.jsx";
 import _cmp_Bn from "./Bn.jsx";
 import { Gl, we, pe, he, Mn, Ce, bt, L_, sn, R_, be, ze, We, lt, _t, Ht, Vt, Ut, Yt, Le, Qt, Zt, K, An, Ne, U, De, nn, rn, Ue, Dn, wn, Cn, Ae, F, Tn, En, On, jn, It, Mt, G, Rt, Ze, Kr, Qe, id, X, bn, le, jr, _n, gn, fn, Pn, Pe, Ct, pr, hr, mr, Wn, P_, N_, D, Jn, O, J, ue, Xn, Ie, it, $t, H, sr, Y, or, ar, Rn, xr, ca, Qi, Ee, Hi, Ra, Ia, za, E, Bl, te, j, V, ae, I, I_, hi, vr, Jl, W, Cr, L, La, Zg, ka, xa, Aa, Mr, Yg, ci, mi, Pr, Qg, Fa, Nr, Ar, Fr, oi, ai, Ir, Lr, Rr, zr, F_, Vr, Br, Sr, jm, Wr, kr, Dr, Xr, si, Qr, zs, ei, ni, Te, ti, M_, A_, Bt, ii, di, Hr, Ur, li, ui, Gr, qr, Jr, Zr, lr, cr, ur, dr, fr, gr, _r, Yr, br, fi, pi, Ve, Hn, Ye, Je, Ge, Ke, Fe, gi, Ci, Nn, Ni, ji, Or, g_, Pi, Mi, Li, Nt, Fi, __, Ri, Ii, S_, $r, rr, ir, nt, l_, ri, Jt, Kn, Gn, Gi, Ui, Zi, $i, Yi, ea, Re, Xi, ta, Me, Yn, Vi, O_, k_, tr, Zn, Qn, $n, er, nr, Wt, Kt, xt, ge, Sn, Ki, _e, qn, $e, Ji, ft, vi, _i, Ln, In, Wi, qi, Ei, St, Xe, Fn, At, zi, Lt, Bi, Tt, _Component120, Be, _Component30, Et, _Component45, _Component2, _Component29, _Component26, _Component56, _Component113, Pt, _Component49, _Component121, _Component128, _Component122, _Component123, _Component20, _Component17, _Component124, He, _Component47, Xt, _Component125, Dt, _Component10, Oe, Gt, _Component18, _Component41, _Component48, Ft, Se, Ot, _Component0, _Component126, _Component7 } from "./shared.js";
 import * as _shared from "./shared.js";
-// 本地可变状态（原 _shared.R/_shared.P 为 ESM 命名空间只读属性，无法直接写入；此处改为可写本地状态，仅本模块自维护轮询/重试计数）
-const _pollState = { R: 0, P: 0 };
 import * as Z from "react";
 import * as Q from "react";
 export default function H_({
@@ -2405,17 +2403,17 @@ export default function H_({
       let N = O?.data?.drawingModel;
       let P = (N || S || `gemini-3.1-flash-image-preview`).split(`
 `)[0].trim();
-      let F = s || _pollState.P;
+      let F = s || _shared.P;
       console.log(`[handleGenerate] MODEL_SELECT`, JSON.stringify({
         selectedModel: s,
-        fallbackModel: _pollState.P,
+        fallbackModel: _shared.P,
         actualModel: F,
         hasNodeDrawingModel: !!N
       }));
       let ee = F.toLowerCase();
       let L = ee.includes(`banana`) || ee.includes(`gemini`) || ee.includes(`香蕉`) || ee.includes(`芭蕉`);
       let R = c === `openai` || c === `auto` && !L;
-      if (A === `Auto` && !_pollState.R) {
+      if (A === `Auto` && !_shared.R) {
         let e = `Auto`;
         try {
           let n = [`1:1`, `1:4`, `1:8`, `2:3`, `3:2`, `3:4`, `4:1`, `4:3`, `4:5`, `5:4`, `8:1`, `9:16`, `16:9`, `21:9`];
@@ -2525,7 +2523,7 @@ ${C}`;
       let B = {};
       let re = false;
       let V = h.replace(/\/$/, ``);
-      let ie = _pollState.R && F.includes(`*`);
+      let ie = _shared.R && F.includes(`*`);
       let oe = {
         '1:1': {
           '1K': `1024x1024`,
@@ -2596,7 +2594,7 @@ ${C}`;
       let se = async e => {
         return await (await fetch(e)).blob();
       };
-      if (_pollState.R) {
+      if (_shared.R) {
         let e = !A || A === `Auto`;
         let t = String(e ? `Auto` : A);
         let n = e ? `auto` : oe[t]?.[String(j)] || oe[t]?.[`1K`] || `1024x1024`;
@@ -2748,7 +2746,7 @@ ${C}`;
               }, ...n];
             });
           }
-          let s = _pollState.R ? {
+          let s = _shared.R ? {
             Authorization: `Bearer ${g}`
           } : {};
           if (!re) {
@@ -2878,7 +2876,7 @@ ${C}`;
               console.error(`JSON parse error, raw response:`, e.substring(0, 500));
               throw Error(`API 响应解析失败: ${e.substring(0, 100)}`);
             }
-            if (_pollState.R) {
+            if (_shared.R) {
               let e = t.data?.[0];
               if (e?.b64_json) {
                 u = `data:image/png;base64,${e.b64_json}`;
@@ -3687,7 +3685,7 @@ ${C}`;
             if (e.id === N) {
               return {
                 ...e,
-                requestData: _pollState.P
+                requestData: _shared.P
               };
             } else {
               return e;
@@ -3702,7 +3700,7 @@ ${C}`;
           'Content-Type': `application/json`,
           Accept: `*/*`
         },
-        body: JSON.stringify(_pollState.P),
+        body: JSON.stringify(_shared.P),
         ...Ee
       });
       if (!F.ok) {
@@ -3773,7 +3771,7 @@ ${C}`;
       let R = 0;
       let te = Math.ceil((re || 600) / (B || 3));
       let z = async () => {
-        if (_pollState.R >= te) {
+        if (_shared.R >= te) {
           throw Error(`生成超时，请稍后再试`);
         }
         let t = jn.current || [];
@@ -3921,18 +3919,18 @@ ${C}`;
                 }
               });
             });
-            _pollState.R++;
+            _shared.R++;
             return z();
           } else if (n === `FAILED` || n === `failed`) {
             throw Error(t.fail_reason || `任务执行失败`);
           } else {
-            _pollState.R++;
+            _shared.R++;
             return z();
           }
         } else if (r.error) {
           throw Error(r.error.message || `查询失败`);
         } else {
-          _pollState.R++;
+          _shared.R++;
           return z();
         }
       };
@@ -4267,7 +4265,7 @@ ${C}`;
         throw Error(typeof n == `string` ? n : `请求失败: ${N.status}`);
       }
       let P = await N.json();
-      let F = _pollState.P.task_id || _pollState.P.id;
+      let F = _shared.P.task_id || _shared.P.id;
       if (!F) {
         throw Error(`未返回任务 ID`);
       }
@@ -4278,7 +4276,7 @@ ${C}`;
               return {
                 ...e,
                 taskId: F,
-                responseData: _pollState.P
+                responseData: _shared.P
               };
             } else {
               return e;
@@ -4421,7 +4419,7 @@ ${C}`;
           }
           if (n.status === 404 && ee < L) {
             ee++;
-            return _pollState.R();
+            return _shared.R();
           }
           let r = await n.json().catch(() => {
             return {};
@@ -4536,15 +4534,15 @@ ${C}`;
             });
           }
           ee++;
-          return _pollState.R();
+          return _shared.R();
         } else if (i === `failed`) {
           throw Error(r.error || r.message || `任务执行失败`);
         } else {
           ee++;
-          return _pollState.R();
+          return _shared.R();
         }
       };
-      await _pollState.R();
+      await _shared.R();
     } catch (t) {
       if (t.name === `AbortError` || t.message === `已取消`) {
         console.log(`Video generation aborted`);
@@ -4934,7 +4932,7 @@ ${C}`;
           });
           if (t.ok) {
             let n = await t.json();
-            _pollState.P = 0;
+            _shared.P = 0;
             if (n.status === `completed`) {
               M = true;
               let t = e => {
@@ -5095,9 +5093,9 @@ ${C}`;
           if (e.message && e.message.startsWith(`[TASK_FAILED]`)) {
             throw Error(e.message.replace(`[TASK_FAILED]`, ``));
           }
-          _pollState.P++;
-          if (_pollState.P >= 5) {
-            throw Error(`查询任务状态失败次数过多 (${_pollState.P}次)，已停止`);
+          _shared.P++;
+          if (_shared.P >= 5) {
+            throw Error(`查询任务状态失败次数过多 (${_shared.P}次)，已停止`);
           }
         }
       }
@@ -9391,7 +9389,7 @@ ${C}`;
   }, {
     type: `faceMosaicNode`,
     label: `人脸打码`,
-    icon: <_pollState.R size={15} className={`text-white`} />,
+    icon: <_shared.R size={15} className={`text-white`} />,
     cat: `image`
   }, {
     type: `compareNode`,
@@ -12017,7 +12015,7 @@ ${C}`;
           </_Component123>
           <Component2952 className={`absolute left-4 bottom-16 z-[990] flex flex-col items-start gap-2 pointer-events-none`}>
             <Component2951 className={`transition-all duration-300 origin-bottom-left ${un ? `scale-100 opacity-100 pointer-events-auto` : `scale-90 opacity-0 pointer-events-none absolute bottom-0 left-0`}`}>
-              {De.length < 100 && <_pollState.P pannable={true} zoomable={true} maskColor={`#0d0c0c80`} className={`!bg-[#222] !m-0 !relative !bottom-0 !left-0 shadow-2xl rounded overflow-hidden border border-[#333] ${un ? `!pointer-events-auto` : `!pointer-events-none`}`} nodeColor={`#444`} />}
+              {De.length < 100 && <_shared.P pannable={true} zoomable={true} maskColor={`#0d0c0c80`} className={`!bg-[#222] !m-0 !relative !bottom-0 !left-0 shadow-2xl rounded overflow-hidden border border-[#333] ${un ? `!pointer-events-auto` : `!pointer-events-none`}`} nodeColor={`#444`} />}
             </Component2951>
           </Component2952>
           <Oe variant={E.Dots} gap={20} size={1} color={`#333`} />
