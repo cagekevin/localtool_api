@@ -38,19 +38,19 @@
 
 | 文件 | 行数 | API 路径 | KV 键 | Hooks | 导出组件 |
 |---|---|---|---|---|---|
-| `src-_qSScO88_components/shared.js` | 34659 | — | — | — | — |
-| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions /v1/images/edits /v1/images/generations /api/assets/upload | — | useState useEffect useRef useMemo | H_ H_ |
-| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app /api/tasks /api/tasks/save /api/tasks/batch-save | api_configs transitResources | useState useEffect useRef useCallback | — |
-| `vendor-Z-adA07W.js` | 4682 | /api/objects | — | useState useEffect useRef useMemo | — |
-| `App-BX6o9fW5_components/Vr.jsx` | 4515 | /v1/gateway/task/ /files/resources/ | api_configs transitResources | useState useEffect useRef useMemo | Vr Vr |
-| `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ /v1/gateway/task/ /api/resources /api/resources/save | — | useState useEffect useRef useCallback | — |
-| `httpClient-BknZwXjG_components/c_.jsx` | 2806 | — | — | useState useEffect useRef useMemo | — |
+| `src-_qSScO88_components/shared.js` | 34659 | — | — | — | _cmp_xs e t n 📦聚合导出 |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions /v1/images/edits /v1/images/generations /api/assets/upload | proxyMode local-tool transitResources | useState useEffect useRef useMemo | H_ H_ |
+| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app /api/tasks /api/tasks/save /api/tasks/batch-save | proxyMode local-tool canvas-state-v1 transitResources api_configs | useState useEffect useRef useCallback | _cmp_Bn _cmp_Er _cmp_Tr _cmp_Vn 📦聚合导出 |
+| `vendor-Z-adA07W.js` | 4682 | /api/objects | — | useState useEffect useRef useMemo | $ $n $t A 📦聚合导出 |
+| `App-BX6o9fW5_components/Vr.jsx` | 4515 | /v1/gateway/task/ /files/resources/ | local-tool canvas-state-v1 transitResources api_configs | useState useEffect useRef useMemo | Vr Vr |
+| `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ /v1/gateway/task/ /api/resources /api/resources/save | — | useState useEffect useRef useCallback | _cmp_Ln _cmp_Lt _cmp_Qt _cmp_Sr 📦聚合导出 |
+| `httpClient-BknZwXjG_components/c_.jsx` | 2806 | — | transitResources | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/As.jsx` | 2088 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/bo.jsx` | 1694 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/$s.jsx` | 1648 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/es.jsx` | 1255 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/Gc.jsx` | 1234 | — | — | useState useEffect useRef useMemo | — |
-| `httpClient-BknZwXjG_components/Zo.jsx` | 1150 | /files/ | — | useState useEffect useRef useMemo | — |
+| `httpClient-BknZwXjG_components/Zo.jsx` | 1150 | /files/ | transitResources | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/Uo.jsx` | 1076 | — | — | useState useEffect useRef useMemo | Uo Uo |
 | `httpClient-BknZwXjG_components/Lo.jsx` | 963 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/Rs.jsx` | 905 | — | — | useState useEffect useRef | — |
@@ -58,14 +58,14 @@
 | `httpClient-BknZwXjG_components/Yo.jsx` | 828 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/Rg.jsx` | 826 | — | — | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/Lh.jsx` | 720 | — | — | useState useEffect useRef useLayoutEffect | Lh Lh |
-| `httpClient-BknZwXjG_components/Co.jsx` | 703 | — | — | useState useEffect useRef useMemo | — |
-| `httpClient-BknZwXjG_components/_Component129.jsx` | 662 | — | — | useState useEffect useRef | _Component129 |
-| `httpClient-BknZwXjG_components/Un.jsx` | 658 | /api/files/open /files/ /api/files/open-dir | — | — | Un Un |
+| `httpClient-BknZwXjG_components/Co.jsx` | 703 | — | transitResources | useState useEffect useRef useMemo | — |
+| `httpClient-BknZwXjG_components/_Component129.jsx` | 662 | — | — | useState useEffect useRef | _Component129 _Component129 |
+| `httpClient-BknZwXjG_components/Un.jsx` | 658 | /api/files/open /files/ /api/files/open-dir | local-tool transitResources | — | Un Un |
 | `httpClient-BknZwXjG_components/ec.jsx` | 635 | — | — | useState useEffect useRef useMemo | — |
-| `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default /api/upload/app-asset | — | — | — |
+| `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default /api/upload/app-asset | proxyMode transitResources | — | default 📦聚合导出 |
 | `httpClient-BknZwXjG_components/Zl.jsx` | 609 | — | — | useState useEffect useRef useMemo | — |
-| `App-BX6o9fW5_components/_Component40.jsx` | 559 | — | — | useState useEffect useRef useMemo | _Component40 |
-| `httpClient-BknZwXjG_components/_Component72.jsx` | 547 | — | — | useState useEffect useRef useMemo | _Component72 |
+| `App-BX6o9fW5_components/_Component40.jsx` | 559 | — | — | useState useEffect useRef useMemo | _Component40 _Component40 |
+| `httpClient-BknZwXjG_components/_Component72.jsx` | 547 | — | — | useState useEffect useRef useMemo | _Component72 _Component72 |
 | `App-BX6o9fW5_components/jn.jsx` | 544 | — | — | useState useEffect useRef useMemo | — |
 | `App-BX6o9fW5_components/Qn.jsx` | 528 | — | — | useState useEffect useMemo | Qn Qn |
 
@@ -77,14 +77,14 @@
 |---|---|---|
 | `/api/proxy` | 1 | httpClient-BknZwXjG_components/shared.js(4) |
 | `18080` | 2 | endpointConfig-Bt85xi8d.js(5) · App-BX6o9fW5_components/Tr.jsx(1) |
-| `9004` | 0 | — |
+| `9004` | 0 | ⚠ bundle 内无字面量（前端经变量拼接，见 contracts.json scope=localTool/apimart） |
 | `/public/platform` | 1 | httpClient-BknZwXjG_components/shared.js(2) |
 | `transitResources` | 9 | App-BX6o9fW5_components/Vr.jsx(7) · httpClient-BknZwXjG_components/H_.jsx(6) · httpClient-BknZwXjG_components/Un.jsx(2) · httpClient-BknZwXjG_components/_Component118.jsx(2) · httpClient-BknZwXjG_components/c_.jsx(2) · ShareAppPage-C4RerI9i.js(2) · httpClient-BknZwXjG_components/Co.jsx(1) · httpClient-BknZwXjG_components/Zo.jsx(1) · httpClient-BknZwXjG_components/shared.js(1) |
 | `active_api_endpoint` | 1 | endpointConfig-Bt85xi8d.js(1) |
 | `canvas-state-v1` | 2 | App-BX6o9fW5_components/Vr.jsx(2) · httpClient-BknZwXjG_components/shared.js(2) |
 | `proxyMode` | 3 | httpClient-BknZwXjG_components/H_.jsx(14) · httpClient-BknZwXjG_components/shared.js(1) · ShareAppPage-C4RerI9i.js(1) |
 | `local-tool` | 4 | httpClient-BknZwXjG_components/Un.jsx(4) · App-BX6o9fW5_components/Vr.jsx(3) · httpClient-BknZwXjG_components/H_.jsx(2) · httpClient-BknZwXjG_components/shared.js(2) |
-| `x-proxy-url` | 0 | — |
+| `x-proxy-url` | 0 | ⚠ bundle 内无字面量（上游头，见 contracts.json scope=localTool） |
 
 ## 五、高危文件（被大量 import，改它影响面最大）
 
@@ -124,7 +124,98 @@
 - `public/assets/*.css`（src-DoQUrSOl.css / httpClient-DFxwm5B3.css / vendor-Qkhkn02K.css）是**活文件**，Vite 不产出，由 post-build-fixups 补引用，保留勿删。
 - `dist/` 是构建产物，运行时只读它；改前端一律改 `src/bundle/` 后 `npm run build` 回灌（见 CLAUDE.md §四.2/§四.5）。
 
-## 七、重建命令
+## 七、功能域速查（改某功能先看哪）
+
+> 基于文件特征（API 路径 / 契约字符串 / 目录）自动归类，供 AI 定位「我要改 X 功能该进哪个文件」。同一文件可能命中多域。
+
+### 应用入口 / 启动
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `main-CYvt_zul.js` | 97 | — |
+| `src-kC58-PF2_components/shared.js` | 48 | — |
+| `share-CyPsaet6.js` | 23 | — |
+| `App-BX6o9fW5.js` | 6 | — |
+| `src-kC58-PF2.js` | 5 | — |
+
+### 接入点 / 端口 / 代理配置
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
+| `App-BX6o9fW5_components/Vr.jsx` | 4515 | /v1/gateway/task/ /files/resources/ |
+| `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
+| `httpClient-BknZwXjG_components/Un.jsx` | 658 | /api/files/open /files/ |
+| `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default |
+| `endpointConfig-Bt85xi8d.js` | 123 | /api/kv/get /api/kv/set |
+| `main-CYvt_zul.js` | 97 | — |
+
+### HTTP 客户端 / 代理转发层
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
+| `httpClient-BknZwXjG_components/Un.jsx` | 658 | /api/files/open /files/ |
+
+### 画布编辑器核心 UI / 状态
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `App-BX6o9fW5_components/Vr.jsx` | 4515 | /v1/gateway/task/ /files/resources/ |
+| `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
+| `App-BX6o9fW5_components/_Component40.jsx` | 559 | — |
+| `App-BX6o9fW5_components/jn.jsx` | 544 | — |
+| `App-BX6o9fW5_components/Qn.jsx` | 528 | — |
+| `App-BX6o9fW5_components/Ln.jsx` | 410 | — |
+| `App-BX6o9fW5_components/_Component11.jsx` | 396 | — |
+| `App-BX6o9fW5_components/Qt.jsx` | 314 | — |
+
+### 资源 / 文件上传
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
+| `vendor-Z-adA07W.js` | 4682 | /api/objects |
+| `App-BX6o9fW5_components/Vr.jsx` | 4515 | /v1/gateway/task/ /files/resources/ |
+| `httpClient-BknZwXjG_components/c_.jsx` | 2806 | — |
+| `httpClient-BknZwXjG_components/As.jsx` | 2088 | — |
+| `httpClient-BknZwXjG_components/bo.jsx` | 1694 | — |
+| `httpClient-BknZwXjG_components/$s.jsx` | 1648 | — |
+
+### 任务 / 工作流管理
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
+| `App-BX6o9fW5_components/Vr.jsx` | 4515 | /v1/gateway/task/ /files/resources/ |
+| `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
+| `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default |
+
+### 分享页（ShareAppPage）
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default |
+| `share-CyPsaet6.js` | 23 | — |
+
+### AI 对话 / 绘图接口
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions |
+
+### 视频生成
+
+| 文件 | 行数 | 关键特征 |
+|---|---|---|
+| `httpClient-BknZwXjG_components/H_.jsx` | 12669 | /v1/chat/completions /v1/draw/completions |
+| `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
+
+## 八、重建命令
 
 ```bash
 npm run map        # 重建本图

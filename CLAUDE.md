@@ -171,7 +171,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 - **`scripts/contracts.json`**：字符串契约字典，声明每条「改一处必须全端同步」的契约（端口/路径/KV 键/信封）。新增跨端字符串须同步登记。
 - **`scripts/contract_scan.cjs`**：漂移检测（质量门）。`npm run contracts` 比对 `scripts/contract_snapshot.json` 基线，任一 high/critical 契约命中数变化即 FAIL，并打印哪个文件多了/少了。混淆重排后数量正常变化用 `npm run contracts -- --resnap` 重建基线。
 - **`CONTRACTS.md`**：自动生成的契约分布表（哪条契约命中在哪些文件），AI 改契约前先查，确认要动几个端。由 `npm run contracts -- --md` 重建。
-- **`src/bundle/BUNDLE_MAP.md`**：自动生成的逆向源码地图（chunk 表 / 大文件特征索引 / 反向索引 / 高危文件标记 / 同名影子文件警示）。AI 改 `src/bundle/` 前**必读**，按特征反查落点，不凭混淆文件名判断职责。由 `npm run map` 重建。
+- **`src/bundle/BUNDLE_MAP.md`**：自动生成的逆向源码地图（八章：顶层 chunk 表 / _components 规模 / 大文件特征索引 / 契约反向索引 / 高危文件标记 / 同名影子文件警示 / 功能域速查 / 重建命令）。AI 改 `src/bundle/` 前**必读**，按特征反查落点，不凭混淆文件名判断职责。由 `npm run map` 重建。
 - **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §二点五。
 
 > **铁律：BUNDLE_MAP.md / CONTRACTS.md 一律由工具重建，禁止手改。** 这两份是自动生成物，手改会被下次 `npm run map` / `npm run contracts -- --md` 覆盖，且会漏掉自动检测（如同名影子文件扫描）。要改地图内容，改 `scripts/gen_bundle_map.cjs` 或 `scripts/contract_scan.cjs` 后重跑。其中第六章「同名影子文件警示」由生成器自动扫描 `src/bundle/` 跨目录同名文件得出（如 `shared.js` 4 处、`Tr.jsx` 等各 2 处），是防「改一处漏一处」的最高危提示，勿删。

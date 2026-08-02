@@ -56,29 +56,51 @@ for (const tc of topChunks) {
   allCompFiles.push({ abs, rel: tc.name, dir: '', lines: tc.lines, content: read(abs) });
 }
 
+// 从 contracts.json 动态收集 KV 候选键（避免硬编码漏项）
+let KV_CANDIDATES = [];
+try {
+  const dict = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/contracts.json'), 'utf8'));
+  const set = new Set();
+  for (const c of Object.values(dict.contracts)) {
+    for (const p of c.patterns) {
+      // 取字面量型模式里像 KV 键的（含下划线/连字符且非路径）
+      if (p.type === 'fixed' && /^[a-zA-Z][a-zA-Z0-9_-]{3,}$/.test(p.value) && !p.value.includes('/')) set.add(p.value);
+    }
+  }
+  KV_CANDIDATES = [...set];
+} catch { KV_CANDIDATES = []; }
+
 // 抽取单文件特征
 function extractFeatures(file) {
   const c = file.content;
-  const feats = { apis: new Set(), kvKeys: new Set(), hooks: new Set(), exports: new Set(), components: new Set() };
+  const feats = { apis: new Set(), kvKeys: new Set(), hooks: new Set(), exports: new Set(), components: new Set(), importCount: 0 };
   // API 路径
-  const apiRe = /\/api\/[a-zA-Z0-9_/-]+|\/v1\/[a-zA-Z0-9_/-]+|\/public\/[a-zA-Z0-9_/-]+|\/files\/[a-zA-Z0-9_/-]*/g;
+  const apiRe = /\/api\/[a-zA-Z0-9_/-]+|\/v1\/[a-zA-Z0-9_/-]+|\/public\/[a-zA-Z0-9_/-]+|\/files\/[a-zA-Z0-9_/-]*|\/proxy[a-zA-Z0-9_/-]*/g;
   let m;
   while ((m = apiRe.exec(c))) feats.apis.add(m[0]);
-  // KV 键（带引号的长串）
-  const kvRe = /[`'"]([a-zA-Z][a-zA-Z0-9_-]{4,})[`'"](?=\s*[,)])/g;
-  while ((m = kvRe.exec(c))) {
-    const k = m[1];
-    if (/^(canvas-state-v1|active_api_endpoint|transitResources|api_configs|localToolBaseUrl|accessKey|secretKey)$/.test(k)) feats.kvKeys.add(k);
+  // KV 键（动态候选，命中即记）
+  for (const k of KV_CANDIDATES) {
+    if (c.includes(k)) feats.kvKeys.add(k);
   }
   // React hooks
   for (const h of REACT_HOOKS) {
     if (new RegExp('\\b' + h + '\\s*[\\(<]').test(c)) feats.hooks.add(h);
   }
   // 导出组件名 export function Xxx / export const Xxx = / export default function Xxx
-  const expRe = /export\s+(?:default\s+)?(?:function|const|class)\s+([A-Z][A-Za-z0-9_]*)/g;
+  const expRe = /export\s+(?:default\s+)?(?:async\s+)?(?:function|const|class|let|var)\s+([A-Za-z0-9_$]+)/g;
   while ((m = expRe.exec(c))) feats.exports.add(m[1]);
   const defRe = /export\s+default\s+function\s+([A-Za-z0-9_]+)/g;
   while ((m = defRe.exec(c))) feats.components.add(m[1]);
+  // 聚合导出 export { a, b, c }（混淆 barrel 模块，如 _cmp_xs）
+  const aggRe = /export\s*\{([^}]+)\}/g;
+  while ((m = aggRe.exec(c))) {
+    const names = m[1].split(',').map((s) => s.trim().split(/\s+as\s+/).pop()).filter(Boolean);
+    for (const n of names.slice(0, 6)) feats.exports.add(n);
+    feats._aggExport = true;
+  }
+  // 模块扇入（相对 import 数，粗略反映规模）
+  const impRe = /import\s+(?:[^'"]*?\s+from\s+)?['"]\.\.?\/[^'"]+['"]/g;
+  feats.importCount = (c.match(impRe) || []).length;
   return feats;
 }
 
@@ -172,7 +194,10 @@ L.push('|---|---|---|---|---|---|');
 const big = allCompFiles.filter((f) => f.lines > 500).sort((a, b) => b.lines - a.lines);
 for (const f of big) {
   const ft = f.feats;
-  L.push(`| \`${f.rel}\` | ${f.lines} | ${([...ft.apis].slice(0, 5).join(' ') || '—')} | ${([...ft.kvKeys].join(' ') || '—')} | ${([...ft.hooks].slice(0, 4).join(' ') || '—')} | ${([...ft.components, ...ft.exports].slice(0, 4).join(' ') || '—')} |`);
+  // 聚合导出模块（混淆 barrel）标注角色，避免 AI 误当业务大文件
+  const roleTag = ft._aggExport ? ' 📦聚合导出' : '';
+  const expShow = ([...ft.components, ...ft.exports].slice(0, 4).join(' ') || '—') + roleTag;
+  L.push(`| \`${f.rel}\` | ${f.lines} | ${([...ft.apis].slice(0, 5).join(' ') || '—')} | ${([...ft.kvKeys].join(' ') || '—')} | ${([...ft.hooks].slice(0, 4).join(' ') || '—')} | ${expShow} |`);
 }
 L.push('');
 L.push('## 四、反向索引（契约字符串 → 在哪改）');
@@ -183,7 +208,12 @@ L.push('| 契约字符串 | 命中文件数 | 文件（按命中次数降序） 
 L.push('|---|---|---|');
 for (const k of REVERSE_KEYS) {
   const fs2 = reverseIndex[k];
-  if (!fs2.length) { L.push(`| \`${k}\` | 0 | — |`); continue; }
+  if (!fs2.length) {
+    // 区分「契约存在但 bundle 内无字面量」（如 9004 经变量拼接、x-proxy-url 在 localTool）与真遗漏
+    const note = { '9004': 'bundle 内无字面量（前端经变量拼接，见 contracts.json scope=localTool/apimart）', 'x-proxy-url': 'bundle 内无字面量（上游头，见 contracts.json scope=localTool）' }[k] || 'bundle 内未命中，确认是否只在 localTool/apimart 端';
+    L.push(`| \`${k}\` | 0 | ⚠ ${note} |`);
+    continue;
+  }
   const detail = fs2.slice(0, 12).map((x) => `${x.rel}(${x.n})`).join(' · ');
   L.push(`| \`${k}\` | ${fs2.length} | ${detail} |`);
 }
@@ -225,7 +255,38 @@ L.push('- `public/assets/*.js` 是 1.4.0 时期遗留的**死副本**（12 个 J
 L.push('- `public/assets/*.css`（src-DoQUrSOl.css / httpClient-DFxwm5B3.css / vendor-Qkhkn02K.css）是**活文件**，Vite 不产出，由 post-build-fixups 补引用，保留勿删。');
 L.push('- `dist/` 是构建产物，运行时只读它；改前端一律改 `src/bundle/` 后 `npm run build` 回灌（见 CLAUDE.md §四.2/§四.5）。');
 L.push('');
-L.push('## 七、重建命令');
+
+// 第八章：功能域速查（AI「改某功能该看哪」的入口，基于特征自动归类）
+const DOMAINS = [
+  { name: '应用入口 / 启动', match: (f) => /main-CYvt_zul|App-BX6o9fW5\.js|share-CyPsaet6|src-kC58-PF2/.test(f.rel) },
+  { name: '接入点 / 端口 / 代理配置', match: (f) => /endpointConfig|proxyMode|local-tool|18080|x-proxy-url|\/api\/proxy/.test(f.content) },
+  { name: 'HTTP 客户端 / 代理转发层', match: (f) => /httpClient-BknZwXjG/.test(f.dir) && /proxyMode|local-tool|\/api\/proxy|x-proxy-url|9004/.test(f.content) },
+  { name: '画布编辑器核心 UI / 状态', match: (f) => /App-BX6o9fW5_components/.test(f.dir) && (f.feats.hooks.size > 0) },
+  { name: '资源 / 文件上传', match: (f) => /\/api\/assets\/upload|\/api\/files|\/files\/resources|upload/.test(f.content) },
+  { name: '任务 / 工作流管理', match: (f) => /\/api\/tasks|\/v1\/gateway\/task|\/api\/workflow|task\/save|batch-save/.test(f.content) },
+  { name: '分享页（ShareAppPage）', match: (f) => /ShareAppPage|share-CyPsaet6|share\//.test(f.rel) },
+  { name: 'AI 对话 / 绘图接口', match: (f) => /\/v1\/chat\/completions|\/v1\/draw\/completions|\/v1\/images\/generations|\/v1\/images\/edits/.test(f.content) },
+  { name: '视频生成', match: (f) => /\/v1\/video\/generations|\/v1\/videos/.test(f.content) },
+];
+L.push('## 七、功能域速查（改某功能先看哪）');
+L.push('');
+L.push('> 基于文件特征（API 路径 / 契约字符串 / 目录）自动归类，供 AI 定位「我要改 X 功能该进哪个文件」。同一文件可能命中多域。');
+L.push('');
+for (const dom of DOMAINS) {
+  const hits = allCompFiles.filter((f) => dom.match(f)).sort((a, b) => b.lines - a.lines).slice(0, 8);
+  if (!hits.length) continue;
+  L.push(`### ${dom.name}`);
+  L.push('');
+  L.push('| 文件 | 行数 | 关键特征 |');
+  L.push('|---|---|---|');
+  for (const f of hits) {
+    const sig = [...f.feats.apis].slice(0, 2).join(' ');
+    L.push(`| \`${f.rel}\` | ${f.lines} | ${sig || (f.content.includes('proxyMode') ? 'proxyMode 配置' : '—')} |`);
+  }
+  L.push('');
+}
+
+L.push('## 八、重建命令');
 L.push('');
 L.push('```bash');
 L.push('npm run map        # 重建本图');
