@@ -2,6 +2,8 @@
 import _cmp_xs from "./xs.jsx";
 import { Df, Zs, n, E, Af, k, u, ot, c, Yf, l, Jf, Gf, st } from "./shared.js";
 import * as _shared from "./shared.js";
+// 本地可变状态（原 _shared.Wf 为 ESM 命名空间只读属性，无法直接写入；此处改为可写本地状态，仅本模块自维护 worker track id 自增计数）
+const _trackIdState = { Wf: _shared.Wf };
 var If = class extends Df {
   get errorPromise() {
     this._errorPromiseAccessed = true;
@@ -162,7 +164,7 @@ var If = class extends Df {
         }
       });
     } else if (await Jf()) {
-      this._workerTrackId = _shared.Wf++;
+      this._workerTrackId = _trackIdState.Wf++;
       Yf({
         type: `videoTrack`,
         trackId: this._workerTrackId,

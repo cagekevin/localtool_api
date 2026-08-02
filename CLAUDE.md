@@ -142,6 +142,8 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 7. **改前建基线 / 改后比对**：改前跑 `node scripts/smoke_test.cjs` 记录基线；改后必须重跑，确保 `checkImportGraph`（chunk 引用不悬空）+ `checkReadableParity`（运行时标记不漂移）全 PASS，再 `npm run build`。
 8. **官方更新重打流程**：官方发新版 → ① 拉新 dist，跑还原流水线生成新 `src/bundle/` 基线；② 取出 §四.2 登记的我们的最小改动清单；③ 逐条对照**新版本**的混淆符号/行号重新打上（禁止直接 `git apply` 旧 diff，符号已变）；④ 重跑 `smoke_test.cjs` + `npm run build` + 真机走查。
 
+9. **降低复杂度优先**：凡是能减少代码复杂度、又不引入 bug 的改动都要做——包括但不限于把混淆短名（`_st`/`R`/`Dl` 等本地可改的）改为语义长名、抽公共逻辑、删冗余分支。被 `component_map.json`/运行时契约钉死、改动会破坏引用的除外。**改完必须 `npm run build` 验证回灌 `dist/` 成功。**
+
 > 验证链路：`src/bundle/` 改完 → `node scripts/smoke_test.cjs`（质量门）→ `npm run build`（回灌 `dist/`）→ 浏览器真机走查（见 §二点五）。
 
 ### 3. 卡帕西编码准则 (Karpathy Rules)

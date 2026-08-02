@@ -68,9 +68,13 @@ ensure_node_env() {
   popd >/dev/null
 }
 
-# ── 打开画布 ──
+# ── 打开画布（去重：端口已活则不再重复 open，避免多次运行堆积标签页）──
 open_canvas() {
   local url="http://127.0.0.1:$LT_PORT"
+  if test_port "$LT_PORT" "" quiet; then
+    log "  🌐 画布已在运行，跳过重复打开: $url"
+    return 0
+  fi
   log "  🌐 打开画布 $url"
   open "$url"
 }
@@ -190,6 +194,19 @@ cleanup() {
 }
 trap cleanup INT TERM
 
+# ── 清理已有的同名守护进程（避免多次双击越开越多、互相抢端口自动重启）──
+cleanup_stale_daemons() {
+  # 列出除自己之外的 launch-all.command 守护进程并杀掉
+  local self=$$
+  local pids
+  pids=$(pgrep -f "launch-all.command" 2>/dev/null | grep -v "^$self$" || true)
+  if [ -n "$pids" ]; then
+    warn "  🧹 发现旧的启动器守护进程，正在清理..."
+    echo "$pids" | xargs -r kill 2>/dev/null || true
+    sleep 1
+  fi
+}
+
 # ── 路由 ──
 # 无参双击：直接进守护模式（一键拉起网关+localTool+打开画布），避免交互菜单在
 # .command 双击场景下拿不到输入而直接 exit（docs 复测发现：双击只打印状态就退出）。
@@ -198,8 +215,9 @@ trap cleanup INT TERM
 case "${1:-}" in
   1) start_localtool "1" ;;
   "")
+    cleanup_stale_daemons
     log "🚀 无参启动：进入守护模式（网关 + 本地工具 + 画布）..."
     start_watchdog
     ;;
-  *) start_watchdog ;;   # 2 或其他参数一律守护模式
+  *) cleanup_stale_daemons; start_watchdog ;;   # 2 或其他参数一律守护模式
 esac
