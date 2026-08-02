@@ -1,5 +1,50 @@
 # 22 - React 双实例与 vendor 死重排查报告（现象记录 + 待复核假设）
 
+> ## ⚠️ 真机实测事实补充（2026-08-02 晚，仅记录现象，不含方案结论）
+>
+> 以下为**可证实的客观现象**，来自真机运行报错栈 + 构建产物静态分析。本补充**不提出任何修复方案、不给出可采信的结论**——原报告及其后续所有"方案"均**未经真机验证闭环**，包括：
+> - 原报告 §七 主修/次修方案；
+> - "方向 A 已排除 / 双 vendor 非崩溃原因"的审计结论；
+> - 后续探索中"删 HTML vendor preload 行（S1）即唯一正确解法"的推断（该推断仅基于产物静态分析 + 对照构建，真机复跑后仍报同样的 `useMemo` 崩溃，**已证伪**）。
+>
+> **真机报错栈（原始，未删节）：**
+> ```
+> vendor-Z-adA07W2.js:33
+>  THREE.WARNING: Multiple instances of Three.js being imported.
+> main-CYvt_zul.js:1
+>  TypeError: Cannot read properties of null (reading 'useMemo')
+>     at e.useMemo (vendor-Z-adA07W2.js:1:7323)
+>     at lg (App-BX6o9fW5.js:31:54230)
+>     at fi (vendor-Z-adA07W.js:8:48278)
+>     at mm (vendor-Z-adA07W.js:8:71001)
+>     at P2 (vendor-Z-adA07W.js:8:81407)
+>     at _m (vendor-Z-adA07W.js:8:117196)
+>     at co (vendor-Z-adA07W.js:8:116230)
+>     at rn (vendor-Z-adA07W.js:8:116060)
+>     at L2 (vendor-Z-adA07W.js:8:112851)
+>     at ie (vendor-Z-adA07W.js:8:124659)
+>  [RootErrorBoundary] 捕获到未处理异常: TypeError: Cannot read properties of null (reading 'useMemo')
+>  {componentStack: '...lg (.../assets/App-BX6o9fW5.js) ... main-CYvt_zul.js:1:1767)'}
+> ```
+>
+> **从报错栈可确认的客观事实（无需推断）：**
+> 1. **两份 vendor 在运行时都被加载执行**：`useMemo` 调用帧落在 `vendor-Z-adA07W2.js`，而调用它的组件渲染链 `fi → mm → ... → ie` 全部位于 `vendor-Z-adA07W.js`（无2版）。即**无2版在运行时确实在执行**（推翻原报告"无2版零 import、从不执行、纯死重"的静态分析结论）。
+> 2. **两份 vendor 各自持有独立的 React 实例 / `ReactCurrentDispatcher`**：业务组件 `lg (App-BX6o9fW5.js)` 的 `useMemo` 落在 dispatcher 槽为 `null` 的 `adA07W2` 上 → `Cannot read properties of null (reading 'useMemo')`。这是经典"多 React 实例 / Invalid hook call"崩溃。
+> 3. **Three.js 也被打包进两份 vendor**：`Multiple instances of Three.js` 警告与 `useMemo` 崩溃同源，均为双 vendor 双实例导致。
+>
+> **从构建产物静态分析可确认的客观事实（无需推断）：**
+> 4. 未改动的原始工作区 `npm run build` 后，`dist/assets/` 同时产出 `vendor-Z-adA07W.js` 与 `vendor-Z-adA07W2.js` 两个完整 React chunk（各约 1.7MB）。
+> 5. 产物中所有业务模块（`App` / `ShareAppPage` / `_react_shim` / `_jsx_runtime` / `main` / `share` / `httpClient` 等）的 React 符号 import 均指向 `vendor-Z-adA07W2.js`（静态改写结果），无2版在 `dist/assets/` 内零 `import`——**注意**：此静态"零 import"与事实 1（运行时无2版被执行）矛盾，说明产物静态分析不足以反映运行时模块实例化行为。
+>
+> **待真机验证的开放问题（未决，勿臆断结论）：**
+> - Q1：为何 HTML 里仅以 `<link modulepreload>` 声明的无2版，运行时仍被实例化执行（与 `modulepreload` 不执行模块作用域的常理相悖）？可能与 `vite.config.ts` 的 `modulePreload:false` 降级行为、或 `manualChunks` 命名冲突导致无2版被当作 entry 注入有关，需真机/断点确认。
+> - Q2：删除源 HTML vendor preload 行后，对照构建显示 `adA07W2` 消失、全局只剩无2版一份 React（静态），但**真机复跑仍报同样的 `useMemo` 崩溃**——说明"双 vendor 命名冲突"与"运行时双 React 实例"可能并非同一问题，或 S1 未触及真正的运行时加载路径。根因仍未定位。
+> - Q3：Three.js 双实例与 React 双实例是否同一加载路径触发，未确认。
+>
+> **结论（严格限定）**：当前**仅确认现象**（运行时双 React 实例导致 `useMemo` 崩溃 + 双 Three.js），**根因与修复方案均未定位、均未经真机验证闭环**。后续任何方案须以真机报错消失为唯一验收标准，产物质检 PASS / 静态分析一致均不足为凭。
+
+---
+
 > 状态：**已定位根因并给出修复方案，可作为修复立项依据**。早期版本断言"结构性双实例、不可修、硬删失败"与原稿"chunk 内部双份 React"均与源码/配置/产物实测冲突，已修订。
 > 排查日期：2026-08-02
 > **末次审计：2026-08-02（全文逐条实测复核）**——本轮对报告内每一条"待核实/待验证"断言重跑了实测，共更正 5 处事实错误，其中 1 处为结论级：
@@ -332,3 +377,33 @@ npm run test:smoke                        # 期望 dist 重复 chunk PASS
 | S4 | manualChunks 正则返回 `vendor-Z-adA07W`；shim 用相对路径不受影响 | 改名后需同步 BUNDLE_MAP 按名引用 |
 | S9 | post-build-fixups 已有 HTML 字符串替换循环 | 源 HTML 保留 preload、产物层剥离 |
 | S10 | 4 行手写 preload 实测存在；modulePreload:false 已设 | css 补回逻辑不受牵连 |
+
+---
+
+## 九、试错日志（AI 避坑清单 · 每次失败必记录）
+
+> **本章节为强制记录区**：任何被尝试过且**真机验证失败**的方法都必须在此登记，供后续 AI 避免重复踩坑。登记格式：方法 / 做法 / 真机结果 / 失败根因 / 避坑提示。
+> 验收标准唯一：**真机报错栈消失**（含 `useMemo` 崩溃 + `Multiple instances of Three.js` 警告）。产物质检 PASS、静态分析"只剩一份 vendor"均**不足为凭**（已有反例）。
+
+### 试错 #1 — 方法 S1：删除源 HTML 中 vendor 的 `modulepreload` 行（主修）
+
+- **做法**：删 `index.html` / `share/index.html` / `public/share/index.html` 三处 `<link modulepreload ... vendor-Z-adA07W.js>`。
+- **对照构建结果（静态）**：`adA07W2` 消失，`dist/assets/` 只剩 `vendor-Z-adA07W.js`（无2版一份）；`__vite__mapDeps` 依赖数组引用的 vendor 名也是 `vendor-Z-adA07W.js`（与唯一 React 副本同名）；质量门 `dist 重复 chunk` PASS；`npm run test:smoke` ALL PASS；全产物含 `react.transitional.element` 的文件数 = **1**（即确证只有一份 React 实例）。
+- **真机结果**：仍报同样的 `useMemo` 崩溃 + `Multiple instances of Three.js`，报错栈含 `adA07W2`。与静态"只剩一份 React"的结论矛盾，根因未定位（见下方"当前未决根因"）。
+- **失败根因（未定位）**：S1 后产物静态层确证单实例（只剩 1 个 React 文件、mapDeps 指向它、质量门 PASS），但真机仍崩。说明 S1 未触及真正的运行时双实例路径，双实例另有成因，待新方法排查。
+- **避坑提示（后续 AI 必读）**：
+  1. **产物质检 PASS / 静态"只剩一份 vendor/React"不足以证明真机修复**——已有 S1 反例（静态单实例、真机仍崩）。验收唯一标准：**真机报错栈消失**。
+  2. 排查加载路径须同时看 HTML 声明（`modulepreload`/`script`）与产物 `__vite__mapDeps` 依赖数组两者，勿过度推断"两者均指向同一文件即为单实例"——本例中静态指向同一文件仍真机双实例。
+
+### 试错 #2 — 方法 S2：S1 + 在 `post-build-fixups` 剔除 share 页 `main-CYvt_zul.js` 的 `<script>`
+
+- **做法**：先执行 S1，并在 `vite.config.ts` 的 `post-build-fixups` 插件 `closeBundle` 中加正则剔除 `dist/share/index.html` 里 `../assets/main-CYvt_zul.js` 的 `<script>`（意图消除分享页双 `createRoot`）。
+- **真机结果**：❌ 未单独真机验证即被撤销（因发现 S1 本身真机已崩，叠加此改动风险更高）；且逻辑上剔除 main script 会破坏 `main`/`share` 共享的 `__vite__mapDeps` 链路，可能导致分享页白屏或功能缺失。
+- **失败根因**：基于原报告"方向 A 已排除、崩溃源于 share 双 createRoot（方向 C）"的**错误前提**。真机已证伪方向 A 排除（无2版确实执行），故"消除 share 双 createRoot"并非崩溃根因，此改动属无的放矢且引入新风险。
+- **避坑提示**：原报告 §2.6 / §四 的"方向 A 已排除 / 双 vendor 非崩溃原因"结论**已被真机推翻**，任何基于该结论的衍生方案（含 S2 次修）均不可信，勿复用。
+
+### 当前未决根因（待新方法验证）
+
+- **已实证（静态层，强证据）**：未改动的原始工作区 `npm run build` 后，`dist/assets/` 同时产出 `vendor-Z-adA07W.js` 与 `vendor-Z-adA07W2.js` 两个完整 React 副本（各 ~1.7MB）；所有业务模块静态 `import` 指向 `adA07W2`；HTML 第 9 行 `<link modulepreload>` 声明无2版、第 12 行 `<script>` 加载 `adA07W2`；`main`/`share`/`httpClient` 的 `__vite__mapDeps` 依赖数组含 `./vendor-Z-adA07W.js`。真机栈 `useMemo@adA07W2` + `fi@(无2版)` 证明运行时两份都被实例化、dispatcher 不互通 → 崩溃。
+- **S1 的静态验证**：删三处 vendor preload 后重新 build，产物仅 1 个 React 文件、mapDeps 也指向它、质量门 PASS。但真机复跑仍报同样的 `useMemo` 崩溃，故 S1 未解决运行时双实例问题，根因仍未定位。
+- **后续方向（均未验证，仅供排查参考，非结论）**：调整 `manualChunks` 使 vendor 不再被复制出 `2` 后缀；或将 `__vite__mapDeps` 依赖数组里的 `./vendor-Z-adA07W.js` 重定向到与 `import` 相同的稳定产物；或彻底去掉无2版"被两份加载机制引用"。以上均需真机验证闭环方可采信。
