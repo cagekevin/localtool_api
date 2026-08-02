@@ -151,10 +151,55 @@ function checkReadableParity(ROOT) {
   return { name: 'readable 副本保真', pass, details };
 }
 
+// 6) 契约漂移检测（catch 「改一处漏一处」：跨端字符串契约命中数基线漂移）
+//    依赖 scripts/contract_scan.cjs（零依赖）与基线 scripts/contract_snapshot.json。
+//    无基线时仅信息性 WARN，不阻断；有基线且 high/critical 契约漂移则 FAIL。
+function checkContracts(ROOT) {
+  const scan = path.join(ROOT, 'scripts/contract_scan.cjs').replace(/\\/g, '/');
+  const snap = path.join(ROOT, 'scripts/contract_snapshot.json').replace(/\\/g, '/');
+  if (!exists(scan)) return { name: '契约漂移检测', pass: true, details: ['(跳过: contract_scan.cjs 缺失)'] };
+  if (!exists(snap)) return { name: '契约漂移检测', pass: true, details: ['(跳过: 无基线，先跑 npm run contracts -- --resnap)'] };
+  const { execSync } = require('child_process');
+  let out;
+  try {
+    out = execSync('node "' + scan + '"', { cwd: ROOT, encoding: 'utf8' });
+  } catch (e) {
+    // contract_scan 漂移 FAIL 时退出码 1，但 stdout 含明细；exit 1 本身即失败信号
+    out = (e.stdout || '') + (e.stderr || '');
+    return { name: '契约漂移检测', pass: false, details: out.split('\n').filter((l) => l.trim()).map((l) => l.replace(/^●\s*/, '[FAIL] ')) };
+  }
+  const details = out.split('\n').filter((l) => /PASS|WARN|FAIL|无漂移|漂移:/.test(l)).map((l) => l.trim()).filter(Boolean);
+  // 若输出里出现了 WARN/FAIL 行（非 PASS/无漂移），视为不阻断但提示
+  const hasFail = details.some((l) => l.includes('FAIL') && !l.includes('PASS'));
+  return { name: '契约漂移检测', pass: !hasFail, details: details.length ? details : ['[OK] 全部契约 STABLE'] };
+}
+
+// 7) dist 重复 chunk 检测（catch React 双实例：vendor-*2.js / 同名 chunk 被 Vite 自动加后缀）
+//    见 CLAUDE.md §四.5 铁律 #4「React 单实例不可破」。
+function checkDistDuplicateChunks(ROOT) {
+  const dist = path.join(ROOT, 'dist').replace(/\\/g, '/');
+  const assets = path.join(dist, 'assets').replace(/\\/g, '/');
+  if (!exists(assets)) return { name: 'dist 重复 chunk', pass: true, details: ['(跳过: dist/assets 缺失)'] };
+  const files = fs.readdirSync(assets).filter((f) => f.endsWith('.js'));
+  const base = (f) => f.replace(/\.js$/, '').replace(/2$/, ''); // 去掉可能的尾随 2
+  const seen = {};
+  const dups = [];
+  for (const f of files) {
+    const b = base(f);
+    if (seen[b]) dups.push(seen[b] + ' + ' + f);
+    else seen[b] = f;
+  }
+  const pass = dups.length === 0;
+  const details = pass ? ['[OK] 无重复 chunk（React 单实例安全）'] : dups.map((d) => '[FAIL] 疑似重复 chunk: ' + d);
+  return { name: 'dist 重复 chunk', pass, details };
+}
+
 module.exports = {
   checkDistExists,
   checkManifest,
   checkDistAssets,
   checkImportGraph,
   checkReadableParity,
+  checkContracts,
+  checkDistDuplicateChunks,
 };

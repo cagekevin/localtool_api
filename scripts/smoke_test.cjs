@@ -11,6 +11,8 @@ const checks = [
   C.checkDistAssets(ROOT),
   C.checkImportGraph(ROOT),
   C.checkReadableParity(ROOT),
+  C.checkContracts(ROOT),
+  C.checkDistDuplicateChunks(ROOT),
 ];
 
 let allPass = true;

@@ -137,7 +137,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 2. **禁止新文件 `import` 顶层 chunk 大文件**（循环依赖 → TDZ）。跨 chunk 引用走 `component_map.json` 指定的目标文件。
 3. **整块迁移几千行必翻车**（store+helper 不可分割）；拆改只做最小差异（diff ≤ 30 行，见 §3.1）。
 4. **React 单实例不可破**：`_react_shim.js` / `_jsx_runtime.js` 经 `vite.config.ts` 的 `resolve.alias` + `dedupe` 绑定到 vendor 工厂，✗ 不可删除/改写/新增独立 react 实例。
-5. **字符串契约零损伤**（见 §3.2）：画布硬编码读 `t.data[0].url`、`{code,data}` 信封、`proxyMode=local-tool` 等契约值，改任何引用必须全量 grep 同步。
+5. **字符串契约零损伤**（见 §3.2/§3.3）：画布硬编码读 `t.data[0].url`、`{code,data}` 信封、`proxyMode=local-tool` 等契约值，改任何引用必须全量 grep 同步。**辅助工具**：改前查 `CONTRACTS.md` 确认落点，改后跑 `npm run contracts` 校验全端同步（漂移即 FAIL）。
 6. **混淆留痕 + 变更登记**：每处反直觉改动立即注释语义 + 原名（如 `// ol = tasks 数组, shared.js L247`，不设 deadline）；同时按 §四.2 的「变更记录」要求在 `docs/` 登记该改动，作为官方更新重打的依据。
 7. **改前建基线 / 改后比对**：改前跑 `node scripts/smoke_test.cjs` 记录基线；改后必须重跑，确保 `checkImportGraph`（chunk 引用不悬空）+ `checkReadableParity`（运行时标记不漂移）全 PASS，再 `npm run build`。
 8. **官方更新重打流程**：官方发新版 → ① 拉新 dist，跑还原流水线生成新 `src/bundle/` 基线；② 取出 §四.2 登记的我们的最小改动清单；③ 逐条对照**新版本**的混淆符号/行号重新打上（禁止直接 `git apply` 旧 diff，符号已变）；④ 重跑 `smoke_test.cjs` + `npm run build` + 真机走查。
@@ -163,6 +163,16 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 - `proxyMode=local-tool`、`127.0.0.1:18080`、`127.0.0.1:9004`、`/api/proxy`、`x-proxy-url`
 - 画布硬编码字段：`t.data[0].url`、`{code,data}` 信封结构、SSE 事件格式
 - 模型别名映射（网关 `lovart_client.py` 内的工具名 ↔ Lovart 工具名）
+
+### 3.3 契约字典与地图工具（AI 防漏改辅助）
+
+`src/bundle/` 为混淆还原代码，AI 改动极易「改一处漏一处」。配套工具（零运行时依赖，随代码重跑）：
+
+- **`scripts/contracts.json`**：字符串契约字典，声明每条「改一处必须全端同步」的契约（端口/路径/KV 键/信封）。新增跨端字符串须同步登记。
+- **`scripts/contract_scan.cjs`**：漂移检测（质量门）。`npm run contracts` 比对 `scripts/contract_snapshot.json` 基线，任一 high/critical 契约命中数变化即 FAIL，并打印哪个文件多了/少了。混淆重排后数量正常变化用 `npm run contracts -- --resnap` 重建基线。
+- **`CONTRACTS.md`**：自动生成的契约分布表（哪条契约命中在哪些文件），AI 改契约前先查，确认要动几个端。由 `npm run contracts -- --md` 重建。
+- **`src/bundle/BUNDLE_MAP.md`**：自动生成的逆向源码地图（chunk 表 / 大文件特征索引 / 反向索引 / 高危文件标记 / 同名影子文件警示）。AI 改 `src/bundle/` 前**必读**，按特征反查落点，不凭混淆文件名判断职责。由 `npm run map` 重建。
+- **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §二点五。
 
 ---
 
@@ -197,6 +207,10 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 | `daily/2026-08-01.md` / `daily/2026-07-31.md` | 执行日志 | 🟢 高 |
 | `docs/逆向专用_ai 禁止读/` | 还原方法论与中间产物 | 🚫 AI 禁止读 |
 | `src/bundle/*_components/component_map.json` | 混淆名→文件名映射（真相表） | 🟡 字典级 |
+| `src/bundle/BUNDLE_MAP.md` | 逆向源码地图（AI 改前必读，按特征反查落点） | 🟢 自动生成 |
+| `CONTRACTS.md` | 跨端字符串契约分布表（改契约前查阅） | 🟢 自动生成 |
+| `scripts/contracts.json` + `scripts/contract_scan.cjs` | 契约字典 + 漏改漂移检测（质量门） | 🟢 权威 |
+| `scripts/gen_bundle_map.cjs` | 地图生成器（`npm run map`） | 🟢 工具 |
 
 > 读 `docs/` 任意方案前先确认其状态是「已完成」还是「规划中」，避免把规划当现状。
 

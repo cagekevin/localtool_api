@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "map": "node scripts/gen_bundle_map.cjs",
+    "contracts": "node scripts/contract_scan.cjs",
+    "test:smoke": "node scripts/smoke_test.cjs"
   },
   "dependencies": {
     "react": "^19.0.0",
