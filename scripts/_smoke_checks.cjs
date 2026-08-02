@@ -8,6 +8,28 @@ const path = require('path');
 function exists(p) { return fs.existsSync(p); }
 function readJson(p) { return JSON.parse(fs.readFileSync(p, 'utf8')); }
 
+// 递归收集 dir 下所有 .js 文件，返回相对 dir 的正斜杠路径数组（含子目录）
+function listJsRecursive(dir) {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  const walk = (d, base) => {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, entry.name);
+      const rel = base ? base + '/' + entry.name : entry.name;
+      if (entry.isDirectory()) walk(full, rel);
+      else if (entry.isFile() && entry.name.endsWith('.js')) out.push(rel);
+    }
+  };
+  walk(dir, '');
+  return out;
+}
+
+// 规范化 './'/'../' 相对路径，避免 path.join 对子目录引用的基准错位
+function normalizeRel(base, rel) {
+  const joined = path.posix.normalize(base + '/' + rel);
+  return joined.replace(/^\.\//, '');
+}
+
 // 1) dist 基本存在 + 关键入口文件
 function checkDistExists(ROOT) {
   const dist = path.join(ROOT, 'dist').replace(/\\/g, '/');
@@ -59,8 +81,12 @@ function checkDistAssets(ROOT) {
       else if (!u.startsWith('http') && !u.startsWith('data:') && !u.startsWith('#')) refs.push(u);
     }
     const localRefs = [...new Set(refs)].filter((r) => r && !r.startsWith('http'));
+    // 子目录 HTML（如 share/index.html）的引用是相对该 HTML 所在目录（dist/share/），
+    // 而非 dist/ 根；此处按 HTML 所在目录解析，避免 `../assets/x.js` 基准错位误判缺失。
+    const htmlDir = path.posix.dirname(rel); // '' | 'share'（相对 dist 的正斜杠路径）
     for (const r of localRefs) {
-      if (!exists(path.join(dist, r))) { pass = false; details.push('[FAIL] ' + rel + ' 引用缺失: ' + r); }
+      const target = normalizeRel(htmlDir, r);
+      if (!exists(path.join(dist, target))) { pass = false; details.push('[FAIL] ' + rel + ' 引用缺失: ' + target + ' (来自 ' + r + ')'); }
     }
     details.push('[OK] ' + rel + ' 校验 ' + localRefs.length + ' 个本地引用');
   }
@@ -71,11 +97,12 @@ function checkDistAssets(ROOT) {
 function checkImportGraph(ROOT) {
   const bundle = path.join(ROOT, 'src/bundle').replace(/\\/g, '/');
   if (!exists(bundle)) return { name: 'chunk import 图完整性', pass: false, details: ['src/bundle 缺失'] };
-  const files = fs.readdirSync(bundle).filter((f) => f.endsWith('.js'));
+  // 递归收集顶层 + 所有 *_components/ 子目录的 .js，key 为相对 bundle 根的路径
+  const files = listJsRecursive(bundle);
   const have = new Set(files);
   const details = [];
   let pass = true;
-  // 覆盖三种写法：import"./X" / import("./X") / from"./X"
+  // 覆盖三种写法：import"./X" / import("./X") / from"./X"；X 可含子目录
   const IMPORT_RE = /(?:(?:import\s*\(?\s*["'])|(?:from\s*["']))\.\/([^"']+\.js)["']/g;
   for (const f of files) {
     const s = fs.readFileSync(path.join(bundle, f), 'utf8');
@@ -95,8 +122,17 @@ function checkImportGraph(ROOT) {
 function checkReadableParity(ROOT) {
   const bundle = path.join(ROOT, 'src/bundle').replace(/\\/g, '/');
   const readable = path.join(ROOT, 'readable').replace(/\\/g, '/');
-  if (!exists(readable)) return { name: 'readable 副本保真', pass: false, details: ['readable/ 不存在，先跑 npm run readable'] };
-  const files = fs.readdirSync(bundle).filter((f) => f.endsWith('.js'));
+  // readable/ 是 rename.cjs 生成的阅读副本（与 src/bundle 顶层 .js 1:1）。不存在时先调用 rename.cjs
+  // 生成，而非直接 FAIL——避免「提示的 npm run readable 命令不存在」导致质量门永远卡死。
+  if (!exists(readable)) {
+    try {
+      require('./rename.cjs');
+    } catch (e) {
+      return { name: 'readable 副本保真', pass: false, details: ['readable/ 不存在且自动生成失败: ' + e.message + '（可手动 node scripts/rename.cjs）'] };
+    }
+  }
+  if (!exists(readable)) return { name: 'readable 副本保真', pass: false, details: ['readable/ 仍未生成，请手动 node scripts/rename.cjs'] };
+  const files = listJsRecursive(bundle);
   const MARKERS = ['/api/status', '18080', 'canvas-state-v1', '127.0.0.1', 'localTool', 'cookie'];
   const details = [];
   let pass = true;

@@ -38,6 +38,10 @@ apimart-gateway/.env
 # ── dist 原版备份（美化前的单行压缩版，仅本地回退用）──
 dist-orig/
 
+# ── readable 阅读副本（rename.cjs 生成、与 src/bundle 1:1、可随时重建，不入库）──
+# 由 scripts/rename.cjs 递归生成；_smoke_checks.checkReadableParity 缺失时会自动重建。
+readable/
+
 # ── 逆向还原目录：整目录入库（含中间产物 pipeline/dist/step0_raw/verifiers），仅忽略其下的系统文件 ──
 # 注：CLAUDE.md §四.4 标注此目录「AI 禁止读」，但需随仓库分发，故纳入版本库。
 
