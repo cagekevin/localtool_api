@@ -1,34 +1,54 @@
+# ════════════════════════════════════════════════════════════════
+# .gitignore · 一毛AI画布多端合一（自研后端替代版）
+# 依据 CLAUDE.md §四 开发红线与分层铁律整理：
+#   - 运行只读 dist/，src/bundle/ 是可编辑工程源码（应入库）
+#   - localTool/dist/ 是 tsc 产物（不入库）
+#   - apimart-gateway/.env 含真实 AK/SK（绝不入库）
+#   - docs/逆向专用_ai 禁止读/ 为逆向中间产物（AI 禁止读，不入库）
+# ════════════════════════════════════════════════════════════════
+
 # ── 依赖（体积大、可重装，不纳入版本库）──
 node_modules/
 
-# ── 构建产物（tsc 由 src 重建，localTool/dist 不纳入；根 dist/ 扩展产物保留以便回退）──
+# ── 构建产物 ──
+# localTool 的 tsc 编译产物（由 localTool/src 重建，不入库）
 localTool/dist/
+# 根前端 dist/：src/bundle/ 经 `npm run build` 回灌的运行时产物，
+# 运行只读、每次 build 必变，属构建产物，不入库（见 CLAUDE.md §四.2/§四.5）。
+dist/
 
-# ── Python 缓存 ──
+# Vite / TS 构建缓存与类型增量
+.vite/
+*.tsbuildinfo
+
+# ── Python ──
 __pycache__/
 *.pyc
+apimart-gateway/venv/
 
-# ── dist 原版备份（美化前的单行压缩版，仅本地回退用）──
-dist-orig/
-
-# ── 系统 / 编辑器 / 项目数据 ──
-.DS_Store
-.codebuddy/
+# ── 环境变量 / 密钥（含真实 Lovart AK/SK，绝不入库）──
+.env
+.env.*
+apimart-gateway/.env
 
 # ── 闭源引擎二进制交付物（无源码、体积大，仅本地运行用）──
 *.exe
 一毛AI画布引擎Mac端Arm版
 一毛AI画布引擎Mac端Intel版
-apimart-gateway/.env
 
-# ── 自动生成的 Python 虚拟环境（启动脚本按需创建，无需入库）──
-apimart-gateway/venv/
+# ── dist 原版备份（美化前的单行压缩版，仅本地回退用）──
+dist-orig/
+
+# ── 逆向还原中间产物（CLAUDE.md §四.4：AI 禁止读目录，不入库）──
+docs/逆向专用_ai 禁止读/
 
 # ── 运行时日志（启动脚本落盘，含 [proxy] 转发明细）──
+*.log
 apimart-gateway/apimart_9004.log
 apimart-gateway/apimart_9004.err.log
 localTool/localtool_18080.log
 localTool/localtool_18080.err.log
 
-# ── Windows 资源管理器缓存 ──
+# ── 系统 / 编辑器 / 项目数据 ──
+.DS_Store
 Thumbs.db
