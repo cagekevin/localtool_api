@@ -48,8 +48,7 @@ export default function H_({
   videoModel: C = `grok-video-3-pro`,
   sd2VideoModel: w = `seed-2`,
   discountVideoModel: T = `seedance_2_fast`,
-  // [时长:5-15] 默认视频时长选项改为 5/15 秒，便于生成短视频测试（原 10/15）
-  videoDurations: D = `5
+  videoDurations: D = `10
 15`,
   audioModel: O = `whisper-1`,
   showToast: k,
