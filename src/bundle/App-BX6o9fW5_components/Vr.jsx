@@ -3674,13 +3674,17 @@ grok-video-3`);
               });
             }} isLoggedIn={q} localToolBaseUrl={i} agentCanvasRef={Ht} agentPanelOpen={false} agentPanelWidth={Mt} key={Z} />
               {false}
-              <_cmp__Component40 agentKey={`canvas-assistant`} projectId={Z} canvasHandleRef={Ht} open={false} onClose={() => {
+              <_cmp__Component40 agentKey={`canvas-assistant`} projectId={Z} canvasHandleRef={Ht} open={Ot} onClose={() => {
               return jt(false);
             }} onGoMembership={() => {
               H(`settings`);
               Dt(`membership`);
             }} onWidthChange={Nt} onEnabledChange={Bt} />
               {!Ot && <Component866 className={`absolute bottom-6 right-6 z-50 flex items-center gap-2`}>
+                  <Component865 className={`flex items-center gap-1.5 rounded-full bg-[#151414] border border-[#333] px-3 py-1.5 text-xs font-medium text-gray-200 shadow-lg transition-colors hover:bg-[#202020] hover:border-blue-500/40 cursor-pointer`} title={`AI 画布助手`} onClick={() => jt(true)}>
+                    <Component860 width={`14`} height={`14`} viewBox={`0 0 24 24`} fill={`none`} stroke={`#8b5cf6`} strokeWidth={`2`} strokeLinecap={`round`} strokeLinejoin={`round`}><Component859 points={`12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2`} /></Component860>
+                    <Component864 className={`leading-none`}>{`AI 助手`}</Component864>
+                  </Component865>
                   <Component858 className={`text-[10px] font-medium text-white/15 tabular-nums select-none leading-none`} title={`当前版本`}>
                     {`v`}
                     {Vt()}
