@@ -119,19 +119,13 @@ function checkImportGraph(ROOT) {
 }
 
 // 5) readable 副本保真（确保 rename.cjs 产物与源 1:1 行数、且未误伤运行时字符串）
+//    readable/ 是已归档 rename-pipeline 生成的「只读语义重命名副本」，当前 name_rules 空跑为 no-op，
+//    属逆向可读性增强的**可选**产物，不参与构建回灌。故 readable 缺失时仅 WARN 不 FAIL、不自动生成
+//    （自动 require 归档脚本存在相对路径错位风险，且会让质量门依赖一个非必需副本）。
 function checkReadableParity(ROOT) {
   const bundle = path.join(ROOT, 'src/bundle').replace(/\\/g, '/');
   const readable = path.join(ROOT, 'readable').replace(/\\/g, '/');
-  // readable/ 是 rename.cjs 生成的阅读副本（与 src/bundle 顶层 .js 1:1）。不存在时先调用 rename.cjs
-  // 生成，而非直接 FAIL——避免「提示的 npm run readable 命令不存在」导致质量门永远卡死。
-  if (!exists(readable)) {
-    try {
-      require('./archived/rename-pipeline/rename.cjs');
-    } catch (e) {
-      return { name: 'readable 副本保真', pass: false, details: ['readable/ 不存在且自动生成失败: ' + e.message + '（可手动 node scripts/rename.cjs）'] };
-    }
-  }
-  if (!exists(readable)) return { name: 'readable 副本保真', pass: false, details: ['readable/ 仍未生成，请手动 node scripts/rename.cjs'] };
+  if (!exists(readable)) return { name: 'readable 副本保真', pass: true, details: ['(提示: readable/ 不存在。其为归档 rename-pipeline 的可选阅读副本，缺失不阻断。如需生成：node scripts/archived/rename-pipeline/rename.cjs)'] };
   const files = listJsRecursive(bundle);
   const MARKERS = ['/api/status', '18080', 'canvas-state-v1', '127.0.0.1', 'localTool', 'cookie'];
   const details = [];
@@ -152,26 +146,19 @@ function checkReadableParity(ROOT) {
 }
 
 // 6) 契约漂移检测（catch 「改一处漏一处」：跨端字符串契约命中数基线漂移）
-//    依赖 scripts/contract_scan.cjs（零依赖）与基线 scripts/contract_snapshot.json。
-//    无基线时仅信息性 WARN，不阻断；有基线且 high/critical 契约漂移则 FAIL。
+//    直接 require contract_scan.cjs 的 run() 同进程执行（不再 execSync 子进程，省一次重复扫描）。
+//    依赖基线 scripts/contract_snapshot.json；无基线时仅信息性 WARN，不阻断；有基线且 high/critical 漂移则 FAIL。
 function checkContracts(ROOT) {
   const scan = path.join(ROOT, 'scripts/contract_scan.cjs').replace(/\\/g, '/');
   const snap = path.join(ROOT, 'scripts/contract_snapshot.json').replace(/\\/g, '/');
   if (!exists(scan)) return { name: '契约漂移检测', pass: true, details: ['(跳过: contract_scan.cjs 缺失)'] };
   if (!exists(snap)) return { name: '契约漂移检测', pass: true, details: ['(跳过: 无基线，先跑 npm run contracts -- --resnap)'] };
-  const { execSync } = require('child_process');
-  let out;
-  try {
-    out = execSync('node "' + scan + '"', { cwd: ROOT, encoding: 'utf8' });
-  } catch (e) {
-    // contract_scan 漂移 FAIL 时退出码 1，但 stdout 含明细；exit 1 本身即失败信号
-    out = (e.stdout || '') + (e.stderr || '');
-    return { name: '契约漂移检测', pass: false, details: out.split('\n').filter((l) => l.trim()).map((l) => l.replace(/^●\s*/, '[FAIL] ')) };
-  }
-  const details = out.split('\n').filter((l) => /PASS|WARN|FAIL|无漂移|漂移:/.test(l)).map((l) => l.trim()).filter(Boolean);
-  // 若输出里出现了 WARN/FAIL 行（非 PASS/无漂移），视为不阻断但提示
-  const hasFail = details.some((l) => l.includes('FAIL') && !l.includes('PASS'));
-  return { name: '契约漂移检测', pass: !hasFail, details: details.length ? details : ['[OK] 全部契约 STABLE'] };
+  // 复用同一个 node 进程内的 run()，避免二次全量扫描（约省 1 倍 IO + 一次进程启动）
+  const { run } = require(scan);
+  const res = run();
+  // run() 内部已按严重度判定（high/critical 漂移 → pass=false）；此处直接采用其权威结论
+  const details = res.details.filter((l) => /PASS|WARN|FAIL|无漂移|漂移:/.test(l)).map((l) => l.trim()).filter(Boolean);
+  return { name: '契约漂移检测', pass: res.pass, details: details.length ? details : ['[OK] 全部契约 STABLE'] };
 }
 
 // 7) dist 重复 chunk 检测（catch React 双实例：vendor-*2.js / 同名 chunk 被 Vite 自动加后缀）

@@ -10,13 +10,15 @@
 #
 # Original dist/ is backed up to dist-orig/ (skipped if already exists).
 #
+# 注意：本脚本已随根目录移入 scripts/，工作目录需切回仓库根，
+#       且 beautify-dist.cjs 与脚本同目录（不再多包一层 scripts/）。
+#
 # Usage:
-#   Double-click this file, or:
-#   powershell -ExecutionPolicy Bypass -File .\launch-beautify-dist.ps1
+#   powershell -ExecutionPolicy Bypass -File .\scripts\launch-beautify-dist.ps1
 # =====================================================================
 $ErrorActionPreference = "Continue"
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
-Set-Location -Path $ScriptDir
+Set-Location -Path (Split-Path $ScriptDir -Parent)  # 仓库根，beautify-dist.cjs 按 WORKSPACE=.. 取 dist/
 
 function Write-Log {
     param([string]$Message, [string]$Level = "Info")
@@ -28,7 +30,7 @@ Write-Log "========================================" "Info"
 Write-Log "   Full beautify dist/ (4 steps auto)" "Info"
 Write-Log "========================================" "Info"
 
-$nodeScript = Join-Path $ScriptDir "scripts\beautify-dist.cjs"
+$nodeScript = Join-Path $ScriptDir "beautify-dist.cjs"  # 与脚本同目录
 if (-not (Test-Path $nodeScript)) {
     Write-Log "ERROR: script not found: $nodeScript" "Error"
     Read-Host "`nPress Enter to close"

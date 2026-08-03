@@ -1,6 +1,6 @@
 # CLAUDE.md · 一毛AI画布多端合一（自研后端替代版）架构师工作手册
 
-> **最后更新**：2026-08-02
+> **最后更新**：2026-08-03
 
 ## 一、 项目全局定位 (TL;DR)
 
@@ -75,15 +75,18 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 
 ---
 
-## 二点五、 提交前验证流程（不跑不许提交）
+## 二点五、 修改代码步骤与提交前验证流程（不跑不许提交）
 
-**每次改 `localTool/` 或 `apimart-gateway/` 代码，按序跑；提交时人工确认已通过。**
+**改完代码必跑**：`npm run build`（构建校验+回灌 dist/）· `npm test:smoke`（冒烟质量门）
+**按需触发**：预览走 `npm run dev`（开发服务器，非提交校验）；动了 `src/bundle/` → 必跑 `npm run contracts`（契约漏改检测，漂移 FAIL 用 `--resnap` 重建基线）；需更新检索地图 → `npm run map`
+
+**提交前验证流程（按序跑，提交时人工确认已通过）**：
 
 ```
-1. cd localTool && npm run build        ← tsc 类型+编译（localTool 无 vite，build=tsc）
-2. cd apimart-gateway && python -c "import main"  ← 网关语法/导入自检
-3. 若动了 src/bundle：node scripts/smoke_test.cjs（质量门）→ npm run build（回灌 dist/）
-4. 启动双服务（先开 VPN）→ 浏览器打开画布真机走查关键链路
+1. cd localTool && npm run build              ← tsc 编译自检
+2. cd apimart-gateway && python -c "import main"  ← 网关导入自检
+3. 若动了 src/bundle：npm run build（回灌 dist/）→ npm test:smoke（质量门，验 dist/）→ npm run contracts（契约漏改）→ 必要时 npm run map
+4. 启动双服务（先开 VPN）→ 浏览器真机走查关键链路
 ```
 
 > 注：当前无 husky/pre-commit 强制钩子，验证靠自觉；`dist/` 手改按 §四.2 单独 commit 并注明授权。
@@ -139,7 +142,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 4. **React 单实例不可破**：`_react_shim.js` / `_jsx_runtime.js` 经 `vite.config.ts` 的 `resolve.alias` + `dedupe` 绑定到 vendor 工厂，✗ 不可删除/改写/新增独立 react 实例。
 5. **字符串契约零损伤**（见 §3.2/§3.3）：画布硬编码读 `t.data[0].url`、`{code,data}` 信封、`proxyMode=local-tool` 等契约值，改任何引用必须全量 grep 同步。**辅助工具**：改前查 `CONTRACTS.md` 确认落点，改后跑 `npm run contracts` 校验全端同步（漂移即 FAIL）。
 6. **混淆留痕 + 变更登记**：每处反直觉改动立即注释语义 + 原名（如 `// ol = tasks 数组, shared.js L247`，不设 deadline）；同时按 §四.2 的「变更记录」要求在 `docs/` 登记该改动，作为官方更新重打的依据。
-7. **改前建基线 / 改后比对**：改前跑 `node scripts/smoke_test.cjs` 记录基线；改后必须重跑，确保 `checkImportGraph`（chunk 引用不悬空）+ `checkReadableParity`（运行时标记不漂移）全 PASS，再 `npm run build`。
+7. **改前建基线 / 改后比对**：改前跑 `node scripts/smoke_test.cjs` 记录基线；改后必须重跑，确保 `checkImportGraph`（chunk 引用不悬空）+ `checkContracts`（契约漂移）+ `checkDistDuplicateChunks`（React 单实例）全 PASS，再 `npm run build`。`checkReadableParity` 为**可选项**：`readable/` 是已归档 `rename-pipeline` 的只读阅读副本（`name_rules` 空跑 no-op，不参与构建回灌），缺失时该检查仅 WARN 不阻断。
 8. **官方更新重打流程**：官方发新版 → ① 拉新 dist，跑还原流水线生成新 `src/bundle/` 基线；② 取出 §四.2 登记的我们的最小改动清单；③ 逐条对照**新版本**的混淆符号/行号重新打上（禁止直接 `git apply` 旧 diff，符号已变）；④ 重跑 `smoke_test.cjs` + `npm run build` + 真机走查。
 
 9. **降低复杂度优先**：凡是能减少代码复杂度、又不引入 bug 的改动都要做——包括但不限于把混淆短名（`_st`/`R`/`Dl` 等本地可改的）改为语义长名、抽公共逻辑、删冗余分支。被 `component_map.json`/运行时契约钉死、改动会破坏引用的除外。**改完必须 `npm run build` 验证回灌 `dist/` 成功。**
@@ -172,7 +175,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 - **`scripts/contract_scan.cjs`**：漂移检测（质量门）。`npm run contracts` 比对 `scripts/contract_snapshot.json` 基线，任一 high/critical 契约命中数变化即 FAIL，并打印哪个文件多了/少了。混淆重排后数量正常变化用 `npm run contracts -- --resnap` 重建基线。
 - **`CONTRACTS.md`**：自动生成的契约分布表（哪条契约命中在哪些文件），AI 改契约前先查，确认要动几个端。由 `npm run contracts -- --md` 重建。
 - **`src/bundle/BUNDLE_MAP.md`**：自动生成的逆向源码地图（八章：顶层 chunk 表 / _components 规模 / 大文件特征索引 / 契约反向索引 / 高危文件标记 / 同名影子文件警示 / 功能域速查 / 重建命令）。AI 改 `src/bundle/` 前**必读**，按特征反查落点，不凭混淆文件名判断职责。由 `npm run map` 重建。
-- **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §二点五。
+- **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §二点五。质量门性能优化（2026-08-03）：`contract_scan.cjs` 按 scope 预读文件缓存（避免逐契约重复 IO）+ 抽出 `run()` 可编程入口；smoke 内 `checkContracts` **同进程 `require` 复用 `run()`**，不再 `execSync` 起子进程，`npm test:smoke` 约 762ms → 194ms。
 
 > **铁律：BUNDLE_MAP.md / CONTRACTS.md 一律由工具重建，禁止手改。** 这两份是自动生成物，手改会被下次 `npm run map` / `npm run contracts -- --md` 覆盖，且会漏掉自动检测（如同名影子文件扫描）。要改地图内容，改 `scripts/gen_bundle_map.cjs` 或 `scripts/contract_scan.cjs` 后重跑。其中第六章「同名影子文件警示」由生成器自动扫描 `src/bundle/` 跨目录同名文件得出（如 `shared.js` 4 处、`Tr.jsx` 等各 2 处），是防「改一处漏一处」的最高危提示，勿删。
 

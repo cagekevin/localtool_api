@@ -9,6 +9,7 @@
 | --- | --- |
 | `beautify.cjs` | 反编译美化：把 1.4.0 样本 `dist/assets` 压缩 chunk 重排版为可读源码，输出到 `src/bundle/` 与 `public/`。用法：`SAMPLE=<样本路径> node scripts/beautify.cjs` |
 | `beautify-dist.cjs` | 一键美化 `dist/`（压缩单行 → 可读版写回 `dist/`），4 步全自动流水线。用法：`node scripts/beautify-dist.cjs` |
+| `launch-beautify-dist.ps1` | `beautify-dist.cjs` 的 Windows PowerShell 启动器（双击/命令行触发，含 dist-orig/ 备份提示）。用法：`powershell -ExecutionPolicy Bypass -File .\scripts\launch-beautify-dist.ps1`。⚠️ 脚本位于 `scripts/` 内，`$ScriptDir` 即本目录，`$nodeScript` 指向同目录 `beautify-dist.cjs`，并已 `Set-Location` 回仓库根 |
 | `smoke_test.cjs` | Tier 2 冒烟测试（硬断言），任一项 FAIL 即退出码 1，作为 CI 质量门。用法：`node scripts/smoke_test.cjs`（npm: `test:smoke`） |
 | `_smoke_checks.cjs` | 可复用静态冒烟检查（被 `smoke_test.cjs` 与 `_check_align.cjs` 共用），零依赖，CI 直跑 |
 | `_check_align.cjs` | 改名对齐校验安全网：扫描改名后源码关键行为标记位置，确认改名没误伤 |
