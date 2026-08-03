@@ -2742,7 +2742,9 @@ ${C}`;
                 prompt: z.contents[0].parts[0].text,
                 channelName: I_(h),
                 modelName: F,
-                requestData: B
+                // 修复：图生图 B 是 FormData，JSON.stringify 会得空 {}，侧边栏日志显示为空；
+                // 转成普通可序列化对象再记录（Blob/File 字段转可读占位符），不影响实际请求发送。
+                requestData: re ? Object.fromEntries(Array.from(B.entries()).map(([k, v]) => [k, v instanceof Blob ? `[${k}:${v.type || 'file'}:${v.name || 'blob'}]` : v])) : B
               }, ...n];
             });
           }
