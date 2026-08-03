@@ -314,24 +314,23 @@ class DataFormatter:
 
     @staticmethod
     def parse_size(size: str) -> Tuple[str, str]:
-        if not size: return "", ""
+        # 分辨率兜底规则：前端给了（或像素换算出 2K/4K）就用；没给统一兜底 1K。
+        # 比例规则：给了就原样透传或像素换算成标准比例；没给（None/空/auto）就不传比例。
+        if not size: return "", "1K"
         s = size.strip()
-        # 显式处理"自动"：表示由模型自动决定比例，不强制约束比例，
-        # 但默认给 1K 分辨率（大多数场景 1K 足够），避免无约束时尺寸漂移。
-        # 与"解析失败"区分开，避免把写错的比例当 auto 静默吞掉。
         if s.lower() in ("auto", "自动", "any", "随机"):
             return "", "1K"
-        if re.fullmatch(r"\d+:\d+", s): return s, ""
+        if re.fullmatch(r"\d+:\d+", s): return s, "1K"
         try:
             parts = s.lower().split("x")
-            if len(parts) != 2: return "", ""
+            if len(parts) != 2: return "", "1K"
             w, h = int(parts[0]), int(parts[1])
             ratios = [(1,1,"1:1"), (3,2,"3:2"), (2,3,"2:3"), (4,3,"4:3"), (3,4,"3:4"), (16,9,"16:9"), (9,16,"9:16"), (21,9,"21:9"), (9,21,"9:21")]
             ratio = min(ratios, key=lambda x: abs(w/h - x[0]/x[1]))[2]
             res = "4K" if max(w, h) >= 3000 else ("2K" if max(w, h) >= 1800 else "1K")
             return ratio, res
         except Exception:
-            return "", ""
+            return "", "1K"
 
     @staticmethod
     def extract_raw_urls(value) -> list:
@@ -352,7 +351,8 @@ class DataFormatter:
         # 请求规范化（中转站职责，必须）：把尺寸/分辨率/数量约束拼成前缀，
         # 让 Lovart 明确「只生成一份」。不替 Lovart 决定生成策略，只约束输出形态。
         parts = []
-        ratio, res = DataFormatter.parse_size(size) if size else ("", "")
+        # 始终走 parse_size：None/空/auto 统一给 1K，明确比例则换算或原样透传。
+        ratio, res = DataFormatter.parse_size(size)
         if ratio: parts.append(ratio)
         if res: parts.append(res)
         if not res and resolution: parts.append(str(resolution).strip().lower())
