@@ -2,6 +2,19 @@
 
 > **最后更新**：2026-08-03
 
+## 〇、 写给后续 AI 的写作铁律（最高优先）
+
+**本项目约 90% 的代码与文档是写给后续 AI 的，不是给人看的。** 默认读者是下一个 AI。做到：
+
+- **真实不误导**：文档与代码现状一致，宁可少写不写错；标注"已完成/规划中/已失效"，禁止把过时结构（旧 `src/legacy`、已归档脚本）写成现状。
+- **简洁**：最少字传达必要信息，不写流水账/客套/重复。
+- **精确**：脚本、文件、npm 命令必须是仓库真实存在的，已归档的写 `archived/`。
+- **留痕**：反直觉改动立即注释"语义 + 原始混淆名"（§五.4 铁律 6）。
+
+> 标准：陌生后续 AI 能否凭此快速定位到要改的地方、且不被误导？能 → 合格；不能 → 重写。
+
+---
+
 ## 一、 项目全局定位 (TL;DR)
 
 * **项目本质**：使用自研的 `localTool` 和 `apimart-gateway` 替换官方原版的三个闭源可执行引擎（Win端、Mac Arm版、Mac Intel版），实现多端合一。
@@ -9,7 +22,7 @@
 * **当前进度**：
   * **已完成**：`localTool` 已承担前端托管、请求代理、本地存储及生图异步转同步，并自研实现了替代官方 1mao 的平台接口。`apimart-gateway` 已承担 Lovart 中继、聊天同步、图视异步、webhook 及自动确认。
   * **进行中**：网关原生双模（同步/异步）改造、落盘转存（不丢图）增强。
-  * **新增（2026-08-02）**：仓库已纳入官方混淆 `dist/` 逆向还原出的**可编辑工程源码** `src/bundle/`，支持 `npm run build` 直接回灌 `dist/`（见 §四.5）；配套还原流水线脚本在 `scripts/`（`split_js.py`、`beautify.cjs`、`gen_map.cjs`、`scope_rename_plugin.cjs` 等），质量门 `scripts/smoke_test.cjs`。逆向还原方法论与中间产物集中于 `docs/逆向专用_ai 禁止读/`（标注「AI 禁止读」，AI 助手默认不读取该目录内容）。
+  * **新增（2026-08-02）**：仓库已纳入官方混淆 `dist/` 逆向还原出的**可编辑工程源码** `src/bundle/`，支持 `npm run build` 直接回灌 `dist/`（见 §五.4）；配套还原流水线脚本已归档到 `scripts/archived/`（`rename-pipeline/`、`beautify/`、`tools/` 等，一次性逆向产物），核心质量门 `scripts/smoke_test.cjs`（AI 默认自检，见 §三）。逆向还原方法论与中间产物集中于 `docs/逆向专用_ai 禁止读/`（标注「AI 禁止读」，AI 助手默认不读取该目录内容）。
 
 ---
 
@@ -68,32 +81,38 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 
 ### 3. 前端与外部依赖层
 
-* **画布前端 (`dist/`)**：Vite 构建产物，由 `src/bundle/` 编译生成（见 §四.5）。**运行只读 `dist/`**；改前端须改 `src/bundle/` 再 `npm run build` 回灌。
-* **逆向还原源码 (`src/bundle/`)**：官方 `dist/` 经拆包/还原后的**可编辑工程源码**（约 200 文件，174 `.jsx` + 18 `.js` + 4 `.css` + 4 `.json`）。每个顶层 chunk `.js` 仅做门面 re-export，真实逻辑拆到 `*_components/` 子目录；`component_map.json` 记录「原始混淆名 → 文件名」映射，是还原引用的真相表。含 `_react_shim.js` / `_jsx_runtime.js` 解决 React 单实例问题（⚠️ 不可删除/改写，否则 `Invalid hook call`）。**改完跑 `npm run build` 即回灌 `dist/`**（见 §四.5 改造规范）。
-* **官方 1mao**：闭源外部服务（**非自研**），处理账号权益（含 grok/GK 等模型及报错），体外于自研引擎；仅在 localTool 未启动时作为 fallback 裸连。其平台接口正由 localTool 自研替换（见 §2.1 ④）。
+* **画布前端 (`dist/`)**：Vite 构建产物，由 `src/bundle/` 编译生成（见 §五.4）。**运行只读 `dist/`**；改前端须改 `src/bundle/` 再 `npm run build` 回灌。
+* **逆向还原源码 (`src/bundle/`)**：官方 `dist/` 经拆包/还原后的**可编辑工程源码**（约 200 文件，174 `.jsx` + 18 `.js` + 4 `.css` + 4 `.json`）。每个顶层 chunk `.js` 仅做门面 re-export，真实逻辑拆到 `*_components/` 子目录；`component_map.json` 记录「原始混淆名 → 文件名」映射，是还原引用的真相表。含 `_react_shim.js` / `_jsx_runtime.js` 解决 React 单实例问题（⚠️ 不可删除/改写，否则 `Invalid hook call`）。**改完跑 `npm run build` 即回灌 `dist/`**（见 §五.4 改造规范）。
+* **官方 1mao**：闭源外部服务（**非自研**），处理账号权益（含 grok/GK 等模型及报错），体外于自研引擎；仅在 localTool 未启动时作为 fallback 裸连。其平台接口正由 localTool 自研替换（见 §二.1 ④）。
 * **kkidc**：视频生成外部上游，请求由 localTool 原样透传，非前端直连。
 
 ---
 
-## 二点五、 修改代码步骤与提交前验证流程（不跑不许提交）
+## 三、 修改代码步骤与提交前验证流程（不跑不许提交）
 
-**改完代码必跑**：`npm run build`（构建校验+回灌 dist/）· `npm test:smoke`（冒烟质量门）
-**按需触发**：预览走 `npm run dev`（开发服务器，非提交校验）；动了 `src/bundle/` → 必跑 `npm run contracts`（契约漏改检测，漂移 FAIL 用 `--resnap` 重建基线）；需更新检索地图 → `npm run map`
+**AI 每次改动后的默认自检**：`npm run test:smoke`（冒烟质量门，~194ms 极快，立即发现契约漂移/React 单实例破坏/chunk 完整性）。
+**按需触发**：动了 `src/bundle/` → 改动完 `npm run test:smoke`，契约相关再 `npm run contracts`（漂移 FAIL 用 `--resnap` 重建基线）、需更新检索地图 `npm run map`；较大改动或环境异常时 `npm run health`（全量体检，0 错 0 警为佳）；预览走 `npm run dev`（开发服务器，非校验）。
 
-**提交前验证流程（按序跑，提交时人工确认已通过）**：
+**改动完成后的完整验证流程（改完 `src/bundle/` 后按序）**：
 
 ```
-1. cd localTool && npm run build              ← tsc 编译自检
-2. cd apimart-gateway && python -c "import main"  ← 网关导入自检
-3. 若动了 src/bundle：npm run build（回灌 dist/）→ npm test:smoke（质量门，验 dist/）→ npm run contracts（契约漏改）→ 必要时 npm run map
-4. 启动双服务（先开 VPN）→ 浏览器真机走查关键链路
+1. npm run test:smoke        ← 冒烟质量门（快速，每次改动都跑）
+2. npm run build             ← 回灌 dist/（确认编译通过）
+3. npm run map               ← 更新 AI 检索地图（若新增/改动了文件）
+4. npm run contracts         ← 契约漏改检测（若动了字符串契约）
+5. npm run health            ← 全量健康度（较大改动或提交前）
 ```
 
-> 注：当前无 husky/pre-commit 强制钩子，验证靠自觉；`dist/` 手改按 §四.2 单独 commit 并注明授权。
+> **命令速查**（`package.json`）：
+> - `npm run test:smoke` = `node scripts/smoke_test.cjs`（AI 默认自检，快）
+> - `npm run health` = `node scripts/health-check.cjs`（全量：存在性/build/map/smoke/TDZ/dist 基线）
+> - `npm run build` / `npm run map` / `npm run contracts`（单项按需）
+
+> 注：当前无 husky/pre-commit 强制钩子，验证靠自觉；`dist/` 手改按 §五.2 单独 commit 并注明授权。
 
 ---
 
-## 三、 关键技术机制
+## 四、 关键技术机制
 
 ### 1. 同步与异步双模机制 (网关层)
 
@@ -110,64 +129,64 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 
 ---
 
-## 四、 开发红线与规范
+## 五、 开发红线与规范
 
-### 1. 绝对禁区 🚫
+### 5.1 绝对禁区 🚫
 
 * **端口与入口**：禁止改 `18080`/`9004` 端口；禁止改 `proxyMode=local-tool` 唯一入口。
 * **VPN 前置**：连 Lovart (`lgw.lovart.ai:443`) **必须开 VPN**，否则网关静默 502，非代码问题。
 * **溯源铁律**：讨论报错/模型归属必须标清来源（localTool / 网关 / 官方 1mao / kkidc），禁止"后端返回"式含糊。
 
-### 2. `dist/` 前端修改规程
+### 5.2 `dist/` 前端修改规程
 
-* **禁止直接手改 `dist/`**：`dist/` 是 `src/bundle/` 的构建产物，**前端改动一律改 `src/bundle/` 后 `npm run build` 回灌**（见 §四.5）。任何情况下都不得直接编辑 `dist/` 混淆产物。
+* **禁止直接手改 `dist/`**：`dist/` 是 `src/bundle/` 的构建产物，**前端改动一律改 `src/bundle/` 后 `npm run build` 回灌**（见 §五.4）。任何情况下都不得直接编辑 `dist/` 混淆产物。
 * **定位：官方包 + 我们的最小改动**。`src/bundle/` 是「官方发行 dist 经还原流水线的基线」叠加「我们的最小改动」。我们的目标是对官方包做**最小**改动，而非另起炉灶。
-* **每次改动必须记录**：任何对 `src/bundle/` 的修改都要在 `docs/` 下（或改动文件顶部注释）登记——改了哪个 chunk、哪一行、原始混淆符号、改动目的、影响的运行时行为。这是官方更新时「重打补丁」的唯一依据（见 §四.5 ⑧）。
+* **每次改动必须记录**：任何对 `src/bundle/` 的修改都要在 `docs/` 下（或改动文件顶部注释）登记——改了哪个 chunk、哪一行、原始混淆符号、改动目的、影响的运行时行为。这是官方更新时「重打补丁」的唯一依据（见 §五.4 ⑧）。
 * **官方更新 = 重打补丁**：官方发新版时，重新拉官方 dist → 跑还原流水线生成新基线 → 依据变更记录把我们的每处最小改动**逐一重新打上**（混淆符号可能已重排，需重新对照，禁止直接套用旧映射）。
 
-### 4. 逆向源码与还原脚本红线 🚫
+### 5.3 逆向源码与还原脚本红线 🚫
 
-* **运行与源码关系**：运行时只认 `dist/`；`src/bundle/` 是可编辑源码，`npm run build` 编译回灌 `dist/`（见 §四.5）。
-* **还原脚本边界**：还原/拆包/重命名脚本在 `scripts/`（如 `split_js.py`、`beautify.cjs`、`gen_map.cjs`、`scope_rename_plugin.cjs`、`jsx_restore_plugin.cjs`）；离线分析中间产物集中在 `docs/逆向专用_ai 禁止读/`。
+* **运行与源码关系**：运行时只认 `dist/`；`src/bundle/` 是可编辑源码，`npm run build` 编译回灌 `dist/`（见 §五.4）。
+* **还原脚本边界**：还原/拆包/重命名脚本已归档到 `scripts/archived/`（`rename-pipeline/`：`scope_rename_plugin.cjs`/`jsx_restore_plugin.cjs`/`name_rules.cjs` 等；`beautify/`：`beautify.cjs`/`beautify-dist.cjs`；`one-off/`：`split_js.py`/`advanced_format.js`；`reverse-helpers/`：`gen_map.cjs`），均属一次性逆向产物，非运行流水线；离线分析中间产物集中在 `docs/逆向专用_ai 禁止读/`。
 * **AI 禁止读目录**：`docs/逆向专用_ai 禁止读/` 明确标注「AI 禁止读」，AI 助手默认不读取该目录，仅在需要时引用其存在，不展开其内容。
-* **混淆符号随官方版本变动**：官方每次发新版，还原出的变量名/组件名可能整体重排。我们的最小改动钉在特定混淆符号/行号上，**官方更新重打补丁时必须重新对照现版本，禁止直接套用旧映射**（见 §四.2 定位与 §四.5 ⑧）。
+* **混淆符号随官方版本变动**：官方每次发新版，还原出的变量名/组件名可能整体重排。我们的最小改动钉在特定混淆符号/行号上，**官方更新重打补丁时必须重新对照现版本，禁止直接套用旧映射**（见 §五.2 定位与 §五.4 ⑧）。
 
-### 5. `src/bundle/` 可编辑化改造规范（适配 gougou 铁律）
+### 5.4 `src/bundle/` 可编辑化改造规范（适配 gougou 铁律）
 
 `src/bundle/` 已支持 `npm run build` 直接回灌 `dist/`（Vite + `post-build-fixups` 自动补图标/CSS 引用/CSP）。改造遵循以下铁律（借鉴 gougou 反编译还原工程化经验）：
 
 1. **被高频依赖的共享函数不可从 chunk 抽取**（打乱 vendor 初始化 → `Rr is not a function` / `Bd is not a function`）。新增逻辑优先走 `*_components/` 内新建文件，或复用现有 barrel，不直引大 chunk。
 2. **禁止新文件 `import` 顶层 chunk 大文件**（循环依赖 → TDZ）。跨 chunk 引用走 `component_map.json` 指定的目标文件。
-3. **整块迁移几千行必翻车**（store+helper 不可分割）；拆改只做最小差异（diff ≤ 30 行，见 §3.1）。
+3. **整块迁移几千行必翻车**（store+helper 不可分割）；拆改只做最小差异（diff ≤ 30 行，见 §五.6）。
 4. **React 单实例不可破**：`_react_shim.js` / `_jsx_runtime.js` 经 `vite.config.ts` 的 `resolve.alias` + `dedupe` 绑定到 vendor 工厂，✗ 不可删除/改写/新增独立 react 实例。
-5. **字符串契约零损伤**（见 §3.2/§3.3）：画布硬编码读 `t.data[0].url`、`{code,data}` 信封、`proxyMode=local-tool` 等契约值，改任何引用必须全量 grep 同步。**辅助工具**：改前查 `CONTRACTS.md` 确认落点，改后跑 `npm run contracts` 校验全端同步（漂移即 FAIL）。
-6. **混淆留痕 + 变更登记**：每处反直觉改动立即注释语义 + 原名（如 `// ol = tasks 数组, shared.js L247`，不设 deadline）；同时按 §四.2 的「变更记录」要求在 `docs/` 登记该改动，作为官方更新重打的依据。
-7. **改前建基线 / 改后比对**：改前跑 `node scripts/smoke_test.cjs` 记录基线；改后必须重跑，确保 `checkImportGraph`（chunk 引用不悬空）+ `checkContracts`（契约漂移）+ `checkDistDuplicateChunks`（React 单实例）全 PASS，再 `npm run build`。`checkReadableParity` 为**可选项**：`readable/` 是已归档 `rename-pipeline` 的只读阅读副本（`name_rules` 空跑 no-op，不参与构建回灌），缺失时该检查仅 WARN 不阻断。
-8. **官方更新重打流程**：官方发新版 → ① 拉新 dist，跑还原流水线生成新 `src/bundle/` 基线；② 取出 §四.2 登记的我们的最小改动清单；③ 逐条对照**新版本**的混淆符号/行号重新打上（禁止直接 `git apply` 旧 diff，符号已变）；④ 重跑 `smoke_test.cjs` + `npm run build` + 真机走查。
+5. **字符串契约零损伤**（见 §五.7/§五.8）：画布硬编码读 `t.data[0].url`、`{code,data}` 信封、`proxyMode=local-tool` 等契约值，改任何引用必须全量 grep 同步。**辅助工具**：改前查 `CONTRACTS.md` 确认落点，改后跑 `npm run contracts` 校验全端同步（漂移即 FAIL）。
+6. **混淆留痕 + 变更登记**：每处反直觉改动立即注释语义 + 原名（如 `// ol = tasks 数组, shared.js L247`，不设 deadline）；同时按 §五.2 的「变更记录」要求在 `docs/` 登记该改动，作为官方更新重打的依据。
+7. **改前建基线 / 改后比对**：改前跑 `npm run test:smoke`（即 `node scripts/smoke_test.cjs`）记录基线；改后必须重跑，确保 `checkImportGraph`（chunk 引用不悬空）+ `checkContracts`（契约漂移）+ `checkDistDuplicateChunks`（React 单实例）全 PASS，再 `npm run build`。`checkReadableParity` 为**可选项**：`readable/` 是已归档 `rename-pipeline` 的只读阅读副本（`name_rules` 空跑 no-op，不参与构建回灌），缺失时该检查仅 WARN 不阻断。
+8. **官方更新重打流程**：官方发新版 → ① 拉新 dist，跑还原流水线（`archived/rename-pipeline/`）生成新 `src/bundle/` 基线；② 取出 §五.2 登记的我们的最小改动清单；③ 逐条对照**新版本**的混淆符号/行号重新打上（禁止直接 `git apply` 旧 diff，符号已变）；④ 重跑 `npm run test:smoke` + `npm run build` + `npm run health` + 真机走查。
 
 9. **降低复杂度优先**：凡是能减少代码复杂度、又不引入 bug 的改动都要做——包括但不限于把混淆短名（`_st`/`R`/`Dl` 等本地可改的）改为语义长名、抽公共逻辑、删冗余分支。被 `component_map.json`/运行时契约钉死、改动会破坏引用的除外。**改完必须 `npm run build` 验证回灌 `dist/` 成功。**
 
-> 验证链路：`src/bundle/` 改完 → `node scripts/smoke_test.cjs`（质量门）→ `npm run build`（回灌 `dist/`）→ 浏览器真机走查（见 §二点五）。
+> 验证链路：`src/bundle/` 改完 → `npm run test:smoke`（快速自检）→ `npm run build`（回灌 `dist/`）→ 按需 `npm run map`/`npm run contracts` → 较大改动 `npm run health`（全量）→ 浏览器真机走查（见 §三）。
 
-### 3. 卡帕西编码准则 (Karpathy Rules)
+### 5.5 卡帕西编码准则 (Karpathy Rules)
 
 * **奥卡姆剃刀**：如无必要，勿增实体（依赖/文件/端点）。多解释并存取假设最少的一条。
 * **精准修改**：只碰必须碰的，清理孤儿代码，每行修改可追溯明确目的。
 * **目标驱动**：任务转可验证目标，拆解执行。
 
-### 3.1 最小差异提交
+### 5.6 最小差异提交
 
 * 每次 commit 的 diff 尽量 ≤ 30 行；多步改动拆成单文件独立 commit，便于 `git reset --hard HEAD~1` 回退。
 * 每写一处反直觉/绕开混淆的代码，立即注释原因（如 `// 绕开 dist 硬编码读 t.data[0].url`）。
 
-### 3.2 字符串契约零损伤
+### 5.7 字符串契约零损伤
 
 以下前后端契约值一字不差，改任何引用必须全量 grep 同步，禁止局部替换漏网：
 - `proxyMode=local-tool`、`127.0.0.1:18080`、`127.0.0.1:9004`、`/api/proxy`、`x-proxy-url`
 - 画布硬编码字段：`t.data[0].url`、`{code,data}` 信封结构、SSE 事件格式
 - 模型别名映射（网关 `lovart_client.py` 内的工具名 ↔ Lovart 工具名）
 
-### 3.3 契约字典与地图工具（AI 防漏改辅助）
+### 5.8 契约字典与地图工具（AI 防漏改辅助）
 
 `src/bundle/` 为混淆还原代码，AI 改动极易「改一处漏一处」。配套工具（零运行时依赖，随代码重跑）：
 
@@ -175,13 +194,13 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 - **`scripts/contract_scan.cjs`**：漂移检测（质量门）。`npm run contracts` 比对 `scripts/contract_snapshot.json` 基线，任一 high/critical 契约命中数变化即 FAIL，并打印哪个文件多了/少了。混淆重排后数量正常变化用 `npm run contracts -- --resnap` 重建基线。
 - **`CONTRACTS.md`**：自动生成的契约分布表（哪条契约命中在哪些文件），AI 改契约前先查，确认要动几个端。由 `npm run contracts -- --md` 重建。
 - **`src/bundle/BUNDLE_MAP.md`**：自动生成的逆向源码地图（八章：顶层 chunk 表 / _components 规模 / 大文件特征索引 / 契约反向索引 / 高危文件标记 / 同名影子文件警示 / 功能域速查 / 重建命令）。AI 改 `src/bundle/` 前**必读**，按特征反查落点，不凭混淆文件名判断职责。由 `npm run map` 重建。
-- **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §二点五。质量门性能优化（2026-08-03）：`contract_scan.cjs` 按 scope 预读文件缓存（避免逐契约重复 IO）+ 抽出 `run()` 可编程入口；smoke 内 `checkContracts` **同进程 `require` 复用 `run()`**，不再 `execSync` 起子进程，`npm test:smoke` 约 762ms → 194ms。
+- **`scripts/smoke_test.cjs`** 已接入 `checkContracts`（契约漂移）与 `checkDistDuplicateChunks`（React 双实例/Vite 重复 chunk），提交前验证链路见 §三。质量门性能优化（2026-08-03）：`contract_scan.cjs` 按 scope 预读文件缓存（避免逐契约重复 IO）+ 抽出 `run()` 可编程入口；smoke 内 `checkContracts` **同进程 `require` 复用 `run()`**，不再 `execSync` 起子进程，`npm test:smoke` 约 762ms → 194ms。
 
 > **铁律：BUNDLE_MAP.md / CONTRACTS.md 一律由工具重建，禁止手改。** 这两份是自动生成物，手改会被下次 `npm run map` / `npm run contracts -- --md` 覆盖，且会漏掉自动检测（如同名影子文件扫描）。要改地图内容，改 `scripts/gen_bundle_map.cjs` 或 `scripts/contract_scan.cjs` 后重跑。其中第六章「同名影子文件警示」由生成器自动扫描 `src/bundle/` 跨目录同名文件得出（如 `shared.js` 4 处、`Tr.jsx` 等各 2 处），是防「改一处漏一处」的最高危提示，勿删。
 
 ---
 
-## 五、 运维排障速查 (Quick Reference)
+## 六、 运维排障速查 (Quick Reference)
 
 ### 1. 启动方式
 
@@ -197,11 +216,11 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **网关 502**：先查 VPN 是否连通 `lgw.lovart.ai:443`。
 * **字段对不上**：画布硬编码读 `t.data[0].url`，需在 localTool 侧剥 `{code,data}` 信封对齐。
 * **接口契约**：查 `01-接口兼容性审计.md.bak.md` + 分析 `dist/` 调用。
-* **反混淆排障**：`scripts/` 下 `advanced_format.js`(webcrack) / `beautify.cjs`(Prettier) 离线分析，`src/bundle/` 为还原产物，**严禁回写主分支作为运行产物**；还原中间产物见 `docs/逆向专用_ai 禁止读/`（AI 禁止读）。
+* **反混淆排障**：`scripts/archived/` 下 `one-off/advanced_format.js`(webcrack) / `beautify/beautify.cjs`(Prettier) 离线分析（已归档，一次性），`src/bundle/` 为还原产物，**严禁回写主分支作为运行产物**；还原中间产物见 `docs/逆向专用_ai 禁止读/`（AI 禁止读）。
 
 ---
 
-## 六、 文档导航与场景速查
+## 七、 文档导航与场景速查
 
 ### 1. 文档导航（信任度）
 
@@ -216,6 +235,8 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 | `CONTRACTS.md` | 跨端字符串契约分布表（改契约前查阅） | 🟢 自动生成 |
 | `scripts/contracts.json` + `scripts/contract_scan.cjs` | 契约字典 + 漏改漂移检测（质量门） | 🟢 权威 |
 | `scripts/gen_bundle_map.cjs` | 地图生成器（`npm run map`） | 🟢 工具 |
+| `scripts/health-check.cjs` | 全量健康度检查（`npm run health`，0 错 0 警为佳） | 🟢 工具 |
+| `npm run test:smoke`（`scripts/smoke_test.cjs`） | AI 默认快速自检（契约/React 单实例/chunk 完整性） | 🟢 工具 |
 
 > 读 `docs/` 任意方案前先确认其状态是「已完成」还是「规划中」，避免把规划当现状。
 
@@ -227,7 +248,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 | 要改代理/转发逻辑 | `localTool/src/routes/system.ts`（`/api/proxy` 剥信封/SSE/异步转同步） |
 | 要接新模型/视频能力 | 改 `apimart-gateway/lovart_client.py` 别名映射与规范化 |
 | 要查官方权益转发 | `localTool/src/routes/official.ts`（中转+短缓存，不伪造权限） |
-| 要改画布前端 | 改 `src/bundle/` → `node scripts/smoke_test.cjs` → `npm run build` 回灌 dist（见 §四.5）；严禁直接手改 dist |
+| 要改画布前端 | 改 `src/bundle/` → `npm run test:smoke` → `npm run build`（回灌 dist）→ 按需 `npm run health`（见 §五.4）；严禁直接手改 dist |
 | 要看画布可读源码 | `src/bundle/`（可编辑工程源码，改完 build 回灌） |
 | VPN/502 排障 | 先 `ping lgw.lovart.ai:443` 确认 VPN |
-| 提交前验证 | 见 §二点五 流程 |
+| 提交前验证 | 见 §三 流程 |

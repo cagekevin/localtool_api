@@ -9,7 +9,8 @@
     "build": "vite build",
     "map": "node scripts/gen_bundle_map.cjs",
     "contracts": "node scripts/contract_scan.cjs",
-    "test:smoke": "node scripts/smoke_test.cjs"
+    "test:smoke": "node scripts/smoke_test.cjs",
+    "health": "node scripts/health-check.cjs"
   },
   "dependencies": {
     "react": "^19.0.0",

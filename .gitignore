@@ -59,3 +59,17 @@ Thumbs.db
 
 # ── 守护进程 PID 锁文件（launch-all.ps1 单实例保护，运行期生成）──
 .watchdog.lock
+
+# ── 回滚快照（snapshot.cjs 运行期生成，含完整 public 副本与 .glb/.wasm 二进制，约 60M，绝不入库）──
+scripts/rollback/snapshot-*/
+
+# ── 运行产物（每次运行/验收自动生成，随时间变化，不入库）──
+# safety-net.cjs --save 的 dist 基线快照
+scripts/dist-snapshot.json
+# verify-ext.cjs 真机验收结果
+scripts/report.json
+# verify-chunks.cjs 异步 chunk 验收结果
+scripts/report-chunks.json
+
+# 注：scripts/archived/{tools,beautify,semantic-map}/ 是归档的原始脚本源码（非副本），
+# 应随仓库分发供后续 AI 查阅，故不在此忽略（见 scripts/archived/README.md）。

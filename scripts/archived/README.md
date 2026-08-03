@@ -3,12 +3,12 @@
 本目录存放**非核心流水线**的一次性 / 临时 / 逆向辅助脚本。
 核心流水线（持续复用、CI 质量门相关）仍保留在 `scripts/` 根目录，包括：
 
-- `beautify.cjs` / `beautify-dist.cjs`：样本反编译美化（一键复现）
 - `smoke_test.cjs` / `_smoke_checks.cjs` / `_check_align.cjs`：质量门与改名对齐校验
 - `_syntax_check.ps1`：启动脚本语法检查
 - `contract_scan.cjs`：跨端字符串契约漂移检测
-- `gen_bundle_map.cjs`：AI 检索入口地图
-- `add_chunk_headers.cjs`：chunk 角色注释头
+- `gen_bundle_map.cjs`：AI 检索入口地图（对 `src/bundle/` 定位代码的主工具）
+- `health-check.cjs` / `check-build.cjs` / `safety-net.cjs` / `audit-barrels.cjs`：健康度 / 构建 / 基线 / barrel 校验
+- `verify-ext.cjs` / `verify-chunks.cjs` / `verify-features.cjs` / `verify-common.cjs`：Playwright 真机验收
 - `rollback/`：改名失败回退快照与恢复
 
 > 注：`ai-optimize.cjs`（AI 可读性视图生成器）属于逆向可读性增强链路，已归档到
@@ -18,6 +18,25 @@
 > 如需运行请保持当前子目录结构不变。
 
 ## 子目录
+
+### `tools/` —— 对旧 `src/legacy` 结构适配、对当前 `src/bundle/` 已失效的定位工具（实测跑不起来）
+> 这些工具是早期给 `src/legacy` / `src/features` 逆向结构写的，项目已迁移到 `src/bundle/` 后均失效。
+> 对 `src/bundle/` 定位代码请改用 `npm run map`（BUNDLE_MAP.md），勿再用这些。
+
+- `summarize.cjs`：AST 源码速读器（依赖 `acorn`/`acorn-jsx`，未安装，跑不起来）
+- `trace-barrels.cjs`：barrel 全链路追溯（硬编码 `src/features`/`src/legacy`，已不存在）
+- `vendor-lookup.cjs`：混淆名→原名查表（缺 `component-mapping.json` 数据源）
+- `hooks-lookup.cjs` + `hooks-contract.md`：legacy hooks 契约查证（索引旧 legacy 短名）
+
+### `semantic-map/` —— 旧结构语义地图生成器（硬编码 `src/legacy` + 依赖已归档的 hooks-lookup）
+- `gen-semantic-map.cjs`：从 T02B/T06B/T08B/T12B 生成 `semantic-map.json`（扫旧 `src/legacy`）
+- `patch-semantic-map.cjs`：补全 `semantic-map.json`（依赖已归档的 `hooks-lookup.cjs`）
+- `gen-feature-groups.cjs`：基于 `semantic-map.json` 生成功能域导航（旧结构产物）
+
+### `beautify/` —— 反编译美化 + 一次性插头（文档早已标注归档，补漏移入）
+- `beautify.cjs` / `beautify-dist.cjs`：样本反编译美化（一键复现）
+- `launch-beautify-dist.ps1`：`beautify-dist.cjs` 的 Windows PowerShell 启动器
+- `add_chunk_headers.cjs`：chunk 角色注释头（一次性）
 
 ### `one-off/` —— 一次性 / 通用临时工具
 - `_copy_public.cjs`：一次性资源复制 + manifest 净化（仅搭建 A22 工程用，标注"一次性"）
