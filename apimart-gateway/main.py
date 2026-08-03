@@ -90,6 +90,9 @@ def _log(msg: str, level: str = "info") -> None:
 # ============================================================================
 # ── 模型别名表（转发映射，非业务逻辑）──
 # 仅把前端 model 名翻译为 Lovart 工具名；新增模型只需在此追加一行，不新增分支。
+# 注意：本表是【人工精选子集】，仅收录运营挑选的少量模型，
+#       非官方全量（官方另有 20+ 图片 / 15+ 视频工具，见 vendor/ 官方资料）。
+#       刻意不全——不用的模型不进表，避免前端出现无法落地的选项。
 _IMAGE_RULES = [
     (("gpt-image-2-low", "gpt-image2-low", "gptimage2low"), "generate_image_gpt_image_2_low"),
     (("gpt-image-2-medium", "gpt-image2-medium", "gptimage2medium"), "generate_image_gpt_image_2_medium"),
@@ -99,6 +102,7 @@ _IMAGE_RULES = [
 ]
 
 _VIDEO_RULES = [
+    # 同样为精选子集：仅收录运营挑选的视频模型，非官方全量（有意为之）。
     (("seedance-2.0-fast", "seedance-v2-0-fast", "seedance 2.0 fast",
       "seedance_2_fast", "seedance-2-fast", "seedance 2 fast"), "generate_video_seedance_v2_0_fast"),
     (("seedance-2", "seedance2", "seedance-v2", "seedance 2"), "generate_video_seedance_v2_0"),
