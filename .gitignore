@@ -46,6 +46,7 @@ readable/
 # 注：CLAUDE.md §四.4 标注此目录「AI 禁止读」，但需随仓库分发，故纳入版本库。
 
 # ── 运行时日志（启动脚本落盘，含 [proxy] 转发明细）──
+logs/
 *.log
 apimart-gateway/apimart_9004.log
 apimart-gateway/apimart_9004.err.log
