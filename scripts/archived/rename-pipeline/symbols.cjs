@@ -3,7 +3,7 @@
 // 供 rename.cjs / 人工推导 name_rules 时参考。只读分析，不改任何文件。
 const fs = require('fs');
 const path = require('path');
-const ROOT = path.resolve(__dirname, '..').replace(/\\/g, '/');
+const ROOT = path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const BUNDLE = path.join(ROOT, 'src/bundle').replace(/\\/g, '/');
 const OUT = path.join(ROOT, 'readable').replace(/\\/g, '/');
 fs.mkdirSync(OUT, { recursive: true });

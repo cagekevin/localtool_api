@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const babel = require('@babel/core');
 
-const ROOT = path.resolve(__dirname, '..').replace(/\\/g, '/');
+const ROOT = path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const BUNDLE = path.join(ROOT, 'src', 'bundle').replace(/\\/g, '/');
 const OUT = path.join(ROOT, 'src', 'bundle-ai').replace(/\\/g, '/');
 

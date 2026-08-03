@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..').replace(/\\/g, '/');
+const ROOT = path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const BUNDLE = path.join(ROOT, 'src/bundle').replace(/\\/g, '/');
 const regions = JSON.parse(fs.readFileSync(path.join(__dirname, 'regions.json'), 'utf8'));
 const panels = JSON.parse(fs.readFileSync(path.join(__dirname, 'panels.json'), 'utf8'));
@@ -54,7 +54,7 @@ const chunkTable = [
 const total = regions.length;
 const regionCount = {};
 for (const s of regions) regionCount[s.region] = (regionCount[s.region] || 0) + 1;
-const labels = JSON.parse(fs.readFileSync(path.join(__dirname, 'region_labels.json'), 'utf8'));
+const labels = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'rename-pipeline', 'region_labels.json'), 'utf8'));
 const regionLines = Object.keys(regionCount).sort().map(r => {
   const info = labels.regions[r] || {};
   const human = info.label ? ` —— **${info.label}**` : '';

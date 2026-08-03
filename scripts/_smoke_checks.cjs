@@ -126,7 +126,7 @@ function checkReadableParity(ROOT) {
   // 生成，而非直接 FAIL——避免「提示的 npm run readable 命令不存在」导致质量门永远卡死。
   if (!exists(readable)) {
     try {
-      require('./rename.cjs');
+      require('./archived/rename-pipeline/rename.cjs');
     } catch (e) {
       return { name: 'readable 副本保真', pass: false, details: ['readable/ 不存在且自动生成失败: ' + e.message + '（可手动 node scripts/rename.cjs）'] };
     }

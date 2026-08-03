@@ -16,7 +16,7 @@ const scopeRenamePlugin = require('./scope_rename_plugin.cjs');
 const { getRules } = require('./name_rules.cjs');
 
 const RULES = getRules();
-const BUNDLE = path.join(__dirname, '..', 'src', 'bundle').replace(/\\/g, '/');
+const BUNDLE = path.join(__dirname, '..', '..', '..', 'src', 'bundle').replace(/\\/g, '/');
 const SKIP = /^(vendor-|rolldown-runtime|__vite-browser-external)/;
 const TARGETS = (fs.existsSync(BUNDLE)
   ? fs.readdirSync(BUNDLE).filter((f) => f.endsWith('.js') && !SKIP.test(f))

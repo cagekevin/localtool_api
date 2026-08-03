@@ -28,7 +28,7 @@ function stringifyPlugin() {
 }
 
 // 全局取得业务 chunk（排除第三方/运行时垫片）
-const BUNDLE = path.join(__dirname, '..', 'src', 'bundle').replace(/\\/g, '/');
+const BUNDLE = path.join(__dirname, '..', '..', '..', 'src', 'bundle').replace(/\\/g, '/');
 const SKIP = /^(vendor-|rolldown-runtime|__vite-browser-external)/;
 const TARGETS = (fs.existsSync(BUNDLE)
   ? fs.readdirSync(BUNDLE).filter((f) => f.endsWith('.js') && !SKIP.test(f))

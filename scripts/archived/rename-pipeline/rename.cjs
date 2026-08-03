@@ -5,7 +5,7 @@
 // 1.4.0 当前 name_rules 返回空规则 → 副本与源 1:1（等价无改名），安全 no-op。
 const fs = require('fs');
 const path = require('path');
-const ROOT = path.resolve(__dirname, '..').replace(/\\/g, '/');
+const ROOT = path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const BUNDLE = path.join(ROOT, 'src/bundle').replace(/\\/g, '/');
 const OUT = path.join(ROOT, 'readable').replace(/\\/g, '/');
 const { getRules } = require('./name_rules.cjs');

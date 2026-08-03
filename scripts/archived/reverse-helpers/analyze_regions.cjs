@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUNDLE = path.join(__dirname, '..', 'src', 'bundle', 'App-D5SRQxl_.js');
+const BUNDLE = path.join(__dirname, '..', '..', '..', 'src', 'bundle', 'App-D5SRQxl_.js');
 const OUT_REGIONS = path.join(__dirname, 'regions.json');
 const OUT_PANELS = path.join(__dirname, 'panels.json');
 

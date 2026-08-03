@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..').replace(/\\/g, '/');
+const ROOT = path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const SRC = (process.env.SAMPLE_ROOT || '../一毛AI画布多端合一版本1.4.0/dist').replace(/\\/g, '/');
 const SRC_DIR = path.resolve(ROOT, SRC).replace(/\\/g, '/');
 const DST = path.join(ROOT, 'public').replace(/\\/g, '/');
