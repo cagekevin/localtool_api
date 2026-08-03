@@ -265,6 +265,18 @@ export async function handleOfficialVipCheck(req: IncomingMessage, res: ServerRe
   const base = await readOfficialBase(req);
   const m = (url.pathname || '').match(/^\/api\/agent\/([^/]+)\/vip-check$/);
   const agentId = m ? m[1] : '';
+
+  // 本地放行画布助手（docs/27 §3.4 方案二）：A1 画布助手应完全本地跑通，
+  // 不依赖官方会员判定。开关：localTool/.env 的 AI_CANVAS_LOCAL !== '0'（默认开启）。
+  // 注：docs/27 §10.1 实测——chat 入口只依赖登录态、并不读 vip-check 的 allowed，
+  // 故此放行属「可选优化」，让 vip-check 也不外发官方，而非必需前置。
+  if (agentId === 'canvas-assistant' && process.env.AI_CANVAS_LOCAL !== '0') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ allowed: true, reason: 'local canvas assistant' }));
+    console.log(`[official] ${new Date().toISOString().replace('T',' ').slice(0,19)} | GET ${url.pathname} | 200 | LOCAL allow (canvas-assistant)`);
+    return;
+  }
+
   // 同上：带 /api 前缀。不传 cacheKey → 不缓存（会员判定必须实时）
   return forwardGet(res, req, `${base}/api/agent/${agentId}/vip-check`);
 }

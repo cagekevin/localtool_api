@@ -22,9 +22,40 @@ import { handleStatus, handleProxy, handleJianyingSend, handleGatewayTask } from
 import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
 import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
+import { handleAgentChat } from './routes/agentChat.js';
 // catch-all 兜底透传：未命中本地具名路由的请求原样转发官方（详见 routes/passthrough.ts 文件头）
 // 这是「改 dist base 指向 18080」的硬前置——否则未接管的 /api/* 会直接 404。
 import { handlePassthrough } from './routes/passthrough.js';
+
+// ── 轻量 .env 加载（无 dotenv 依赖，localTool 仅 sql.js 一个运行时依赖）──
+// 读取 <localTool 根>/<项目根>/localTool/.env，注入 process.env。
+// 用途：LLM_CHAT_BASE_URL / LLM_CHAT_API_KEY / AI_CANVAS_ENHANCE 等 AI 操控画布配置。
+function loadDotEnv(): void {
+  const candidates = [
+    path.join(__dirname, '..', '.env'),              // localTool/dist/ → localTool/.env
+    path.join(__dirname, '.env'),                    // localTool/       → localTool/.env
+    path.join(process.cwd(), '.env'),                // 从 localTool 根启动
+  ];
+  for (const envPath of candidates) {
+    try {
+      const raw = fs.readFileSync(envPath, 'utf-8');
+      for (const line of raw.split(/\r?\n/)) {
+        const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+        if (!m) continue;
+        const key = m[1];
+        let val = m[2].trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!(key in process.env)) process.env[key] = val;
+      }
+      return; // 找到并加载完成
+    } catch {
+      // 该路径不存在，尝试下一个
+    }
+  }
+}
+loadDotEnv();
 
 // ESM 兼容：Node.js ES 模块无 __dirname，手动构造
 const __filename = fileURLToPath(import.meta.url);
@@ -295,6 +326,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
     if (/^\/api\/agent\/[^/]+\/vip-check$/.test(pathname) && method === 'GET') {
       return await handleOfficialVipCheck(req, res, url);
+    }
+    // ── AI 操控画布：A1 本地 Agent chat（SSE 透传，docs/27）──
+    // 必须在 catch-all passthrough 之前注册，否则 A1 助手 /agent/*/chat 被透传官方。
+    if (/^\/api\/agent\/[^/]+\/chat$/.test(pathname) && method === 'POST') {
+      const m = pathname.match(/^\/api\/agent\/([^/]+)\/chat$/);
+      return await handleAgentChat(req, res, m ? m[1] : '');
     }
     if (pathname === '/api/official/entitlements/invalidate' && method === 'POST') {
       return await handleOfficialInvalidate(req, res);
