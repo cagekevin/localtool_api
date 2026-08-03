@@ -843,6 +843,10 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
         ar = body.get("aspect_ratio")
         if ar:
             extra_params.append(f"aspect_ratio: {ar}")
+        # 分辨率：前端传 resolution（如 720p/480p/1080p），与 duration/aspect_ratio 同格式拼入。
+        res = body.get("resolution")
+        if res:
+            extra_params.append(f"resolution: {str(res).strip()}")
 
     gen_prefix = DataFormatter.build_gen_prefix(
         category, body.get("size"), body.get("resolution"), bool(attachments),
