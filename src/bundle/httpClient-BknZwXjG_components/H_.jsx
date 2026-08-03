@@ -6408,6 +6408,23 @@ ${C}`;
               }).concat(c).concat(p);
             });
             k(`已自动拆分为 ${i.length} 个节点并复制后续节点`);
+            // 修复：拆分成功提前 return，会跳过下方 6478 的任务完成标记，导致任务中心一直停在 running
+            if (I) {
+              I(e => {
+                return e.map(e => {
+                  if (e.id === C || e.taskId === C) {
+                    return {
+                      ...e,
+                      status: `completed`,
+                      progress: 100,
+                      resultUrl: E
+                    };
+                  } else {
+                    return e;
+                  }
+                });
+              });
+            }
             return {
               splitNodes: s.map(e => {
                 return e.id;
