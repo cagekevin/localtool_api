@@ -316,12 +316,17 @@ class DataFormatter:
     def parse_size(size: str) -> Tuple[str, str]:
         if not size: return "", ""
         s = size.strip()
+        # 显式处理"自动"：表示由模型自动决定比例，不强制约束比例，
+        # 但默认给 1K 分辨率（大多数场景 1K 足够），避免无约束时尺寸漂移。
+        # 与"解析失败"区分开，避免把写错的比例当 auto 静默吞掉。
+        if s.lower() in ("auto", "自动", "any", "随机"):
+            return "", "1K"
         if re.fullmatch(r"\d+:\d+", s): return s, ""
         try:
             parts = s.lower().split("x")
             if len(parts) != 2: return "", ""
             w, h = int(parts[0]), int(parts[1])
-            ratios = [(1,1,"1:1"), (3,2,"3:2"), (2,3,"2:3"), (4,3,"4:3"), (3,4,"3:4"), (16,9,"16:9"), (9,16,"9:16")]
+            ratios = [(1,1,"1:1"), (3,2,"3:2"), (2,3,"2:3"), (4,3,"4:3"), (3,4,"3:4"), (16,9,"16:9"), (9,16,"9:16"), (21,9,"21:9"), (9,21,"9:21")]
             ratio = min(ratios, key=lambda x: abs(w/h - x[0]/x[1]))[2]
             res = "4K" if max(w, h) >= 3000 else ("2K" if max(w, h) >= 1800 else "1K")
             return ratio, res
