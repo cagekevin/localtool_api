@@ -312,25 +312,40 @@ class DataFormatter:
                 [f"[audio]({u['audio_url']})" for u in media.get("music", [])]
         return (text + ("\n\n" + "\n".join(links) if links else "")).strip() or "(无内容)"
 
+    # 未指定比例时，模型自行决定画面比例；未指定分辨率时统一兜底 1K。
+    DEFAULT_RESOLUTION = "1K"
+    # 表示"比例由模型自动决定"的关键词。
+    AUTO_KEYS = ("auto", "自动", "any", "随机")
+    # 像素尺寸会就近匹配到下列标准比例。
+    STANDARD_RATIOS = [(1, 1, "1:1"), (3, 2, "3:2"), (2, 3, "2:3"),
+                       (4, 3, "4:3"), (3, 4, "3:4"), (16, 9, "16:9"),
+                       (9, 16, "9:16"), (21, 9, "21:9"), (9, 21, "9:21")]
+
     @staticmethod
-    def parse_size(size: str) -> Tuple[str, str]:
-        # 分辨率兜底规则：前端给了（或像素换算出 2K/4K）就用；没给统一兜底 1K。
-        # 比例规则：给了就原样透传或像素换算成标准比例；没给（None/空/auto）就不传比例。
-        if not size: return "", "1K"
-        s = size.strip()
-        if s.lower() in ("auto", "自动", "any", "随机"):
-            return "", "1K"
-        if re.fullmatch(r"\d+:\d+", s): return s, "1K"
+    def parse_size(size) -> Tuple[str, str]:
+        """把 size 解析为 (比例, 分辨率)。
+
+        返回语义：
+          - 比例：给 "21:9" 这类字符串 → 原样返回；给 "768x1900" 像素 → 换算成
+            最接近的标准比例；没给（None/空/auto）→ 返回 ""（不强制比例）。
+          - 分辨率：像素尺寸按大小给 1K/2K/4K；其余情况兜底 DEFAULT_RESOLUTION。
+        """
+        s = size.strip() if size else ""
+        if s.lower() in DataFormatter.AUTO_KEYS:
+            return "", DataFormatter.DEFAULT_RESOLUTION
+        if re.fullmatch(r"\d+:\d+", s):
+            # 已是标准比例字符串，无需换算；分辨率未知 → 兜底 1K。
+            return s, DataFormatter.DEFAULT_RESOLUTION
         try:
-            parts = s.lower().split("x")
-            if len(parts) != 2: return "", "1K"
-            w, h = int(parts[0]), int(parts[1])
-            ratios = [(1,1,"1:1"), (3,2,"3:2"), (2,3,"2:3"), (4,3,"4:3"), (3,4,"3:4"), (16,9,"16:9"), (9,16,"9:16"), (21,9,"21:9"), (9,21,"9:21")]
-            ratio = min(ratios, key=lambda x: abs(w/h - x[0]/x[1]))[2]
-            res = "4K" if max(w, h) >= 3000 else ("2K" if max(w, h) >= 1800 else "1K")
-            return ratio, res
-        except Exception:
-            return "", "1K"
+            w, h = map(int, s.lower().split("x"))
+        except (ValueError, AttributeError):
+            # 非像素格式（无法解析）→ 不指定比例，分辨率兜底 1K。
+            return "", DataFormatter.DEFAULT_RESOLUTION
+        ratio = min(DataFormatter.STANDARD_RATIOS,
+                    key=lambda r: abs(w / h - r[0] / r[1]))[2]
+        res = "4K" if max(w, h) >= 3000 else ("2K" if max(w, h) >= 1800
+                                              else DataFormatter.DEFAULT_RESOLUTION)
+        return ratio, res
 
     @staticmethod
     def extract_raw_urls(value) -> list:
@@ -348,14 +363,14 @@ class DataFormatter:
     @staticmethod
     def build_gen_prefix(category: str, size, resolution=None, has_refs: bool = False,
                           params: Optional[list] = None) -> str:
+        # resolution 形参已弃用：分辨率兜底统一由 parse_size 决定，保留仅兼容调用签名。
         # 请求规范化（中转站职责，必须）：把尺寸/分辨率/数量约束拼成前缀，
         # 让 Lovart 明确「只生成一份」。不替 Lovart 决定生成策略，只约束输出形态。
         parts = []
-        # 始终走 parse_size：None/空/auto 统一给 1K，明确比例则换算或原样透传。
+        # 分辨率兜底（1K/2K/4K）统一由 parse_size 决定，此处只拼接结果。
         ratio, res = DataFormatter.parse_size(size)
         if ratio: parts.append(ratio)
         if res: parts.append(res)
-        if not res and resolution: parts.append(str(resolution).strip().lower())
         for p in (params or []):
             if p: parts.append(str(p).strip())
         prefix = ", ".join(parts)
