@@ -368,9 +368,10 @@ class DataFormatter:
         # 让 Lovart 明确「只生成一份」。不替 Lovart 决定生成策略，只约束输出形态。
         parts = []
         # 分辨率兜底（1K/2K/4K）统一由 parse_size 决定，此处只拼接结果。
+        # 注意：视频没有 1K/2K 分辨率档（那是图片档位），故视频只保留比例、丢弃分辨率。
         ratio, res = DataFormatter.parse_size(size)
         if ratio: parts.append(ratio)
-        if res: parts.append(res)
+        if res and category != "VIDEO": parts.append(res)
         for p in (params or []):
             if p: parts.append(str(p).strip())
         prefix = ", ".join(parts)
