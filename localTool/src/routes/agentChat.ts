@@ -8,7 +8,7 @@
  *   function calling 的 OpenAI 兼容 LLM，并原样透传 SSE（含 tool_calls delta）。
  *
  * ⚠️ 关键前提（docs/27 §4）：
- * - 现有 apimart-gateway (:9004) /v1/chat 是 Lovart 纯中转，【不返回 tool_calls】，
+ * - 现有 apimart-gateway /v1/chat 是 Lovart 纯中转，【不返回 tool_calls】，
  *   无法驱动 A1 工具循环。故必须配一个支持 function calling 的 OpenAI 兼容端点。
  *
  * 配置：全量走 localTool/.env（无 dotenv 依赖，由 index.ts 启动时 loadDotEnv() 注入）。
