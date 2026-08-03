@@ -55,11 +55,13 @@ function loadDotEnv(): void {
     }
   }
 }
-loadDotEnv();
 
 // ESM 兼容：Node.js ES 模块无 __dirname，手动构造
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// 必须在 __dirname 定义之后调用（TDZ：const 声明前访问会抛 ReferenceError）
+loadDotEnv();
 
 const PORT = Number(process.env.PORT) || 18080;
 const VERSION = '1.4.2';
