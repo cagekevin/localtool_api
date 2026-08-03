@@ -21,6 +21,52 @@ $ErrorActionPreference = "Continue"
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
 Set-Location -Path $ScriptDir
 
+# =====================================================================
+# ── 🔒 守护进程单实例锁（命名 Mutex 方案）──
+# 使用 Windows 命名互斥体确保同一时间只能有 1 个守护进程在运行。
+# 相比 PID 锁文件的优势：
+#   · 获取锁是原子操作，无"检查-写入"竞态
+#   · 不依赖 PID，不会因 PID 复用导致误判"已在运行"
+#   · 进程正常退出 / 崩溃 / 被 kill 时由 OS 自动释放锁，无需清理文件
+# 命名采用仓库名派生，避免与本机其他脚本冲突。
+# =====================================================================
+$WatchdogMutexName = "Global\yimao-ai-canvas-watchdog-" + [System.IO.Path]::GetFileName($ScriptDir)
+$script:WatchdogMutex = $null
+
+# 请求互斥体所有权。若已有守护进程持有，立刻返回 $false（拒绝重复启动）。
+# WaitOne(0) 返回"本进程是否获得所有权"，$true 表示成功拿到锁。
+function Acquire-WatchdogLock {
+    try {
+        $script:WatchdogMutex = New-Object System.Threading.Mutex($false, $WatchdogMutexName)
+    } catch {
+        # Global\ 命名空间创建失败（无权限）时退回 Local\，保证单机多会话同样生效
+        $WatchdogMutexName = $WatchdogMutexName -replace '^Global\\', 'Local\'
+        $script:WatchdogMutex = New-Object System.Threading.Mutex($false, $WatchdogMutexName)
+    }
+    if ($script:WatchdogMutex.WaitOne(0)) {
+        return $true
+    }
+    $script:WatchdogMutex.Close()
+    $script:WatchdogMutex = $null
+    Write-Log "❌ 已有守护进程在运行，拒绝重复启动。" "Error"
+    Write-Log "   如需强制重启，请先退出原守护进程（按 Ctrl+C）。" "Warn"
+    return $false
+}
+
+# 释放互斥体所有权
+function Release-WatchdogLock {
+    if ($null -ne $script:WatchdogMutex) {
+        try { $script:WatchdogMutex.ReleaseMutex() } catch { }
+        $script:WatchdogMutex.Close()
+        $script:WatchdogMutex = $null
+    }
+}
+
+# 脚本退出时（含 Ctrl+C）自动释放锁
+$null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+    try { Release-WatchdogLock } catch { }
+}
+
 # ── ⚙️ 全局配置（与本项目端口/目录一致）──
 $Config = @{
     Gateway   = @{ Port = 9004;  Dir = "apimart-gateway"; Name = "AI 网关" }
@@ -168,6 +214,9 @@ function Start-LocalTool {
 
 # 3. 守护模式：同时启动并自动重启
 function Start-Watchdog {
+    # 单实例保护：获取锁失败（已有存活守护进程）则直接退出
+    if (-not (Acquire-WatchdogLock)) { exit 1 }
+
     Write-Log "`n📡 正在启动服务群..." "Info"
     $null = Start-Gateway
     $null = Start-LocalTool
@@ -175,16 +224,22 @@ function Start-Watchdog {
     Open-Canvas
 
     Write-Log "`n🛡️ 进入守护模式 (5秒轮询，掉线自动重启)... [按 Ctrl+C 退出控制台则关闭所有]" "Info"
-    while ($true) {
-        if (-not (Test-PortStatus -Port $Config.Gateway.Port -Name $Config.Gateway.Name -Quiet)) {
-            Write-Log "  ⚠️ $(Get-Date -Format 'HH:mm:ss') 网关掉线，正在重启..." "Warn"
-            $null = Start-Gateway
+    Write-Log "   🔒 本守护进程 PID=$PID（全局唯一，重复启动将被拒绝）" "Dim"
+    try {
+        while ($true) {
+            if (-not (Test-PortStatus -Port $Config.Gateway.Port -Name $Config.Gateway.Name -Quiet)) {
+                Write-Log "  ⚠️ $(Get-Date -Format 'HH:mm:ss') 网关掉线，正在重启..." "Warn"
+                $null = Start-Gateway
+            }
+            if (-not (Test-PortStatus -Port $Config.LocalTool.Port -Name $Config.LocalTool.Name -Quiet)) {
+                Write-Log "  ⚠️ $(Get-Date -Format 'HH:mm:ss') 本地工具掉线，正在重启..." "Warn"
+                $null = Start-LocalTool
+            }
+            Start-Sleep -Seconds 5
         }
-        if (-not (Test-PortStatus -Port $Config.LocalTool.Port -Name $Config.LocalTool.Name -Quiet)) {
-            Write-Log "  ⚠️ $(Get-Date -Format 'HH:mm:ss') 本地工具掉线，正在重启..." "Warn"
-            $null = Start-LocalTool
-        }
-        Start-Sleep -Seconds 5
+    } finally {
+        # 退出守护循环时释放锁（Ctrl+C 也会触发）
+        Release-WatchdogLock
     }
 }
 
