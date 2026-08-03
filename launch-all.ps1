@@ -22,43 +22,51 @@ $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.Path }
 Set-Location -Path $ScriptDir
 
 # =====================================================================
-# ── 🔒 守护进程单实例锁（命名 Mutex 方案）──
-# 使用 Windows 命名互斥体确保同一时间只能有 1 个守护进程在运行。
-# 相比 PID 锁文件的优势：
-#   · 获取锁是原子操作，无"检查-写入"竞态
-#   · 不依赖 PID，不会因 PID 复用导致误判"已在运行"
-#   · 进程正常退出 / 崩溃 / 被 kill 时由 OS 自动释放锁，无需清理文件
-# 命名采用仓库名派生，避免与本机其他脚本冲突。
+# ── 🔒 守护进程单实例锁（PID 锁文件方案）──
+# 用锁文件记录守护进程 PID，确保同一时间只能有 1 个守护进程在运行。
+# 修复：原命名 Mutex 方案在普通权限下（无 Global\ 权限退 Local\）跨 PowerShell
+# 进程互斥不可靠，实测第二次仍能再开一个守护窗口。
+# PID 锁文件优点：逻辑直观、跨进程可靠、无权限问题；进程退出后 PID 消失即可重新启动。
+# 锁文件：<仓库根>\logs\watchdog.pid（logs 已在 .gitignore）。
 # =====================================================================
-$WatchdogMutexName = "Global\yimao-ai-canvas-watchdog-" + [System.IO.Path]::GetFileName($ScriptDir)
-$script:WatchdogMutex = $null
+$script:WatchdogLockFile = Join-Path $ScriptDir "logs\watchdog.pid"
 
-# 请求互斥体所有权。若已有守护进程持有，立刻返回 $false（拒绝重复启动）。
-# WaitOne(0) 返回"本进程是否获得所有权"，$true 表示成功拿到锁。
+# 获取锁。若锁文件记录的 PID 对应进程还活着，说明已有守护进程 → 返回 $false（拒绝）。
+# 否则写入当前 PID 持有锁，返回 $true。
 function Acquire-WatchdogLock {
-    try {
-        $script:WatchdogMutex = New-Object System.Threading.Mutex($false, $WatchdogMutexName)
-    } catch {
-        # Global\ 命名空间创建失败（无权限）时退回 Local\，保证单机多会话同样生效
-        $WatchdogMutexName = $WatchdogMutexName -replace '^Global\\', 'Local\'
-        $script:WatchdogMutex = New-Object System.Threading.Mutex($false, $WatchdogMutexName)
+    $lockDir = Split-Path $script:WatchdogLockFile -Parent
+    if (-not (Test-Path $lockDir)) { New-Item -ItemType Directory -Force -Path $lockDir | Out-Null }
+
+    # 读锁文件，判断旧守护进程是否仍存活
+    if (Test-Path $script:WatchdogLockFile) {
+        $oldPid = $null
+        try { $oldPid = [int](Get-Content $script:WatchdogLockFile -Raw).Trim() } catch { $oldPid = $null }
+        $alive = $false
+        if ($oldPid -and $oldPid -gt 0) {
+            try { $alive = $null -ne (Get-Process -Id $oldPid -ErrorAction Stop) } catch { $alive = $false }
+        }
+        if ($alive) {
+            Write-Log "❌ 已有守护进程在运行 (PID=$oldPid)，拒绝重复启动。" "Error"
+            Write-Log "   如需强制重启，请先退出原守护进程（按 Ctrl+C）。" "Warn"
+            return $false
+        }
+        # 旧 PID 已死（守护进程退出了），允许覆盖
     }
-    if ($script:WatchdogMutex.WaitOne(0)) {
-        return $true
+
+    # 持有锁：写入当前进程 PID
+    try { Set-Content -Path $script:WatchdogLockFile -Value "$PID" -Encoding UTF8 } catch {
+        Write-Log "  ⚠️ 写入守护锁失败，继续启动：$($_.Exception.Message)" "Warn"
     }
-    $script:WatchdogMutex.Close()
-    $script:WatchdogMutex = $null
-    Write-Log "❌ 已有守护进程在运行，拒绝重复启动。" "Error"
-    Write-Log "   如需强制重启，请先退出原守护进程（按 Ctrl+C）。" "Warn"
-    return $false
+    return $true
 }
 
-# 释放互斥体所有权
+# 释放锁：仅当锁文件里的 PID 是当前进程时才删除，避免误删新守护进程的锁
 function Release-WatchdogLock {
-    if ($null -ne $script:WatchdogMutex) {
-        try { $script:WatchdogMutex.ReleaseMutex() } catch { }
-        $script:WatchdogMutex.Close()
-        $script:WatchdogMutex = $null
+    if (-not (Test-Path $script:WatchdogLockFile)) { return }
+    $curPid = $null
+    try { $curPid = [int](Get-Content $script:WatchdogLockFile -Raw).Trim() } catch { $curPid = $null }
+    if ($curPid -eq $PID) {
+        try { Remove-Item $script:WatchdogLockFile -Force -ErrorAction SilentlyContinue } catch { }
     }
 }
 
@@ -107,6 +115,19 @@ function Test-PortStatus {
     return $isAlive
 }
 
+# 端口就绪等待：轮询直至端口可监听（就绪即返回），或超时返回 $false。
+# 替代固定 sleep——进程起得快就秒回，起得慢也能等到，绝不因固定等待误判或卡死。
+# 每 300ms 探测一次；默认超时 20s（给足 Node/Python 冷启动裕量）。
+function Wait-PortReady {
+    param([int]$Port, [int]$TimeoutSec = 20)
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-PortStatus -Port $Port -Quiet) { return $true }
+        Start-Sleep -Milliseconds 300
+    }
+    return $false
+}
+
 # Node 项目环境初始化（自动安装依赖与编译）
 function Ensure-NodeEnvironment {
     param([string]$Path, [switch]$NeedsBuild)
@@ -150,16 +171,26 @@ function Start-Gateway {
         }
     }
 
-    # 有 requirements.txt 则使用独立 venv；否则直接用系统 python（同 run_local.bat）
+    # 有 requirements.txt 则使用独立 venv；否则直接用系统 python（同 run_local.bat）。
+    # 性能优化：依赖未变更时跳过 pip install（用 requirements.txt 的 MD5 做变更标记），
+    # 避免每次启动都联网解析依赖（mac 版无此步，是 Windows 启动慢的主因之一）。
     $useVenv = $false
     $venvPython = Join-Path $dir "venv\Scripts\python.exe"
     $reqFile = Join-Path $dir "requirements.txt"
     if (Test-Path $reqFile) {
-        if (-not (Test-Path (Join-Path $dir "venv\Scripts\pip.exe"))) {
-            Write-Log "  🐍 正在创建 Python 虚拟环境..." "Info"
+        $pipExe = Join-Path $dir "venv\Scripts\pip.exe"
+        $stampFile = Join-Path $dir "venv\.req_installed"
+        $reqHash = (Get-FileHash $reqFile -Algorithm MD5).Hash
+        if (-not (Test-Path $pipExe)) {
+            Write-Log "  🐍 正在创建 Python 虚拟环境并安装依赖..." "Info"
             & python -m venv (Join-Path $dir "venv") 2>&1 | Out-Null
+            & $venvPython -m pip install -r $reqFile 2>&1 | Out-Null
+            Set-Content -Path $stampFile -Value $reqHash -Encoding UTF8
+        } elseif (-not (Test-Path $stampFile) -or ((Get-Content $stampFile -Raw).Trim() -ne $reqHash)) {
+            Write-Log "  📦 requirements.txt 有变更，正在重装依赖..." "Info"
+            & $venvPython -m pip install -r $reqFile 2>&1 | Out-Null
+            Set-Content -Path $stampFile -Value $reqHash -Encoding UTF8
         }
-        & $venvPython -m pip install -r $reqFile 2>&1 | Out-Null
         $useVenv = $true
     }
     
@@ -177,9 +208,13 @@ function Start-Gateway {
         -RedirectStandardError (Join-Path $logDir "apimart_9004.err.log") `
         -WindowStyle Hidden -WorkingDirectory $dir
 
-    Start-Sleep -Seconds 3
-    Write-Log "  ✅ AI 网关已启动 (日志: apimart-gateway\logs\apimart_9004.log)" "Success"
-    return $true
+    # 就绪等待（替代固定 sleep）：端口可监听即返回；超时则判定启动失败，避免"假成功"
+    if (Wait-PortReady -Port $Config.Gateway.Port -TimeoutSec 25) {
+        Write-Log "  ✅ AI 网关已启动 (日志: apimart-gateway\logs\apimart_9004.log)" "Success"
+        return $true
+    }
+    Write-Log "  ❌ AI 网关启动超时，请查看 apimart-gateway\logs\apimart_9004.err.log" "Error"
+    return $false
 }
 
 # 2. 启动 LocalTool (18080)
@@ -206,9 +241,13 @@ function Start-LocalTool {
             -RedirectStandardOutput (Join-Path $logDir "localtool_18080.log") `
             -RedirectStandardError (Join-Path $logDir "localtool_18080.err.log") `
             -WindowStyle Hidden -WorkingDirectory $dir
-        Start-Sleep -Seconds 2
-        Write-Log "  ✅ LocalTool 已启动 (日志: localTool\logs\localtool_18080.log)" "Success"
-        return $true
+        # 就绪等待（替代固定 sleep）：端口可监听即返回；超时则判定启动失败
+        if (Wait-PortReady -Port $Config.LocalTool.Port -TimeoutSec 25) {
+            Write-Log "  ✅ LocalTool 已启动 (日志: localTool\logs\localtool_18080.log)" "Success"
+            return $true
+        }
+        Write-Log "  ❌ LocalTool 启动超时，请查看 localTool\logs\localtool_18080.err.log" "Error"
+        return $false
     }
 }
 
