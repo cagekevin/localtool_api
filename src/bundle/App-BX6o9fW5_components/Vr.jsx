@@ -973,6 +973,14 @@ grok-video-3`);
         if (n?.discountVideoModel) {
           pr(n.discountVideoModel);
         }
+        // 与特惠视频 discountVideoModel 对称：无条件从 baseline 覆盖图片/聊天默认模型
+        // (drawingModel/textModel 已在 wi() 内支持，这里补无条件分支确保老用户也生效)
+        if (n?.drawingModel) {
+          Wn(n.drawingModel);
+        }
+        if (n?.textModel) {
+          Rn(n.textModel);
+        }
         console.log(`[appSettingKvData] 配置数据:`, e);
         console.log(`defaultConfig?.apiConfigs`, n?.apiConfigs);
         Ti(t, n?.apiConfigs);

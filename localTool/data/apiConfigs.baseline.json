@@ -76,5 +76,7 @@
       ]
     }
   ],
-  "discountVideoModel": "seedance-2.0-fast\nseedance-2\nseedance-2.0-mini\nminimax-h3\nkling-v3-omni"
+  "discountVideoModel": "seedance-2.0-mini\nseedance-2.0-fast\nseedance-2\nminimax-h3\nkling-v3-omni",
+  "drawingModel": "gpt-image-2-low\ngpt-image-2-medium\nano-bn-2-lite\nano-bn-2\nano-bn-pro",
+  "textModel": "lovart-chat"
 }
