@@ -223,10 +223,13 @@ fixHtmlRefs('index.html');
 fixHtmlRefs('share/index.html');
 
 // 写入 vite.config.ts
-  // 单 React 实例 shim：把 'react' 指向 vendor-Z 内联 React(Rr)，与入口 react-dom(Ir) 同一实例，
+  // 单 React 实例 shim：把 'react' 指向 vendor 内联 React(Rr)，与入口 react-dom(Ir) 同一实例，
   // 杜绝 Invalid hook call / 多实例（AI01~AI11 全员翻车的真凶）。jsx 运行时也指向 vendor Fr。
-  const REACT_SHIM_SRC = `import { Rr as __Rr } from './vendor-Z-adA07W.js';
-import { i as __e } from './rolldown-runtime-aKtaBQYM.js';
+  // 动态解析 vendor / rolldown-runtime 真实文件名（随官方版本变，勿写死旧 hash，如 1.4.2 的 vendor-Z-adA07W.js / rolldown-runtime-aKtaBQYM.js）
+  const vendorFile = RUNTIME.find((f) => f.startsWith('vendor-')) || 'vendor-Z-adA07W.js';
+  const runtimeFile = RUNTIME.find((f) => f.startsWith('rolldown-runtime-')) || 'rolldown-runtime-aKtaBQYM.js';
+  const REACT_SHIM_SRC = `import { Rr as __Rr } from './${vendorFile}';
+import { i as __e } from './${runtimeFile}';
 const React = __e(__Rr(), 1);
 export default React;
 export const useState = React.useState;
@@ -269,7 +272,7 @@ export const flushSync = React.flushSync;
 export const unstable_batchedUpdates = React.unstable_batchedUpdates;
 export const version = React.version;
 `;
-  const JSX_RUNTIME_SRC = `import { Fr as __Fr } from './vendor-Z-adA07W.js';
+  const JSX_RUNTIME_SRC = `import { Fr as __Fr } from './${vendorFile}';
 const __rt = __Fr();
 export const jsx = __rt.jsx;
 export const jsxs = __rt.jsxs;
