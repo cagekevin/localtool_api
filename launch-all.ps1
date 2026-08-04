@@ -70,6 +70,25 @@ function Release-WatchdogLock {
     }
 }
 
+# 彻底清理守护进程：结束锁文件里记录的守护进程 PID，并删除锁文件
+function Stop-Watchdog {
+    if (-not (Test-Path $script:WatchdogLockFile)) {
+        Write-Log "  ℹ️ 未发现守护进程锁文件，无需清理。" "Dim"
+        return
+    }
+    $watchdogPid = $null
+    try { $watchdogPid = [int](Get-Content $script:WatchdogLockFile -Raw).Trim() } catch { $watchdogPid = $null }
+    if ($watchdogPid -and $watchdogPid -gt 0 -and $watchdogPid -ne $PID) {
+        $alive = $false
+        try { $alive = $null -ne (Get-Process -Id $watchdogPid -ErrorAction Stop) } catch { $alive = $false }
+        if ($alive) {
+            Write-Log "  🛑 正在结束守护进程 (PID=$watchdogPid)..." "Warn"
+            Stop-Process -Id $watchdogPid -Force -ErrorAction SilentlyContinue
+        }
+    }
+    try { Remove-Item $script:WatchdogLockFile -Force -ErrorAction SilentlyContinue } catch { }
+}
+
 # 脚本退出时（含 Ctrl+C）自动释放锁
 $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
     try { Release-WatchdogLock } catch { }
@@ -322,6 +341,7 @@ while ($true) {
             Write-Log "👋 正在清理后台进程并退出..."
             Clear-Port -Port $Config.Gateway.Port
             Clear-Port -Port $Config.LocalTool.Port
+            Stop-Watchdog
             exit 0 
         }
         default { Write-Log "❌ 无效选择，请重试" "Error"; Start-Sleep -Seconds 1 }
