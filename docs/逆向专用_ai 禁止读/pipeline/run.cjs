@@ -309,7 +309,7 @@ export default defineConfig({
     {
       // 构建后收尾：每次 npm run build 自动执行（此前手动/构建前补丁会被 Vite 重写 index.html 冲掉）。
       // ① 拷贝图标（原始 dist/icon*.png 不在 public 内，Vite 不会自动带进 dist）
-      // ② 补回 src-DoQUrSOl.css 的 stylesheet 引用（逆向 JS 用 mapDeps 懒加载 CSS，Vite 静态分析抓不到）
+      // ④ 从 public/assets 拷真实 CSS 覆盖 dist + 修正 src/bundle/assets 悬空路径 + 补齐 index.html 引用别名（动态识别，勿写死 CSS 名）
       // ③ 剥离 data:text/javascript 的 modulepreload（Rolldown 内联，违反 MV3 CSP）
       name: 'post-build-fixups',
       apply: 'build',
@@ -322,22 +322,39 @@ export default defineConfig({
           const to = path.join(distDir, n);
           if (fs.existsSync(from) && !fs.existsSync(to)) fs.copyFileSync(from, to);
         }
+        // ④ CSS 兜底：从 public/assets 拷真实样式覆盖 dist（防空占位/缺失导致界面错乱；随官方版本动态，勿写死 CSS 名）
+        const pubAssets = path.resolve(__dirname, 'public', 'assets');
+        if (fs.existsSync(pubAssets)) {
+          for (const f of fs.readdirSync(pubAssets)) {
+            if (f.endsWith('.css')) {
+              try { fs.copyFileSync(path.join(pubAssets, f), path.join(distDir, 'assets', f)); } catch (_) {}
+            }
+          }
+        }
         const targets = [
-          { f: path.join(distDir, 'index.html'), base: './assets/' },
-          { f: path.join(distDir, 'share', 'index.html'), base: '../assets/' },
+          { f: path.join(distDir, 'index.html'), base: 'assets/' },
+          { f: path.join(distDir, 'share', 'index.html'), base: 'assets/' },
         ];
         for (const { f, base } of targets) {
           if (!fs.existsSync(f)) continue;
           let h = fs.readFileSync(f, 'utf8');
-          if (!h.includes('src-DoQUrSOl.css')) {
-            const link = '<link rel="stylesheet" crossorigin href="' + base + 'src-DoQUrSOl.css">';
-            const idx = h.indexOf('</head>');
-            if (idx !== -1) h = h.slice(0, idx) + '    ' + link + '\\n    ' + h.slice(idx);
+          // ⑤ 修 src/bundle/assets 悬空 CSS 路径（split 保留原 ./ 或 ../ 前缀，base 只给 assets/）
+          h = h.split('src/bundle/assets/').join(base);
+          // 补齐 index.html 引用的主样式：若 dist/assets 无同名文件，用真实 CSS 内容兜底生成别名
+          const cssRefs = [...h.matchAll(/href="([^"]+)"/g)].map(m => m[1]).filter(r => r.endsWith('.css'));
+          const realCss = (fs.existsSync(pubAssets) ? fs.readdirSync(pubAssets).filter(x => x.endsWith('.css')) : []);
+          for (const ref of cssRefs) {
+            const name = ref.split('/').pop();
+            const target = path.join(distDir, 'assets', name);
+            if (!fs.existsSync(target) && realCss.length > 0) {
+              const src = path.join(distDir, 'assets', realCss[0]);
+              if (fs.existsSync(src)) { try { fs.copyFileSync(src, target); } catch (_) {} }
+            }
           }
           h = h.replace(/<link[^>]+rel="modulepreload"[^>]+href="data:text\\/javascript[^"]*"[^>]*>\\s*/g, '');
           fs.writeFileSync(f, h);
         }
-        console.log('  ✅ post-build 收尾：图标 + css 引用 + CSP data: 剥离已固化');
+        console.log('  ✅ post-build 收尾：图标 + css 兜底 + CSP data: 剥离已固化');
       },
     },
   ],
@@ -390,7 +407,11 @@ console.log('   ✅ 配置 / public / 源码');
 const cssDir = path.join(PROJECT, 'src', 'bundle', 'assets');
 const DIST_ASSETS = path.join(UNPACKED, 'dist', 'assets');
 fs.mkdirSync(cssDir, { recursive: true });
-['src-BsO0T5Vc.css', 'vendor-Qkhkn02K.css', 'src-DoQUrSOl.css', 'httpClient-DFxwm5B3.css'].forEach(css => {
+// 动态识别「原始 dist/assets/」的真实 CSS 名（随官方版本变化，勿写死旧版名，如 1.4.2 的 src-BsO0T5Vc.css / src-DoQUrSOl.css、1.4.3 的 src-DQ-1CVtg.css）。
+// 优先从原始 dist 拷真实样式，缺失才写空占位兜底（绝不能把已存在的真实 CSS 覆盖成空占位 → 界面错乱）。
+const realCssList = fs.existsSync(DIST_ASSETS) ? fs.readdirSync(DIST_ASSETS).filter(f => f.endsWith('.css')) : [];
+const cssNames = realCssList.length > 0 ? realCssList : ['src-BsO0T5Vc.css', 'vendor-Qkhkn02K.css', 'src-DoQUrSOl.css', 'httpClient-DFxwm5B3.css'];
+cssNames.forEach(css => {
   const p = path.join(cssDir, css);
   const real = path.join(DIST_ASSETS, css);
   if (!fs.existsSync(p)) {

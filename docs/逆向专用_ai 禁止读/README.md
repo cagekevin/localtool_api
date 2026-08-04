@@ -24,26 +24,26 @@
                 → glob 自适应从 dist/assets/ 提取「业务 chunk」到 step0_raw/chunks/（剔除 vendor/rolldown-runtime 等第三方）
                 → 从 dist/ 根提取 index.html、从 dist/share/ 提取 share.html
                 → 从 dist/public/ 提取 manifest.json / background.js / 图标（含 dist 根 icon16/48/128.png）/ mediapipe / models / assets/*.css 等到 step0_raw/static/public/
-① 生成工程     node pipeline/run.cjs
+01 生成工程     node pipeline/run.cjs
                 → 自动识别 chunks（DEEP=核心业务走 webcrack→拆分；OTHER=其余只拷贝），产出 output/project
                 → 注：拆分后的 *_components/ 里可能残留 webcrack 伪迹，这是已知的后期清理项，不阻断主线
-①b 先构建验证   cd output/project && npm install && npm run build
+02 先构建验证   cd output/project && npm install && npm run build
                 → 【关卡】能构建通过，才说明拆包产物基本可用，方可进入后处理
                 → 若报伪迹类静态错误（如 function X(){[native code]}），先手动对对应文件跑 00_sanitize.cjs 再继续（后期会固化进流水线）
-①c 可读化(可选) node pipeline/05_rename.cjs output/project/src/bundle
+03 可读化(可选) node pipeline/05_rename.cjs output/project/src/bundle
                 → 作用域安全语义改名；改前建议先 snapshot output/project/src 以便回退
-①d 构建冒烟门   node verifiers/verify_build.cjs
+04 构建冒烟门   node verifiers/verify_build.cjs
                 → 秒级静态断言（manifest 合法 / 入口 HTML 引用 / 无悬空 chunk 引用），不通过则回修
-② 后处理根治   node pipeline/fix_esm.cjs output/project
+05 后处理根治   node pipeline/fix_esm.cjs output/project
                 → 修 ESM 五类错误（A~E）
-③ 再构建       cd output/project && npm run build
+06 再构建       cd output/project && npm run build
                 → 后处理通常能消除大部分 ESM 错误；退出码 0 即达标（告警见 §0.5 允许遗留项）
-④ 真机验收     cd verifiers/AI01_ext && node verify_ext.cjs
+07 真机验收     cd verifiers/AI01_ext && node verify_ext.cjs
                 → 先确认扩展能被 Chrome 正常加载（不报 Couldn't load icon / 界面错乱）；否则回 §3.3 修产物
                 → 看 report.json：以 §0.5「达成线」为准（真机仅剩噪声即达成，无需 errorCount=0）
 ```
 
-> 若 ②③ 后还冒 `ReferenceError: X is not defined`，回到 §4 按 component_map.json 定位补修，再重跑 ③④。
+> 若 05~06 后还冒 `ReferenceError: X is not defined`，回到 §4 按 component_map.json 定位补修，再重跑 06~07。
 
 ---
 
@@ -53,7 +53,7 @@
 
 ### ✅ 达成线（三条必须同时满足）
 1. **能构建**：`npm run build` 退出码为 0，产出 `dist/`（含 index.html + 所有 chunk + 两个 CSS）。
-2. **能加载**：Chrome 加载 `dist/` 不报「加载即崩」类致命错误（§3.3：图标齐全、`index.html` 同时引用 `src-DoQUrSOl.css` 与 `vendor-Qkhkn02K.css` 且非空）。→ 用 `verify_build.cjs` 静态门卡。
+2. **能加载**：Chrome 加载 `dist/` 不报「加载即崩」类致命错误（§3.3：图标齐全、`index.html` 同时引用真实业务样式与 `vendor-Qkhkn02K.css` 且非空。注意业务样式文件名**随官方版本变化**：1.4.2=`src-DoQUrSOl.css`、1.4.3=`src-DQ-1CVtg.css`，勿写死，`run.cjs` 已动态识别 + `verify_build.cjs` 动态读 `public/assets`）。→ 用 `verify_build.cjs` 静态门卡。
 3. **真机零应用级报错**：`verify_ext.cjs` 的 `report.json` 里 `errorCount` 可以 ≠ 0，但剩下的**全是噪声**（§3.4：仅 `sw.createCDPSession` + 单个 404 + 本地工具未连接），**无任何 `ReferenceError` / `TypeError` / `NotFoundError:removeChild`**。
    - ⚠️ 原「CSP 拦截 `data:text/javascript` 脚本」的报错**已从流水线根治**（见 §4 案例 D），不再算噪声遗留。
 
@@ -66,7 +66,7 @@
 ### 🔴 什么情况才需要继续修（没到达成线）
 - 构建退出码非 0（真有语法/解析错误，不是告警）。
 - `verify_build.cjs` 不通过（图标缺 / 样式缺 → Chrome 拒绝加载）。
-- `report.json` 里出现**应用级** `ReferenceError: X is not defined` / `TypeError` / `NotFoundError:removeChild` → 按 §4 的 component_map 方法定位，跑一次 `fix_esm.cjs` 后重新 ③④。这类修完通常一两次迭代就收敛，**不要逐条手动改源码打地鼠**。
+- `report.json` 里出现**应用级** `ReferenceError: X is not defined` / `TypeError` / `NotFoundError:removeChild` → 按 §4 的 component_map 方法定位，跑一次 `fix_esm.cjs` 后重新 06~07。这类修完通常一两次迭代就收敛，**不要逐条手动改源码打地鼠**。
 
 > ⚠️ **不要做的事**：为了消灭一条构建告警或一个 CSP 噪声，去重排 `run.cjs` 整条流水线或逐文件手改 —— 那是本末倒置。流水线产出「能构建 + 能加载 + 真机零应用级报错」就达标，剩余项留给后期按需补。
 
@@ -79,15 +79,15 @@ minimal/
 ├─ extract_input.cjs        ← 第0步：从最初 dist 提取 step0_raw/（chunks + static，glob 自适应）
 ├─ pipeline/                ← 生成 + 后处理脚本（run.cjs 调用链完整）
 │  ├─ run.cjs               ← 总入口：自动识别 chunks → webcrack → 00~04 → 组装 + shim + vite.config + css占位 + 终检
-│  ├─ 00_sanitize.cjs       ← ①b 伪迹清理（Object/constructor 文本还原）
-│  ├─ 01_expand.cjs         ← ①  AI 结构展开
-│  ├─ 02_split.cjs          ← ②  智能组件拆分（生成 *_components/）
-│  ├─ 03_facade.cjs         ← ③  门面替换（原 JS → re-export）
-│  ├─ 04_unicode.cjs        ← ④  Unicode 中文还原
-│  ├─ 05_rename.cjs         ← ①c 可读化层（可选）：作用域安全语义改名，glob 自适应所有 bundle js
+│  ├─ 00_sanitize.cjs       ← 00 伪迹清理（Object/constructor 文本还原；02 构建前手动兜底跑它）
+│  ├─ 01_expand.cjs         ← 01 AI 结构展开
+│  ├─ 02_split.cjs          ← 02 智能组件拆分（生成 *_components/）
+│  ├─ 03_facade.cjs         ← 03 门面替换（原 JS → re-export）
+│  ├─ 04_unicode.cjs        ← 04 Unicode 中文还原
+│  ├─ 05_rename.cjs         ← 05 可读化层（可选）：作用域安全语义改名，glob 自适应所有 bundle js
 │  ├─ clean_project.cjs     ← 终检：递归清理 webcrack [native code] 伪迹
-│  ├─ fix_esm.cjs           ← 后处理① 五类 ESM 修复（A~E）
-│  └─ fix_cmp_imported.cjs  ← 后处理② 剥离 _cmp_ 前缀（干净态常可跳过，但保留方法论完整性）
+│  ├─ fix_esm.cjs           ← 后处理 A 五类 ESM 修复（A~E）
+│  └─ fix_cmp_imported.cjs  ← 后处理 B 剥离 _cmp_ 前缀（干净态常可跳过，但保留方法论完整性）
 ├─ step0_raw/               ← 第0步从 dist 提取的原始素材（run.cjs 只读这里）
 │  ├─ chunks/               ← 业务混淆 chunk（glob 自适应提取，见 §2）
 │  └─ static/               ← 入口 html / tsconfig / tailwind / public 资源
@@ -95,7 +95,7 @@ minimal/
 │     └─ public/            ← manifest.json / 图标 / mediapipe / models / assets/*.css 占位
 ├─ verifiers/
 │  ├─ AI01_ext/verify_ext.cjs   ← 真机验收（Playwright 加载 dist 为 MV3 扩展，生成 report.json）
-│  └─ verify_build.cjs          ← ①d 构建后静态冒烟门（秒级，exit-code 质量门）
+│  └─ verify_build.cjs          ← 04 构建后静态冒烟门（秒级，exit-code 质量门）
 ├─ docs/
 │  └─ 成功复盘SOP.md         ← 完整 SOP 细节（shim 模板、五类修复源码、三个真实 bug 案例）
 └─ README.md                ← 本文件（总表）
@@ -113,13 +113,13 @@ minimal/
 | `pipeline/03_facade.cjs` | 脚本 | ✅ 必需 | run.cjs 第136行调用 |
 | `pipeline/04_unicode.cjs` | 脚本 | ✅ 必需 | run.cjs 第154行调用 |
 | `pipeline/clean_project.cjs` | 脚本 | ✅ 必需 | run.cjs 第292行终检调用 |
-| `pipeline/fix_esm.cjs` | 脚本 | ✅ 必需 | 后处理①（SOP §5） |
-| `pipeline/fix_cmp_imported.cjs` | 脚本 | ✅ 保留 | 后处理②（SOP 剥离前缀） |
-| `pipeline/05_rename.cjs` | 脚本 | ◯ 可选 | ①c 可读化层（语义改名，移植自 AI08） |
+| `pipeline/fix_esm.cjs` | 脚本 | ✅ 必需 | 后处理 A（SOP §5） |
+| `pipeline/fix_cmp_imported.cjs` | 脚本 | ✅ 保留 | 后处理 B（SOP 剥离前缀） |
+| `pipeline/05_rename.cjs` | 脚本 | ◯ 可选 | 05 可读化层（语义改名，移植自 AI08） |
 | `step0_raw/chunks/*.js` | 数据 | ✅ 必需 | 业务 chunk（glob 自适应提取，非写死 12 个） |
 | `step0_raw/static/*` | 数据 | ✅ 必需 | 入口/配置/public 资源 |
 | `verifiers/AI01_ext/verify_ext.cjs` | 脚本 | ✅ 必需 | 真机验收 |
-| `verifiers/verify_build.cjs` | 脚本 | ✅ 必需 | ①d 构建后静态冒烟门 |
+| `verifiers/verify_build.cjs` | 脚本 | ✅ 必需 | 01d 构建后静态冒烟门 |
 | `docs/成功复盘SOP.md` | 文档 | ✅ 必需 | 完整细节与避坑 |
 | `*.log` / `debug.cjs` / `analyze_shared.cjs` / `reconstruct_shared.cjs` / `05_split_shared.cjs` / `build_project.cjs` / `check_project.cjs` / `verify_state.cjs` | 历史 | ❌ 已删 | 不在 run.cjs 调用链，调试残留 |
 | `step0_raw/chunks/` 多余 9 个旧版 chunk | 数据 | ❌ 已删 | run.cjs 不处理（App-D5SRQxl_.js 等） |
@@ -160,7 +160,7 @@ node extract_input.cjs C:\Users\xinye\Downloads\11\dist
 
 ### 3.2 后处理五类修复（fix_esm.cjs）
 
-> **这是逆向还原的核心一步**：webcrack 拆出的代码天然带 ESM 非法结构，必须后处理才可读可跑。脚本对工程根**递归**处理（自动跳过 `node_modules`/`dist`/`.vite`），依赖 `@babel/*`（在 `pipeline/node_modules`，从工程根调用也能解析到）。
+> **这是逆向还原的核心一步（对应主线 05 后处理 A）**：webcrack 拆出的代码天然带 ESM 非法结构，必须后处理才可读可跑。脚本对工程根**递归**处理（自动跳过 `node_modules`/`dist`/`.vite`），依赖 `@babel/*`（在 `pipeline/node_modules`，从工程根调用也能解析到）。
 > 主流程顺序（务必按此，否则会互相干扰）：`cleanArtifacts(C)` → `fixConstructorArtifact(D)` → [shared.js 用 `exportSync(A)`；其他文件用 `fixExtractedComponentRefs(E2)` + `fixDanglingImports(E)`] → `fixImportAssignments(B)`。
 
 | 类别 | 现象 | 处理函数 | 做法 |
@@ -184,7 +184,7 @@ node extract_input.cjs C:\Users\xinye\Downloads\11\dist
 | 现象 | 根因 | 修复 |
 |------|------|------|
 | `Couldn't load icon icon16.png specified in action` | `extract_input.cjs` 的 `PUBLIC_ROOT_FILES` 漏提 `icon16/48/128.png`，构建后 `dist/` 没有图标，但 `manifest.json` 引用了 | 已把三个图标加入 `PUBLIC_ROOT_FILES`；`run.cjs` 构建后也会从 `static/public` 带出图标 |
-| 界面错乱（本该在下方的内容跑到上方） | ① `run.cjs` 的 CSS 占位逻辑用空内容**覆盖了真实 `vendor-Qkhkn02K.css`**；② 逆向 JS 用 `mapDeps` 懒加载 CSS（非静态 `import`），**Vite 构建未把 `src-DoQUrSOl.css` 注入 HTML**，页面只剩 0 字节样式 | 占位逻辑已改为「文件已存在则保留真实内容」；`run.cjs` 构建后强制把 `static/index.html` 的真实 `<link rel=stylesheet>` 回写产物 `dist/index.html` |
+| 界面错乱（本该在下方的内容跑到上方） | a. `run.cjs` 的 CSS 占位逻辑用空内容**覆盖了真实 `vendor-Qkhkn02K.css`**；b. 逆向 JS 用 `mapDeps` 懒加载 CSS（非静态 `import`），**Vite 构建未把 `src-DoQUrSOl.css` 注入 HTML**，页面只剩 0 字节样式 | 占位逻辑已改为「文件已存在则保留真实内容」；`run.cjs` 构建后强制把 `static/index.html` 的真实 `<link rel=stylesheet>` 回写产物 `dist/index.html` |
 | `Failed to load resource: net::ERR_*` 指向某个 css | 上述样式丢失的延伸 | 同上，确认 `dist/index.html` 同时引用 `src-DoQUrSOl.css` 与 `vendor-Qkhkn02K.css` 且文件非空 |
 
 > ⚠️ **历史误判纠正**：曾把「扩展无法加载」误判为「Playwright / macOS 不支持扩展验收」。实际 Playwright（或系统 Chrome `--load-extension`）**可以**加载验收，加载失败**一律是构建产物有误**（缺图标 / 缺样式 / manifest 非法），先查产物再查工具。
@@ -203,12 +203,42 @@ node extract_input.cjs C:\Users\xinye\Downloads\11\dist
 ### 3.5 验收前产物自检清单（防止「加载即崩」）
 `verify_ext.cjs` 跑起来之前，先对 `output/project/dist/` 做 3 秒人工/脚本核对，任一不满足 Chrome 会**拒绝加载整个扩展**：
 1. **图标齐全**：`manifest.json` 中 `action.default_icon` 与 `icons` 引用的 `icon16/48/128.png` 必须存在于 `dist/` 根且非空（缺失 → `Couldn't load icon`）。
-2. **HTML 样式引用完整**：`dist/index.html`（及 `share/index.html`）必须同时含 `<link rel=stylesheet href=./assets/src-DoQUrSOl.css>` 与 `vendor-Qkhkn02K.css`，且对应文件非空（缺失/空 → 界面错乱）。
+2. **HTML 样式引用完整**：`dist/index.html`（及 `share/index.html`）必须同时含真实业务样式 `<link rel=stylesheet href=./assets/<真实CSS名>>` 与 `vendor-Qkhkn02K.css`，且对应文件非空（缺失/空 → 界面错乱）。真实业务样式名随官方版本变（1.4.2=`src-DoQUrSOl.css`、1.4.3=`src-DQ-1CVtg.css`），`run.cjs` 的 post-build 钩子会自动从 `public/assets` 拷真实 CSS 并修正 `src/bundle/assets` 悬空路径、补齐引用别名，`verify_build.cjs` 会自动读 `public/assets` 校验——**不要手动写死 CSS 名**。
 3. **manifest 合法**：`verify_build.cjs` 已覆盖；但若手动改过 manifest，注意 `background.service_worker` 路径、`web_accessible_resources` 写法。
 
 > 建议把上述 1、2 项加进 `verifiers/verify_build.cjs`，作为「加载即崩」的静态门（比真机早一步拦住错误）。
 
+### 3.6 CSS 兜底原理 + 手动补兜底 SOP（换版本必读）
+
+**为什么 CSS 会出问题（原理）**：官方 `dist/assets/*.css` 的文件名**随版本变化**（1.4.2=`src-DoQUrSOl.css`、1.4.3=`src-DQ-1CVtg.css`，`vendor-Qkhkn02K.css` 稳定）。逆向还原时：
+- `run.cjs` 在 `src/bundle/assets/` 生成 CSS **空占位**，并在构建后用 post-build 钩子从 `public/assets/` 拷**真实 CSS** 覆盖 `dist/assets/`；
+- 但逆向 JS 用 `mapDeps` **懒加载**业务 CSS（非静态 import），Vite 静态分析抓不到 → `index.html` 里可能：a. 出现 `./src/bundle/assets/*.css` 的**悬空路径**；b. 引用一个 `dist/assets/` 里**不存在的 CSS 名**；c. `vendor-*.css` 被空占位顶成 0 字节。三者都会导致**界面错乱/加载即崩**。
+
+**工具已自动做的事（vite.config.ts post-build 钩子 + verify_build.cjs）**：
+1. 从 `public/assets/*.css` 拷贝真实 CSS 覆盖 `dist/assets/`（保证非空）；
+2. 修正 `index.html`/`share/index.html` 里 `src/bundle/assets/` 悬空路径 → `assets/`；
+3. 对 index.html 引用的 CSS，若 `dist/assets/` 无同名文件，用真实 CSS 内容兜底生成别名；
+4. `verify_build.cjs` 从 `public/assets/` **动态**读真实 CSS 名来校验（至少命中一个业务样式），不写死旧名。
+
+**假设脚本某步没做好，手动补兜底（三选一，按需）**：
+1. **`dist/assets/vendor-Qkhkn02K.css` 是 0 字节 / 空**（界面错乱）：
+   ```bash
+   cp public/assets/vendor-Qkhkn02K.css dist/assets/vendor-Qkhkn02K.css
+   ```
+2. **index.html 引用了 `dist/assets/` 里不存在的 CSS（如 `src-DoQUrSOl.css`）**：用真实业务样式内容兜底生成同名文件：
+   ```bash
+   # 找到 dist/assets 里真实的业务 CSS（src-DQ-1CVtg.css 之类），复制为被引用的名字
+   cp dist/assets/src-DQ-1CVtg.css dist/assets/src-DoQUrSOl.css
+   ```
+3. **index.html 里有 `./src/bundle/assets/*.css` 悬空路径**：手动把前缀改成真实路径：
+   - 主入口 `dist/index.html`：`./src/bundle/assets/` → `./assets/`
+   - `dist/share/index.html`：`../src/bundle/assets/` → `../assets/`
+
+改完执行：`node verifiers/verify_build.cjs output/project`，看到「可进入真机验收」即通过。若仍有"必要业务样式"报错，多半是**写死了旧版 CSS 名**——检查 `vite.config.ts` 钩子与 `verify_build.cjs` 的 `EXPECTED_CSS` 是否还残留 `src-DoQUrSOl.css` 这类硬编码（应为动态从 `public/assets` 读）。
+
 ---
+
+
 
 ## 4. 排错闭环（三个真实 bug 范式）
 
@@ -258,8 +288,9 @@ node extract_input.cjs C:\Users\xinye\Downloads\11\dist
 6. **babel visitor 合法性**：组件方法改写用 `ClassMethod`，`MethodDefinition` 不是合法 visitor；walk 必须跳过 `node_modules`/`dist`。
 7. **Playwright 跨版本**：验收装包务必 `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`；`sw.createCDPSession` 报错是脚本兼容，非应用 bug。**但扩展「加载失败」（缺图标/缺样式/manifest 非法）绝不是 Playwright 的问题，是构建产物有误，先按 §3.3 修产物。**
 8. **PowerShell 缓冲区污染**：用 `search_content`/直读文件，避免 `Select-String` 混历史输出。
-6. **cmd 包裹跑 node**：PowerShell 会把 webcrack 的 stderr 当 `RemoteException` 中断 node，用 `cmd /d /c "node ... > log 2>&1"` 包裹可完整跑完。
-7. **图标/样式「加载即崩」是头号坑**：扩展加载失败 99% 是 `dist/` 缺 `icon*.png` 或 `index.html` 漏样式 `<link>`（见 §3.3）。验收前先按 §3.5 清单核对，别急着怀疑工具。
+9. **cmd 包裹跑 node**：PowerShell 会把 webcrack 的 stderr 当 `RemoteException` 中断 node，用 `cmd /d /c "node ... > log 2>&1"` 包裹可完整跑完。
+10. **图标/样式「加载即崩」是头号坑**：扩展加载失败 99% 是 `dist/` 缺 `icon*.png` 或 `index.html` 漏样式 `<link>`（见 §3.3）。验收前先按 §3.5 清单核对，别急着怀疑工具。
+11. **换官方版本后，业务 CSS 文件名会变，必须用 run.cjs 的** `src/bundle/assets` **占位 + post-build 钩子动态识别，别写死旧版 CSS 名**（1.4.2=`src-DoQUrSOl.css`、1.4.3=`src-DQ-1CVtg.css`）。若某步没做好（`vendor-*.css` 0 字节 / index.html 引用不存在的 CSS / `src/bundle/assets` 悬空路径），按 **§3.6** 手动补兜底，改完跑 `verify_build.cjs` 确认「可进入真机验收」。
 
 ---
 
@@ -270,33 +301,33 @@ node extract_input.cjs C:\Users\xinye\Downloads\11\dist
 cd minimal
 node extract_input.cjs C:\Users\xinye\Downloads\11\dist
 
-# ① 生成工程（用 cmd 包裹，避免 PowerShell 把 webcrack 的 stderr 当错误中断）
+# 01 生成工程（用 cmd 包裹，避免 PowerShell 把 webcrack 的 stderr 当错误中断）
 cmd /d /c "node pipeline/run.cjs > run_gen.log 2>&1"
 # 跑完看 run_gen.log 末尾确认 ✅ 完成 / 产物文件数
 
-# ①b 先构建验证（关卡：能构建才算拆包可用）
+# 02 先构建验证（关卡：能构建才算拆包可用）
 cd output/project
 npm install
 npm run build
 # 若报错（静态解析/门面路径错）→ 先修，通过后再继续
 
-# ①c 可读化（可选）：作用域安全语义改名，让交付物源码/产物命名可读
+# 03 可读化（可选）：作用域安全语义改名，让交付物源码/产物命名可读
 #     改前建议先 snapshot output/project/src 以便回退
 cd ../..
 node pipeline/05_rename.cjs output/project/src/bundle
 
-# ①d 构建后静态冒烟门（秒级，不通过则回修，exit 1 阻断）
+# 04 构建后静态冒烟门（秒级，不通过则回修，exit 1 阻断）
 node verifiers/verify_build.cjs output/project
 # 通过才继续
 
-# ② 后处理根治
+# 05 后处理根治
 node pipeline/fix_esm.cjs output/project
 
-# ③ 再构建（后处理后应干净通过）
+# 06 再构建（后处理后应干净通过）
 cd output/project
 npm run build
 
-# ④ 真机验收（Playwright 装在 verifiers 目录，非工程根）
+# 07 真机验收（Playwright 装在 verifiers 目录，非工程根）
 cd ../verifiers/AI01_ext
 $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 npm install playwright@1.62.0
