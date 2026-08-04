@@ -41,6 +41,12 @@
           "label": "Nano Banana 2"
         },
         {
+          "id": "nano-bn-2-lite",
+          "type": "image",
+          "label": "Nano Banana 2 Lite",
+          "promptOnly": true
+        },
+        {
           "id": "seedance-2.0-fast",
           "type": "video",
           "label": "Seedance 2.0 Fast"
@@ -51,6 +57,18 @@
           "label": "Seedance 2"
         },
         {
+          "id": "seedance-2.0-mini",
+          "type": "video",
+          "label": "Seedance 2.0 Mini",
+          "promptOnly": true
+        },
+        {
+          "id": "minimax-h3",
+          "type": "video",
+          "label": "MiniMax H3",
+          "promptOnly": true
+        },
+        {
           "id": "kling-v3-omni",
           "type": "video",
           "label": "Kling V3 Omni"
@@ -58,5 +76,5 @@
       ]
     }
   ],
-  "discountVideoModel": "seedance_2_fast\nseedance-2.0-fast\nseedance-2\nkling-v3-omni"
+  "discountVideoModel": "seedance-2.0-fast\nseedance-2\nseedance-2.0-mini\nminimax-h3\nkling-v3-omni"
 }

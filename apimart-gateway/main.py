@@ -99,6 +99,8 @@ _IMAGE_RULES = [
     (("gpt-image-2", "gpt-image2", "gptimage2"), "generate_image_gpt_image_2"),
     (("nano-bn-pro", "nano bn pro", "nanobnpro"), "generate_image_nano_banana_pro"),
     (("nano-bn-2", "nano bn 2"), "generate_image_nano_banana_2"),
+    # 官方暂无工具的图片模型：仅拼提示词驱动（tool 为空 → 不下发 prefer_tool_categories）。
+    (("nano-bn-2-lite", "nano banana 2 lite", "nanobn2lite"), ""),
 ]
 
 _VIDEO_RULES = [
@@ -107,7 +109,22 @@ _VIDEO_RULES = [
       "seedance_2_fast", "seedance-2-fast", "seedance 2 fast"), "generate_video_seedance_v2_0_fast"),
     (("seedance-2", "seedance2", "seedance-v2", "seedance 2"), "generate_video_seedance_v2_0"),
     (("kling-v3-omni", "kling-3-omni", "kling 3 omni"), "generate_video_kling_v3_omni"),
+    # 官方暂无工具的视频模型：仅拼提示词驱动（tool 为空）。
+    (("seedance-2.0-mini", "seedance-v2-0-mini", "seedance 2.0 mini",
+      "seedance_2_mini", "seedance-2-mini", "seedance 2 mini"), ""),
+    (("minimax-h3", "minimax h3", "hailuo h3"), ""),
 ]
+
+# 提示词可读模型名：前端可能传内部代号（如 nano-bn-2-lite），
+# 但拼进 prompt 时必须用上游 AI 能识别的官方可读名，否则 Agent 看不懂。
+_PROMPT_MODEL_NAMES = {
+    "nano-bn-pro": "Nano Banana Pro",
+    "nano-bn-2": "Nano Banana 2",
+    "nano-bn-2-lite": "Nano Banana 2 Lite",
+    "seedance-2.0-mini": "Seedance 2.0 mini",
+    "minimax-h3": "MiniMax H3",
+}
+
 
 def _build_models() -> list:
     models = [
@@ -117,10 +134,12 @@ def _build_models() -> list:
     ]
     for keys, tool in _IMAGE_RULES:
         models.append({"id": keys[0], "object": "model", "created": 0,
-                       "owned_by": "lovart", "category": "image", "tool": tool})
+                       "owned_by": "lovart", "category": "image", "tool": tool,
+                       "prompt_only": not tool})
     for keys, tool in _VIDEO_RULES:
         models.append({"id": keys[0], "object": "model", "created": 0,
-                       "owned_by": "lovart", "category": "video", "tool": tool})
+                       "owned_by": "lovart", "category": "video", "tool": tool,
+                       "prompt_only": not tool})
     models.append({"id": "lovart-music", "object": "model", "created": 0,
                    "owned_by": "lovart", "category": "music",
                    "description": "Lovart 音乐/音频生成（Agent 自选音频工具）"})
@@ -279,6 +298,10 @@ class DataFormatter:
         rules = _IMAGE_RULES if category == "IMAGE" else _VIDEO_RULES
         for keys, tool in rules:
             if any(k in m for k in keys):
+                # tool 为空表示官方暂无对应生成工具，仅作提示词驱动，
+                # 不下发 prefer_tool_categories，避免上游收到无效工具名。
+                if not tool:
+                    return None
                 return {category: [tool]}
         return None
 
@@ -366,7 +389,7 @@ class DataFormatter:
 
     @staticmethod
     def build_gen_prefix(category: str, size, resolution=None, has_refs: bool = False,
-                          params: Optional[list] = None) -> str:
+                          params: Optional[list] = None, model_name: str = "") -> str:
         # resolution 形参已弃用：分辨率兜底统一由 parse_size 决定，保留仅兼容调用签名。
         # 请求规范化（中转站职责，必须）：把尺寸/分辨率/数量约束拼成前缀，
         # 让 Lovart 明确「只生成一份」。不替 Lovart 决定生成策略，只约束输出形态。
@@ -379,12 +402,13 @@ class DataFormatter:
         for p in (params or []):
             if p: parts.append(str(p).strip())
         prefix = ", ".join(parts)
+        _model_clause = f" using the {model_name} model" if model_name else ""
         if category == "IMAGE":
-            instr = ("Reference image attached. Use reference and edit. Must generate exactly ONE image."
+            instr = (f"Reference image attached. Use reference and edit. Generate exactly ONE image{_model_clause}."
                      if has_refs else
-                     "Must generate exactly ONE image with these settings, do NOT generate more than one.")
+                     f"Generate exactly ONE image{_model_clause}.")
         elif category == "VIDEO":
-            instr = "Must generate exactly ONE video."
+            instr = f"Generate exactly ONE video{_model_clause}."
         else:
             instr = ""
         if prefix and instr:
@@ -855,6 +879,9 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
     gen_prefix = DataFormatter.build_gen_prefix(
         category, body.get("size"), body.get("resolution"), bool(attachments),
         params=extra_params,
+        model_name=_PROMPT_MODEL_NAMES.get((body.get("model") or "").strip().lower(),
+                                            (body.get("model") or "").strip()),
+    )
     )
     if gen_prefix:
         prompt = f"{gen_prefix}\n{prompt}"
