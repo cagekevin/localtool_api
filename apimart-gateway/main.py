@@ -339,40 +339,79 @@ class DataFormatter:
                 [f"[audio]({u['audio_url']})" for u in media.get("music", [])]
         return (text + ("\n\n" + "\n".join(links) if links else "")).strip() or "(无内容)"
 
-    # 未指定比例时，模型自行决定画面比例；未指定分辨率时统一兜底 1K。
-    DEFAULT_RESOLUTION = "1K"
+    # 未指定比例/分辨率时统一兜底。用 Lovart/下游模型认识的档位名（1080p/2K/4K），
+    # 避免 "1K" 这种描述性档位被 Agent 自由映射成不同像素。
+    DEFAULT_RESOLUTION = "1080p"
     # 表示"比例由模型自动决定"的关键词。
     AUTO_KEYS = ("auto", "自动", "any", "随机")
-    # 像素尺寸会就近匹配到下列标准比例。
-    STANDARD_RATIOS = [(1, 1, "1:1"), (3, 2, "3:2"), (2, 3, "2:3"),
-                       (4, 3, "4:3"), (3, 4, "3:4"), (16, 9, "16:9"),
-                       (9, 16, "9:16"), (21, 9, "21:9"), (9, 21, "9:21")]
+    # 清晰度档位 → 目标长边（像素）。1K/1080p 取 1080p 标准长边，2K/4K 对应。
+    # 网关收到「比例 + 档位」后，用这个长边把比例换算成固定像素 target_size 直传，
+    # 从而锁定 Lovart 每次输出的像素，避免 Agent 自由换算导致 576×1344/768×1376... 不一致。
+    _RES_LONG_EDGE = {
+        "hd": 1280, "720p": 1280,
+        "1k": 1920, "1080p": 1920, "fhd": 1920,
+        "2k": 2560, "1440p": 2560, "qhd": 2560,
+        "4k": 3840, "2160p": 3840, "uhd": 3840,
+    }
 
     @staticmethod
-    def parse_size(size) -> Tuple[str, str]:
-        """把 size 解析为 (比例, 分辨率)。
+    def _res_to_long_edge(res_lower: str) -> int:
+        """清晰度档位 → 目标长边像素；不认识返回 0。"""
+        return DataFormatter._RES_LONG_EDGE.get(res_lower, 0)
+
+    @staticmethod
+    def _res_from_long_edge(long_edge: int) -> str:
+        """像素长边 → 清晰度档位名（4K/2K/1080p）。"""
+        if long_edge >= 3840:
+            return "4K"
+        if long_edge >= 2560:
+            return "2K"
+        return DataFormatter.DEFAULT_RESOLUTION
+
+    @staticmethod
+    def parse_size(size, resolution=None) -> Tuple[str, str, str]:
+        """把「比例/像素 + 清晰度档位」翻译成 (target_size, 比例, 分辨率)。
+
+        目的：前端只能传「比例（如 16:9）+ 1K/2K 档位」。若原样透传给 Lovart，
+        会被 Agent 自由换算成不同像素（每次 576×1344 / 768×1376 ... 不一致）。
+        这里在网关侧把「比例 × 档位」按目标长边换算成固定像素 target_size，直传锁定输出。
 
         返回语义：
-          - 比例：给 "21:9" 这类字符串 → 原样返回；给 "768x1900" 像素 → 换算成
-            最接近的标准比例；没给（None/空/auto）→ 返回 ""（不强制比例）。
-          - 分辨率：像素尺寸按大小给 1K/2K/4K；其余情况兜底 DEFAULT_RESOLUTION。
+          - target_size：给了精确像素（如 750x1000）→ 原样返回；给了「比例 + 档位」
+            → 按目标长边换算成固定像素（如 16:9 + 1K → 1920x1080）；都没有 → ""。
+          - 比例：给 "21:9" 这类 → 原样返回（供无像素时回退）；否则 ""。
+          - 分辨率：从 resolution 参数或像素长边推导，兜底 DEFAULT_RESOLUTION。
         """
         s = size.strip() if size else ""
-        if s.lower() in DataFormatter.AUTO_KEYS:
-            return "", DataFormatter.DEFAULT_RESOLUTION
-        if re.fullmatch(r"\d+:\d+", s):
-            # 已是标准比例字符串，无需换算；分辨率未知 → 兜底 1K。
-            return s, DataFormatter.DEFAULT_RESOLUTION
-        try:
-            w, h = map(int, s.lower().split("x"))
-        except (ValueError, AttributeError):
-            # 非像素格式（无法解析）→ 不指定比例，分辨率兜底 1K。
-            return "", DataFormatter.DEFAULT_RESOLUTION
-        ratio = min(DataFormatter.STANDARD_RATIOS,
-                    key=lambda r: abs(w / h - r[0] / r[1]))[2]
-        res = "4K" if max(w, h) >= 3000 else ("2K" if max(w, h) >= 1800
-                                              else DataFormatter.DEFAULT_RESOLUTION)
-        return ratio, res
+        res_lower = str(resolution or "").strip().lower()
+
+        # 1. 精确像素 → 原样，档位按长边推导。
+        px = re.fullmatch(r"(\d+)[xX](\d+)", s)
+        if px:
+            w, h = int(px.group(1)), int(px.group(2))
+            return f"{w}x{h}", "", DataFormatter._res_from_long_edge(max(w, h))
+
+        # 2. 纯比例（如 16:9 / 9:16）→ 用清晰度档位算出固定像素 target_size。
+        pm = re.fullmatch(r"(\d+)\s*:\s*(\d+)", s)
+        if pm:
+            rw, rh = int(pm.group(1)), int(pm.group(2))
+            long_edge = DataFormatter._res_to_long_edge(res_lower)
+            if long_edge and rw > 0 and rh > 0:
+                if rw >= rh:  # 横图：宽对齐目标长边
+                    w, h = long_edge, round(long_edge * rh / rw)
+                else:         # 竖图：高对齐目标长边
+                    w, h = round(long_edge * rw / rh), long_edge
+                return f"{w}x{h}", f"{rw}:{rh}", DataFormatter._res_from_long_edge(long_edge)
+            # 比例在，但没有可解析的档位 → 保留比例，不强制像素。
+            return "", f"{rw}:{rh}", DataFormatter.DEFAULT_RESOLUTION
+
+        # 3. 只有档位（如 "1K"）→ 不强制像素，只给档位。
+        if res_lower:
+            return "", "", DataFormatter._res_from_long_edge(DataFormatter._res_to_long_edge(res_lower)) \
+                if DataFormatter._res_to_long_edge(res_lower) else DataFormatter.DEFAULT_RESOLUTION
+
+        # 4. auto / 空 / 无法解析 → 不指定尺寸，兜底档位。
+        return "", "", DataFormatter.DEFAULT_RESOLUTION
 
     @staticmethod
     def extract_raw_urls(value) -> list:
@@ -390,21 +429,36 @@ class DataFormatter:
     @staticmethod
     def build_gen_prefix(category: str, size, resolution=None, has_refs: bool = False,
                           params: Optional[list] = None, model_name: str = "") -> str:
-        # resolution 形参已弃用：分辨率兜底统一由 parse_size 决定，保留仅兼容调用签名。
-        # 请求规范化（中转站职责，必须）：把尺寸/分辨率/数量约束拼成前缀，
-        # 让 Lovart 明确「只生成一份」。不替 Lovart 决定生成策略，只约束输出形态。
+        # 请求规范化（中转站职责，必须）：把尺寸/数量/模型约束拼成前缀，
+        # 让 Lovart 明确「按指定尺寸、只生成一份、用指定模型」。
+        # 尺寸传参：parse_size 把「比例 × 档位」算成固定像素 target_size → 直传，
+        # 锁定每次输出像素；只有比例算不出像素时，才回退用比例 + 清晰度档。
+        # 不加任何多余的解释句（如 Strictly...），Lovart 能直接看懂 target_size。
         parts = []
-        # 分辨率兜底（1K/2K/4K）统一由 parse_size 决定，此处只拼接结果。
-        # 注意：视频没有 1K/2K 分辨率档（那是图片档位），故视频只保留比例、丢弃分辨率。
-        ratio, res = DataFormatter.parse_size(size)
-        if ratio: parts.append(ratio)
-        if res and category != "VIDEO": parts.append(res)
+        target_size, ratio, res = DataFormatter.parse_size(size, resolution)
+        if category == "IMAGE":
+            if target_size:
+                parts.append(f"target_size: {target_size}")
+                if res:
+                    parts.append(res)
+            else:
+                if ratio:
+                    parts.append(ratio)
+                if res:
+                    parts.append(res)
+        elif category == "VIDEO":
+            if ratio:
+                parts.append(ratio)
         for p in (params or []):
-            if p: parts.append(str(p).strip())
+            if p:
+                parts.append(str(p).strip())
         prefix = ", ".join(parts)
         _model_clause = f" using the {model_name} model" if model_name else ""
         if category == "IMAGE":
-            instr = (f"Reference image attached. Use reference and edit. Generate exactly ONE image{_model_clause}."
+            # 注意：不能写 "Use reference and edit"，那会引导 Lovart 走 edit_media（改图）。
+            # 我们每次都是生成新图（generate），只保留参考图声明，避免误入编辑工具。
+            instr = (f"Reference image attached. "
+                     f"Generate exactly ONE image{_model_clause}."
                      if has_refs else
                      f"Generate exactly ONE image{_model_clause}.")
         elif category == "VIDEO":
