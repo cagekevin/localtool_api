@@ -882,7 +882,6 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
         model_name=_PROMPT_MODEL_NAMES.get((body.get("model") or "").strip().lower(),
                                             (body.get("model") or "").strip()),
     )
-    )
     if gen_prefix:
         prompt = f"{gen_prefix}\n{prompt}"
 
