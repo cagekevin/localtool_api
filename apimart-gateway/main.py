@@ -339,8 +339,11 @@ class DataFormatter:
                 [f"[audio]({u['audio_url']})" for u in media.get("music", [])]
         return (text + ("\n\n" + "\n".join(links) if links else "")).strip() or "(无内容)"
 
-    # 未指定比例/分辨率时统一兜底。用 Lovart/下游模型认识的档位名（1080p/2K/4K），
-    # 避免 "1K" 这种描述性档位被 Agent 自由映射成不同像素。
+    # 未指定清晰度档位时，比例兜底用的目标长边（对应 1080p）。
+    # 语义：前端只给比例（如 9:16）没给 1K/2K 时，网关用这个长边把比例算成固定像素，
+    # 保证无论如何都能给出具体像素 target_size，不让 Lovart 自由换算。
+    DEFAULT_LONG_EDGE = 1920
+    # 默认清晰度档位名（供 _res_from_long_edge 推导用，本身不再拼进提示词）。
     DEFAULT_RESOLUTION = "1080p"
     # 表示"比例由模型自动决定"的关键词。
     AUTO_KEYS = ("auto", "自动", "any", "随机")
@@ -392,17 +395,18 @@ class DataFormatter:
             return f"{w}x{h}", "", DataFormatter._res_from_long_edge(max(w, h))
 
         # 2. 纯比例（如 16:9 / 9:16）→ 用清晰度档位算出固定像素 target_size。
+        #    若前端没给档位，用 DEFAULT_LONG_EDGE（1080p 长边）兜底，仍能算出像素。
         pm = re.fullmatch(r"(\d+)\s*:\s*(\d+)", s)
         if pm:
             rw, rh = int(pm.group(1)), int(pm.group(2))
-            long_edge = DataFormatter._res_to_long_edge(res_lower)
+            long_edge = DataFormatter._res_to_long_edge(res_lower) or DataFormatter.DEFAULT_LONG_EDGE
             if long_edge and rw > 0 and rh > 0:
                 if rw >= rh:  # 横图：宽对齐目标长边
                     w, h = long_edge, round(long_edge * rh / rw)
                 else:         # 竖图：高对齐目标长边
                     w, h = round(long_edge * rw / rh), long_edge
                 return f"{w}x{h}", f"{rw}:{rh}", DataFormatter._res_from_long_edge(long_edge)
-            # 比例在，但没有可解析的档位 → 保留比例，不强制像素。
+            # 兜底仍算不出像素（比例非法）→ 保留比例，不强制像素。
             return "", f"{rw}:{rh}", DataFormatter.DEFAULT_RESOLUTION
 
         # 3. 只有档位（如 "1K"）→ 不强制像素，只给档位。
@@ -431,21 +435,14 @@ class DataFormatter:
                           params: Optional[list] = None, model_name: str = "") -> str:
         # 请求规范化（中转站职责，必须）：把尺寸/数量/模型约束拼成前缀，
         # 让 Lovart 明确「按指定尺寸、只生成一份、用指定模型」。
-        # 尺寸传参：parse_size 把「比例 × 档位」算成固定像素 target_size → 直传，
-        # 锁定每次输出像素；只有比例算不出像素时，才回退用比例 + 清晰度档。
-        # 不加任何多余的解释句（如 Strictly...），Lovart 能直接看懂 target_size。
+        # 尺寸传参：图片只传具体像素 target_size（最精确、无可争议），
+        # 不附带 1K/2K/1080p 档位文字——不同人对档位的理解不一致，两个一起传会冲突。
+        # parse_size 保证：给像素原样用；只给比例/档位也能算出固定像素（比例无档位用 1080p 兜底）。
         parts = []
         target_size, ratio, res = DataFormatter.parse_size(size, resolution)
         if category == "IMAGE":
             if target_size:
                 parts.append(f"target_size: {target_size}")
-                if res:
-                    parts.append(res)
-            else:
-                if ratio:
-                    parts.append(ratio)
-                if res:
-                    parts.append(res)
         elif category == "VIDEO":
             if ratio:
                 parts.append(ratio)
