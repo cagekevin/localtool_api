@@ -933,8 +933,15 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
         model_name=_PROMPT_MODEL_NAMES.get((body.get("model") or "").strip().lower(),
                                             (body.get("model") or "").strip()),
     )
+    # 用户提示词原文用 <user_prompt> 标签包裹，并在末尾追加"原样使用"指令：
+    # 让上游 Lovart Agent 明确知晓这是用户提示词原文，须严格原样透传给下游生成工具，
+    # 不做改写或润色。只作用于用户输入，gen_prefix（尺寸/数量/模型约束）仍在标签之外。
+    wrapped_prompt = (f"<user_prompt>\n{prompt}\n</user_prompt>\n"
+                      f"以上为用户提示词原文，请严格原样使用")
     if gen_prefix:
-        prompt = f"{gen_prefix}\n{prompt}"
+        prompt = f"{gen_prefix}\n{wrapped_prompt}"
+    else:
+        prompt = wrapped_prompt
 
     req_mode = body.get("mode")
     if req_mode not in ("fast", "unlimited"):
