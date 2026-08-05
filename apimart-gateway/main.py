@@ -541,28 +541,107 @@ def _is_project_invalid(e: LovartError) -> bool:
         return True
     return False
 
+# 常见媒体 base64 魔数前缀（无 data: 前缀的裸 base64）
+# 前缀 → 对应的扩展名
+_B64_MEDIA_MAGIC = {
+    "/9j/": "jpg",  # JPEG FF D8
+    "iVBOR": "png",  # PNG 89 50 4E 47
+    "R0lGOD": "gif",  # GIF 47 49 46 38
+    "UklGR": "webp",  # WebP 52 49 46 46
+    "Qk02": "bmp",  # BMP 42 4D
+    "SUQz": "mp3",  # MP3 ID3
+    "SU5G": "m4a",  # M4A
+    "AAAA": "mp4",  # MP4/通用（辅助）
+}
+
+def looks_like_base64_media(s: str) -> bool:
+    """判断字符串是否可能是裸 base64 媒体数据（无 data: 前缀）。
+
+    前端可能把参考图以 base64 原始字节发来（如 /9j/... JPEG、iVBOR... PNG），
+    若不识别会走 else 原样透传给 Lovart，导致其无法识别而图生图一直 running。
+    """
+    if not s or not isinstance(s, str) or len(s) < 64:
+        return False
+    if s.startswith(("http://", "https://", "data:", "blob:")):
+        return False
+    return s.startswith(tuple(_B64_MEDIA_MAGIC.keys()))
+
+def _ext_from_b64_magic(s: str) -> str:
+    """从裸 base64 魔数前缀推断扩展名。"""
+    for pre, ext in _B64_MEDIA_MAGIC.items():
+        if s.startswith(pre):
+            return ext
+    return "png"
+
+def _ext_from_data_header(header: str) -> str:
+    """从 data: header（如 image/jpeg）推断扩展名。"""
+    h = header.lower()
+    if any(x in h for x in ("jpeg", "jpg")): return "jpg"
+    if "png" in h: return "png"
+    if "gif" in h: return "gif"
+    if "webp" in h: return "webp"
+    if "bmp" in h: return "bmp"
+    if "mp4" in h: return "mp4"
+    if "webm" in h: return "webm"
+    if any(x in h for x in ("mpeg", "mp3", "audio")): return "mp3"
+    return "png"
+
 class TaskService:
     @staticmethod
     async def resolve_attachments(client: LovartClient, raw_urls: list) -> list:
+        """把各种形式的参考素材统一转成 Lovart 可用的 CDN URL。
+
+        覆盖：http(s) 直接透传；data: base64；无前缀裸 base64（JPEG/PNG/GIF/WebP/视频/音频）；
+        blob: 等无法访问的丢弃；未知格式丢弃（避免原样透传给 Lovart 导致图生图卡死）。
+        """
         out = []
-        for u in raw_urls:
-            if not u or not isinstance(u, str): continue
-            if u.startswith("http"): out.append(u)
-            elif u.startswith("data:"):
+        for i, u in enumerate(raw_urls):
+            if not u or not isinstance(u, str) or not u.strip():
+                # 异常：空 / 非字符串素材
+                _log(f"[resolve:skip] 第{i}个参考素材为空或非字符串，已跳过: {type(u).__name__}={str(u)[:80]!r}")
+                continue
+            u = u.strip()
+            # 1) 合法 http(s) URL：直接透传（正常，不打日志）
+            if u.startswith(("http://", "https://")):
+                out.append(u)
+                continue
+            # 2) data: 前缀的 base64：解析 header 得扩展名后上传 CDN
+            if u.startswith("data:"):
                 try:
                     header, _, b64 = u.partition(",")
-                    ext = "png"
-                    if any(x in header for x in ["jpeg", "jpg"]): ext = "jpg"
-                    elif "gif" in header: ext = "gif"
-                    elif "webp" in header: ext = "webp"
-                    elif "mp4" in header: ext = "mp4"
-                    elif any(x in header for x in ["mpeg", "mp3"]): ext = "mp3"
-
+                    ext = _ext_from_data_header(header)
                     raw = await asyncio.to_thread(base64.b64decode, b64)
-                    if cdn := await client.upload_file(f"_ref_{uuid.uuid4().hex[:8]}.{ext}", raw):
-                        out.append(cdn)
-                except Exception: continue
-            else: out.append(u)
+                    cdn = await client.upload_file(f"_ref_{uuid.uuid4().hex[:8]}.{ext}", raw)
+                except Exception as e:
+                    # 异常：解码或上传抛异常
+                    _log(f"[resolve:error] 第{i}个 data:base64 处理失败: {e}，前80字符={u[:80]!r}")
+                    continue
+                if cdn:
+                    out.append(cdn)  # 正常，不打日志
+                else:
+                    # 异常：上传 CDN 返回空
+                    _log(f"[resolve:warn] 第{i}个 data:base64 上传CDN返回空，已丢弃")
+                continue
+            # 3) 无前缀裸 base64：识别魔数后解码上传 CDN
+            if looks_like_base64_media(u):
+                try:
+                    ext = _ext_from_b64_magic(u)
+                    raw = await asyncio.to_thread(base64.b64decode, u)
+                    cdn = await client.upload_file(f"_ref_{uuid.uuid4().hex[:8]}.{ext}", raw)
+                except Exception as e:
+                    # 异常：解码或上传抛异常
+                    _log(f"[resolve:error] 第{i}个裸base64 解码/上传失败: {e}，前80字符={u[:80]!r}")
+                    continue
+                if cdn:
+                    out.append(cdn)  # 正常，不打日志
+                else:
+                    # 异常：上传 CDN 返回空
+                    _log(f"[resolve:warn] 第{i}个裸base64 上传CDN返回空，已丢弃")
+                continue
+            # 4) 其他（blob: / 本地路径 / 未知）：网关拿不到内容，直接丢弃，
+            #    避免把无效 URL 原样透传给 Lovart 造成图生图一直 running
+            _log(f"[resolve:drop] 第{i}个参考素材无法识别，已丢弃（不再透传给Lovart）: {str(u)[:160]}")
+        _log(f"[resolve:end] 翻译完成，产出 {len(out)} 个 attachment")
         return out
 
     @staticmethod
@@ -931,6 +1010,15 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
       + DataFormatter.extract_raw_urls(body.get("videos") or body.get("reference_videos")) \
       + DataFormatter.extract_raw_urls(body.get("audios") or body.get("reference_audios")) \
       + DataFormatter.extract_raw_urls_from_files(body.get("files"))
+    # 参考素材来源明细（仅在有参考素材时打印，便于定位"来源异常"；无素材不刷屏）
+    if raw_urls:
+        _log(f"[submit:sources] traceId={tid or '-'} "
+             f"image_urls/images/attachments={len(DataFormatter.extract_raw_urls(body.get('image_urls') or body.get('images') or body.get('attachments')))} "
+             f"reference_images={len(DataFormatter.extract_raw_urls(body.get('reference_images')))} "
+             f"videos={len(DataFormatter.extract_raw_urls(body.get('videos') or body.get('reference_videos')))} "
+             f"audios={len(DataFormatter.extract_raw_urls(body.get('audios') or body.get('reference_audios')))} "
+             f"files={len(DataFormatter.extract_raw_urls_from_files(body.get('files')))} "
+             f"=> raw_urls合计={len(raw_urls)}")
     attachments = await TaskService.resolve_attachments(client, raw_urls)
     prefer = DataFormatter.resolve_prefer_models(body.get("model", ""), category)
     webhook = body.get("webhook")
