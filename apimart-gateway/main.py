@@ -542,16 +542,20 @@ def _is_project_invalid(e: LovartError) -> bool:
     return False
 
 # 常见媒体 base64 魔数前缀（无 data: 前缀的裸 base64）
-# 前缀 → 对应的扩展名
+# 前缀 → 对应的扩展名。覆盖图片 + 特惠视频的 视频/音频 base64。
 _B64_MEDIA_MAGIC = {
     "/9j/": "jpg",  # JPEG FF D8
     "iVBOR": "png",  # PNG 89 50 4E 47
     "R0lGOD": "gif",  # GIF 47 49 46 38
-    "UklGR": "webp",  # WebP 52 49 46 46
+    "UklGR": "webp",  # WebP 52 49 46 46（RIFF）
     "Qk02": "bmp",  # BMP 42 4D
     "SUQz": "mp3",  # MP3 ID3
     "SU5G": "m4a",  # M4A
     "AAAA": "mp4",  # MP4/通用（辅助）
+    "GkXf": "webm",  # WebM/Matroska 1A 45 DF A3
+    "Zkxh": "flac",  # FLAC 66 4C 61 43
+    "/e8/": "mp3",  # MP3 MPEG 帧 FF FB / FF F3
+    "TWFn": "m4a",  # M4A iTunes MP4 音频（ftyp 在 M4A 头）
 }
 
 def looks_like_base64_media(s: str) -> bool:
