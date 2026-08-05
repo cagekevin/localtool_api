@@ -78,11 +78,3 @@ scripts/report-chunks.json
 
 # ── 外部学习仓库（他人仓库，仅本地参考用，不入库）──
 infinite-canvas别人仓库学习专用/
-
-# ── 误操作生成的 0 字节垃圾文件（npm/pip 参数解析残留）──
-localTool/-r
-localTool/0.0.9
-localTool/0.110
-localTool/0.27
-localTool/26.2.1
-localTool/HTTP
