@@ -431,6 +431,26 @@ class DataFormatter:
         return out
 
     @staticmethod
+    def extract_raw_urls_from_files(value) -> list:
+        """从前端 `files: [{url, type:"image"|"video"|"audio"}]` 提取素材 URL。
+
+        特惠视频节点把参考素材（图片/视频/音频）都放在 `files` 数组里
+        （而非 image_urls/videos/audios 字段），网关此前未读取导致素材丢失
+        （下游 Lovart 收不到）。这里提取所有类型 URL，统一进入 attachments 透传，
+        类型由 Lovart 端自行识别。
+        """
+        if not value or not isinstance(value, list):
+            return []
+        out = []
+        for it in value:
+            if not isinstance(it, dict):
+                continue
+            u = it.get("url") or it.get("fileUrl") or ""
+            if u:
+                out.append(u)
+        return out
+
+    @staticmethod
     def build_gen_prefix(category: str, size, resolution=None, has_refs: bool = False,
                           params: Optional[list] = None, model_name: str = "") -> str:
         # 请求规范化（中转站职责，必须）：把尺寸/数量/模型约束拼成前缀，
@@ -909,7 +929,8 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
         body.get("image_urls") or body.get("images") or body.get("attachments")
     ) + DataFormatter.extract_raw_urls(body.get("reference_images")) \
       + DataFormatter.extract_raw_urls(body.get("videos") or body.get("reference_videos")) \
-      + DataFormatter.extract_raw_urls(body.get("audios") or body.get("reference_audios"))
+      + DataFormatter.extract_raw_urls(body.get("audios") or body.get("reference_audios")) \
+      + DataFormatter.extract_raw_urls_from_files(body.get("files"))
     attachments = await TaskService.resolve_attachments(client, raw_urls)
     prefer = DataFormatter.resolve_prefer_models(body.get("model", ""), category)
     webhook = body.get("webhook")

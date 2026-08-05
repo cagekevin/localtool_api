@@ -39,10 +39,11 @@ METADATA_LIFT_KEYS: tuple[str, ...] = (
 # 规则：每组内按顺序 or 短路，取第一个有值的候选字段。
 #       例如 image 组：image_urls or images or attachments or reference_images
 URL_MERGE_GROUPS: dict[str, list[str]] = {
-    "image": ["image_urls", "images", "attachments", "reference_images"],
-    "video": ["videos", "reference_videos"],
-    "audio": ["audios", "reference_audios"],
+    "image": ["image_urls", "images", "attachments", "reference_images", "files"],
+    "video": ["videos", "reference_videos", "files"],
+    "audio": ["audios", "reference_audios", "files"],
 }
+
 
 
 def normalize_body(body: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
