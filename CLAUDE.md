@@ -218,6 +218,26 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **接口契约**：查 `01-接口兼容性审计.md.bak.md` + 分析 `dist/` 调用。
 * **反混淆排障**：`scripts/archived/` 下 `one-off/advanced_format.js`(webcrack) / `beautify/beautify.cjs`(Prettier) 离线分析（已归档，一次性），`src/bundle/` 为还原产物，**严禁回写主分支作为运行产物**；还原中间产物见 `docs/逆向专用_ai 禁止读/`（AI 禁止读）。
 
+### 3. 缓存清理（遇到怪事先清缓存）
+
+> 排障**首选步骤**：遇到登录异常 / 模型列表异常 / 图生图异常 / 接入点残留等「说不清的怪事」时，先跑清理脚本重置缓存，再判断是否真 bug。脚本只删缓存类 KV，**保留画布数据/登录凭证/项目**（详见脚本头部安全边界）。
+
+```bash
+# 清理缓存类 KV（默认安全：img_* 图片缓存、接入点、同步元数据、版本标记）
+node scripts/clear-cache.cjs
+# 先预览有哪些 KV 键（标 🔒业务 / 🟡缓存），不删除
+node scripts/clear-cache.cjs --list
+# 只删指定 key（如接入点，曾致登录回环，见 docs/01 变更#1）
+node scripts/clear-cache.cjs --kv=active_api_endpoint
+```
+
+配套（`localTool` 侧）：
+* `GET  /api/admin/kv-list`：列出所有 KV 键。
+* `POST /api/admin/clear-cache`：按缓存前缀精准删 KV（`confirm:true` 才执行），保留 `canvas-state-v1-*`/`auth_token`/`projects` 等业务键。
+* **`clear-cache` 接口需 localTool 为 build 后的新版**（改过 `localTool/src` 需 `npm run build` + 重启生效）。
+
+若清完缓存仍异常：**重启 localTool**（清空 `official.ts` 进程内官方权益内存缓存 `memCache`），`./launch-all.command 2`（Mac）/ `launch-all.ps1 2`（Win）。
+
 ---
 
 ## 七、 文档导航与场景速查
