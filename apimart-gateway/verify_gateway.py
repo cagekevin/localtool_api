@@ -15,10 +15,7 @@ import sys
 import threading
 
 import main as _main
-from main import (
-    lovart_to_apimart, assistant_text, resolve_prefer_models,
-    _fire_webhook, _TASK_META,
-)
+from main import DataFormatter, TaskManager, TaskService
 from fastapi.testclient import TestClient
 
 
@@ -53,7 +50,7 @@ def _contract_test():
         ]
     }
 
-    r = lovart_to_apimart(lovart_result)
+    r = DataFormatter.lovart_to_apimart(lovart_result)
     check("images 是列表", isinstance(r.get("images"), list))
     check("images 有 2 个元素（每张图一个）", len(r["images"]) == 2)
     check("images[0].url 是数组", isinstance(r["images"][0]["url"], list))
@@ -66,19 +63,19 @@ def _contract_test():
     check("music 是列表且 1 个元素", isinstance(r.get("music"), list) and len(r["music"]) == 1)
     check("music[0].audio_url 是字符串", r["music"][0]["audio_url"] == "https://cdn.lovart.ai/music1.m4a")
 
-    txt = assistant_text(lovart_result)
+    txt = DataFormatter.assistant_text(lovart_result)
     check("assistant_text 提取到文本", txt == "好的，这是你的设计图：")
 
-    check("kling-2.6 -> kling_v2_6（正确版本，不误配 kling_v3）",
-          resolve_prefer_models("kling-2.6", "VIDEO") == {"VIDEO": ["generate_video_kling_v2_6"]})
-    check("kling-3.0 -> kling_v3（精确匹配）",
-          resolve_prefer_models("kling-3.0", "VIDEO") == {"VIDEO": ["generate_video_kling_v3"]})
-    check("kling -> kling_v3", resolve_prefer_models("kling", "VIDEO") == {"VIDEO": ["generate_video_kling_v3"]})
-    check("gpt-image-2 -> gpt_image_2", resolve_prefer_models("gpt-image-2", "IMAGE") == {"IMAGE": ["generate_image_gpt_image_2"]})
-    check("未知模型返回 None", resolve_prefer_models("totally-unknown-model", "IMAGE") is None)
-    check("MUSIC 类别不强制 prefer（交给 agent）", resolve_prefer_models("anything", "MUSIC") is None)
+    check("kling-v3-omni -> kling_v3_omni",
+          DataFormatter.resolve_prefer_models("kling-v3-omni", "VIDEO") == {"VIDEO": ["generate_video_kling_v3_omni"]})
+    check("kling-3-omni -> kling_v3_omni（精确匹配）",
+          DataFormatter.resolve_prefer_models("kling-3-omni", "VIDEO") == {"VIDEO": ["generate_video_kling_v3_omni"]})
+    check("kling 旧版名(无规则) -> None", DataFormatter.resolve_prefer_models("kling", "VIDEO") is None)
+    check("gpt-image-2 -> gpt_image_2", DataFormatter.resolve_prefer_models("gpt-image-2", "IMAGE") == {"IMAGE": ["generate_image_gpt_image_2"]})
+    check("未知模型返回 None", DataFormatter.resolve_prefer_models("totally-unknown-model", "IMAGE") is None)
+    check("MUSIC 类别不强制 prefer（交给 agent）", DataFormatter.resolve_prefer_models("anything", "MUSIC") is None)
 
-    empty = lovart_to_apimart({"items": []})
+    empty = DataFormatter.lovart_to_apimart({"items": []})
     check("空 result 返回空 dict", empty == {})
 
 
@@ -88,7 +85,7 @@ def _contract_test():
 # ═══════════════════════════════════════════════════════════
 def _webhook_test():
     # 关闭退避间隔，让快速连续重试能累计到 3 次
-    _main.WEBHOOK_RETRY_INTERVAL = 0
+    _main.Config.WEBHOOK_RETRY_INTERVAL = 0
 
     class _H(http.server.BaseHTTPRequestHandler):
         def do_POST(self):
@@ -110,33 +107,33 @@ def _webhook_test():
     base = f"http://127.0.0.1:{port}/cb"
 
     async def run():
-        _TASK_META["w4"] = {
+        TaskManager.set("w4", {
             "webhook": base + "4xx", "webhook_sent": False,
             "webhook_retries": 0, "webhook_last_attempt": 0,
-        }
-        await _fire_webhook("w4", {"id": "w4"})
+        })
+        await TaskService.fire_webhook("w4", {"id": "w4"})
         check("webhook 4xx 立即放弃",
-              _TASK_META["w4"]["webhook_sent"] is True
-              and _TASK_META["w4"]["webhook_retries"] == 0)
+              TaskManager.get("w4")["webhook_sent"] is True
+              and TaskManager.get("w4")["webhook_retries"] == 0)
 
-        _TASK_META["w5"] = {
+        TaskManager.set("w5", {
             "webhook": base + "5xx", "webhook_sent": False,
             "webhook_retries": 0, "webhook_last_attempt": 0,
-        }
+        })
         for _ in range(10):
-            await _fire_webhook("w5", {"id": "w5"})
-            if _TASK_META["w5"]["webhook_retries"] >= 3:
+            await TaskService.fire_webhook("w5", {"id": "w5"})
+            if TaskManager.get("w5")["webhook_retries"] >= 3:
                 break
         check("webhook 5xx 最多重试 3 次",
-              _TASK_META["w5"]["webhook_retries"] == 3
-              and _TASK_META["w5"]["webhook_sent"] is True)
+              TaskManager.get("w5")["webhook_retries"] == 3
+              and TaskManager.get("w5")["webhook_sent"] is True)
 
-        _TASK_META["w0"] = {
+        TaskManager.set("w0", {
             "webhook": base + "ok", "webhook_sent": False,
             "webhook_retries": 0, "webhook_last_attempt": 0,
-        }
-        await _fire_webhook("w0", {"id": "w0"})
-        check("webhook 200 标记完成", _TASK_META["w0"]["webhook_sent"] is True)
+        })
+        await TaskService.fire_webhook("w0", {"id": "w0"})
+        check("webhook 200 标记完成", TaskManager.get("w0")["webhook_sent"] is True)
 
     asyncio.run(run())
     srv.shutdown()
@@ -181,10 +178,10 @@ class FakeClient:
 
 def _set_auth(open_relay: bool, user_keys: dict, ak="ak_test", sk="sk_test"):
     """切换鉴权配置，并把 LovartClient 换成 FakeClient（避免真实网络）。"""
-    _main.OPEN_RELAY = open_relay
-    _main.USER_KEYS = user_keys
-    _main.DEFAULT_AK = ak
-    _main.DEFAULT_SK = sk
+    _main.Config.OPEN_RELAY = open_relay
+    _main.Config.USER_KEYS = user_keys
+    _main.Config.DEFAULT_AK = ak
+    _main.Config.DEFAULT_SK = sk
     _main.LovartClient = FakeClient
 
 
@@ -263,8 +260,8 @@ def _routes_test():
     check("err() 形状 {error:{code,type,message}}",
           err_body == {"error": {"code": 400, "type": "invalid_request_error", "message": "x"}})
 
-    ae = _main.auth_error()
-    check("auth_error() → 401 形状",
+    ae = _main.err(401, "Invalid authentication credentials", "authentication_error", 401)
+    check("err(401) → 401 形状",
           ae.status_code == 401 and json.loads(ae.body)["error"]["code"] == 401)
 
     # 6. audio 501

@@ -57,34 +57,48 @@ if (Test-Path $envFile) {
     Write-Host "      ⚠️  未找到 .env，将使用代码内默认值" -ForegroundColor DarkYellow
 }
 
-# 3. 启动：确保 venv 存在且依赖已装，再用 venv 的 python 起 uvicorn（后台脱离终端，对齐 nohup）
-$venvPython = Join-Path $ScriptDir "venv\Scripts\python.exe"
-$venvPip = Join-Path $ScriptDir "venv\Scripts\pip.exe"
+# 3. 启动：直接用系统全局 Python 3.12（不用 venv），起 uvicorn（后台脱离终端，对齐 nohup）
+# 定位系统 Python 3.12（候选按优先级：PATH 的 python → py -3.12 → 常见安装路径），
+# 每个候选都验证版本确为 3.12，避免命中 Windows Store 的 python 别名空壳。
+function Test-UsablePython {
+    param([string]$Exe)
+    if (-not (Test-Path $Exe)) { return $false }
+    $out = & $Exe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+    return ($LASTEXITCODE -eq 0 -and $out -and $out.Trim() -eq "3.12")
+}
+$SystemPython = $null
+$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+if ($pythonCmd -and (Test-UsablePython $pythonCmd.Source)) { $SystemPython = $pythonCmd.Source }
+if (-not $SystemPython) {
+    $pyOut = & py -3.12 -c "import sys; print(sys.executable)" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $pyOut -and (Test-UsablePython $pyOut.Trim())) { $SystemPython = $pyOut.Trim() }
+}
+if (-not $SystemPython) {
+    $cand = "C:\Users\xinye\AppData\Local\Programs\Python\Python312\python.exe"
+    if (Test-UsablePython $cand) { $SystemPython = $cand }
+}
+if (-not $SystemPython) {
+    Write-Host "  ❌ 未找到可用的系统 Python 3.12，请先安装 Python 3.12" -ForegroundColor Red
+    Read-Host "按回车键退出"
+    exit 1
+}
+Write-Host "  🐍 使用 Python 3.12: $SystemPython" -ForegroundColor Cyan
+
+# 3.1 安装/补齐依赖到全局环境（用 requirements.txt 的 MD5 做变更标记，未变更则跳过，避免每次启动联网解析）
 $reqFile = Join-Path $ScriptDir "requirements.txt"
-
-# 3.1 保证 venv 可用：不存在、或 pip 缺失则重建
-if (-not (Test-Path $venvPip)) {
-    if (Test-Path (Join-Path $ScriptDir "venv")) {
-        Write-Host "  🧹 发现损坏的 venv（缺 pip），重建中..." -ForegroundColor Yellow
-        Remove-Item -Recurse -Force (Join-Path $ScriptDir "venv")
-    } else {
-        Write-Host "  🧪 首次运行，创建 venv..." -ForegroundColor Cyan
-    }
-    & python -m venv (Join-Path $ScriptDir "venv") 2>&1 | ForEach-Object { Write-Host "      $_" }
-    if (-not (Test-Path $venvPip)) {
-        Write-Host "  ❌ 无法创建可用 venv（pip 缺失），请检查系统 python 是否完整" -ForegroundColor Red
-        Read-Host "按回车键退出"
-        exit 1
-    }
-}
-
-# 3.2 安装/补齐依赖（已装则 pip 会快速跳过）
 if (Test-Path $reqFile) {
-    Write-Host "  📦 检查并安装依赖 (requirements.txt)..." -ForegroundColor Cyan
-    & $venvPython -m pip install -r $reqFile 2>&1 | ForEach-Object { Write-Host "      $_" }
+    $stampFile = Join-Path $ScriptDir ".req_installed"
+    $reqHash = (Get-FileHash $reqFile -Algorithm MD5).Hash
+    if (-not (Test-Path $stampFile) -or ((Get-Content $stampFile -Raw).Trim() -ne $reqHash)) {
+        Write-Host "  📦 检查并安装依赖 (requirements.txt)..." -ForegroundColor Cyan
+        & $SystemPython -m pip install -r $reqFile 2>&1 | ForEach-Object { Write-Host "      $_" }
+        Set-Content -Path $stampFile -Value $reqHash -Encoding UTF8
+    } else {
+        Write-Host "  ✅ 依赖无变更，跳过 pip 检查（.req_installed）" -ForegroundColor DarkGray
+    }
 }
 
-$launcher = $venvPython
+$launcher = $SystemPython
 $procArgs = "-m uvicorn main:app --host $HostIP --port $PORT"
 
 $LOG_ERR = Join-Path $ScriptDir "apimart_$PORT.err.log"

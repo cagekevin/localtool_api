@@ -31,8 +31,10 @@ Set-Location -Path $ScriptDir
 # =====================================================================
 $script:WatchdogLockFile = Join-Path $ScriptDir "logs\watchdog.pid"
 
-# 获取锁。若锁文件记录的 PID 对应进程还活着，说明已有守护进程 → 返回 $false（拒绝）。
+# 获取锁。若锁文件记录的 PID 对应进程还活着且是 PowerShell 守护进程 → 返回 $false（拒绝）。
 # 否则写入当前 PID 持有锁，返回 $true。
+# 修复：仅当 PID 对应进程名是 powershell/pwsh 才认为守护进程存活，避免 PID 被系统进程
+# 复用（如 dllhost）时误判"已有守护进程"导致闪退。
 function Acquire-WatchdogLock {
     $lockDir = Split-Path $script:WatchdogLockFile -Parent
     if (-not (Test-Path $lockDir)) { New-Item -ItemType Directory -Force -Path $lockDir | Out-Null }
@@ -43,7 +45,16 @@ function Acquire-WatchdogLock {
         try { $oldPid = [int](Get-Content $script:WatchdogLockFile -Raw).Trim() } catch { $oldPid = $null }
         $alive = $false
         if ($oldPid -and $oldPid -gt 0) {
-            try { $alive = $null -ne (Get-Process -Id $oldPid -ErrorAction Stop) } catch { $alive = $false }
+            $oldProc = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
+            if ($oldProc) {
+                # 守护进程是 PowerShell 窗口，进程名必须是 powershell / pwsh
+                if ($oldProc.ProcessName -match "^(powershell|pwsh)$") {
+                    $alive = $true
+                } else {
+                    Write-Log "  ⚠️ 锁文件 PID=$oldPid 被非守护进程复用 ($($oldProc.ProcessName))，视为锁已失效。" "Warn"
+                    try { Remove-Item $script:WatchdogLockFile -Force -ErrorAction SilentlyContinue } catch { }
+                }
+            }
         }
         if ($alive) {
             Write-Log "❌ 已有守护进程在运行 (PID=$oldPid)，拒绝重复启动。" "Error"
@@ -190,32 +201,36 @@ function Start-Gateway {
         }
     }
 
-    # 有 requirements.txt 则使用独立 venv；否则直接用系统 python（同 run_local.bat）。
-    # 性能优化：依赖未变更时跳过 pip install（用 requirements.txt 的 MD5 做变更标记），
-    # 避免每次启动都联网解析依赖（mac 版无此步，是 Windows 启动慢的主因之一）。
-    $useVenv = $false
-    $venvPython = Join-Path $dir "venv\Scripts\python.exe"
-    $reqFile = Join-Path $dir "requirements.txt"
-    if (Test-Path $reqFile) {
-        $pipExe = Join-Path $dir "venv\Scripts\pip.exe"
-        $stampFile = Join-Path $dir "venv\.req_installed"
-        $reqHash = (Get-FileHash $reqFile -Algorithm MD5).Hash
-        if (-not (Test-Path $pipExe)) {
-            Write-Log "  🐍 正在创建 Python 虚拟环境并安装依赖..." "Info"
-            & python -m venv (Join-Path $dir "venv") 2>&1 | Out-Null
-            & $venvPython -m pip install -r $reqFile 2>&1 | Out-Null
-            Set-Content -Path $stampFile -Value $reqHash -Encoding UTF8
-        } elseif (-not (Test-Path $stampFile) -or ((Get-Content $stampFile -Raw).Trim() -ne $reqHash)) {
-            Write-Log "  📦 requirements.txt 有变更，正在重装依赖..." "Info"
-            & $venvPython -m pip install -r $reqFile 2>&1 | Out-Null
-            Set-Content -Path $stampFile -Value $reqHash -Encoding UTF8
-        }
-        $useVenv = $true
+    # 定位系统 Python 3.12（不用 venv），只负责启动，不检查/安装依赖。
+    # 候选来源（按优先级）：PATH 的 python → py -3.12 → 常见安装路径。
+    # 每个候选都要验证版本确为 3.12，避免命中 Windows Store 的 python 别名空壳。
+    function Test-UsablePython {
+        param([string]$Exe)
+        if (-not (Test-Path $Exe)) { return $false }
+        $out = & $Exe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+        return ($LASTEXITCODE -eq 0 -and $out -and $out.Trim() -eq "3.12")
     }
-    
-    # 优先使用 pythonw.exe (无控制台版本的 python)，如果没有则用普通 python 配合隐藏窗口
-    $pythonwExe = if ($useVenv) { Join-Path $dir "venv\Scripts\pythonw.exe" } else { "pythonw" }
-    $pythonExe = if (Get-Command $pythonwExe -ErrorAction SilentlyContinue) { $pythonwExe } else { if ($useVenv) { $venvPython } else { "python" } }
+    $SystemPython = $null
+    $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonCmd -and (Test-UsablePython $pythonCmd.Source)) { $SystemPython = $pythonCmd.Source }
+    if (-not $SystemPython) {
+        $pyOut = & py -3.12 -c "import sys; print(sys.executable)" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $pyOut -and (Test-UsablePython $pyOut.Trim())) { $SystemPython = $pyOut.Trim() }
+    }
+    if (-not $SystemPython) {
+        $cand = "C:\Users\xinye\AppData\Local\Programs\Python\Python312\python.exe"
+        if (Test-UsablePython $cand) { $SystemPython = $cand }
+    }
+    if (-not $SystemPython) {
+        Write-Log "  ❌ 未找到可用的系统 Python 3.12，请先安装 Python 3.12" "Error"
+        return $false
+    }
+    Write-Log "  🐍 使用 Python: $SystemPython" "Dim"
+
+    # 优先使用 pythonw.exe (无控制台版本) 配合隐藏窗口
+    $pythonExe = if (Test-Path (Join-Path (Split-Path $SystemPython) "pythonw.exe")) {
+        Join-Path (Split-Path $SystemPython) "pythonw.exe"
+    } else { $SystemPython }
 
     # 日志统一收纳到模块自己的 logs\ 目录（避免散落在仓库根目录）
     $logDir = Join-Path $dir "logs"

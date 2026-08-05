@@ -24,6 +24,8 @@ dist/
 __pycache__/
 *.pyc
 apimart-gateway/venv/
+# 依赖变更标记（启动脚本运行期生成，非源码）
+apimart-gateway/.req_installed
 
 # ── 环境变量 / 密钥（含真实 Lovart AK/SK，绝不入库）──
 .env
@@ -73,3 +75,14 @@ scripts/report-chunks.json
 
 # 注：scripts/archived/{tools,beautify,semantic-map}/ 是归档的原始脚本源码（非副本），
 # 应随仓库分发供后续 AI 查阅，故不在此忽略（见 scripts/archived/README.md）。
+
+# ── 外部学习仓库（他人仓库，仅本地参考用，不入库）──
+infinite-canvas别人仓库学习专用/
+
+# ── 误操作生成的 0 字节垃圾文件（npm/pip 参数解析残留）──
+localTool/-r
+localTool/0.0.9
+localTool/0.110
+localTool/0.27
+localTool/26.2.1
+localTool/HTTP
