@@ -937,7 +937,7 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
     # 让上游 Lovart Agent 明确知晓这是用户提示词原文，须严格原样透传给下游生成工具，
     # 不做改写或润色。只作用于用户输入，gen_prefix（尺寸/数量/模型约束）仍在标签之外。
     wrapped_prompt = (f"<user_prompt>\n{prompt}\n</user_prompt>\n"
-                      f"以上为用户提示词原文，请严格原样使用")
+                      f"以上为用户提示词原文，直接使用，请勿修改")
     if gen_prefix:
         prompt = f"{gen_prefix}\n{wrapped_prompt}"
     else:
