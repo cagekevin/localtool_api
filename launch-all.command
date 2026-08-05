@@ -79,6 +79,21 @@ open_canvas() {
   open "$url"
 }
 
+# ── VPN 前置检测（连 Lovart 必须开 VPN，见 CLAUDE.md §五.1）──
+# 探测 lgw.lovart.ai:443 连通性。不通时显示红字警告，但不阻塞启动。
+# 设计：检测失败【不硬中断、不暂停】（系统级代理也可能让 localTool 出网），仅醒目提醒。
+check_vpn() {
+  local host="lgw.lovart.ai" port=443 timeout=5
+  if nc -zv -w "$timeout" "$host" "$port" >/dev/null 2>&1; then
+    ok "  ✅ VPN 检测通过：$host:$port 可达"
+    return 0
+  fi
+  err "  ⚠️  警告：VPN 未连通（$host:$port 不可达）！"
+  err "     生图/生视/聊天依赖 Lovart，必须开启 VPN/代理才能访问。"
+  err "     不开 VPN 会导致网关静默 502、图片上传连接失败。请先开启 VPN 再使用。"
+  return 1
+}
+
 # ── 1. 启动网关 (9004) ──
 start_gateway() {
   local dir="$ScriptDir/$GW_DIR"
@@ -151,6 +166,7 @@ start_localtool() {
 # ── 3. 守护模式 ──
 start_watchdog() {
   log "📡 正在启动服务群..."
+  check_vpn || true   # 只检测一次，不阻断；未开 VPN 会醒目提示
   start_gateway || true
   start_localtool "" || true
   sleep 1
