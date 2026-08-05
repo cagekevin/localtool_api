@@ -78,31 +78,50 @@ const OFFICIAL_DEFAULT_BASE = 'https://www.1mao.cc';
 
 /**
  * 读取转发目标官方 base（优先级）：
- *   1. `x-official-base` 请求头（前端显式指定，最可控）；
- *   2. KV `active_api_endpoint`（若被显式写入，如 UI 切换接入点后的落库）；
- *   3. 候选列表官方主接入点 OFFICIAL_DEFAULT_BASE。
+ *   1. `x-official-base` 请求头（前端显式指定转发目标，最可控）；
+ *   2. KV `active_api_endpoint`（保留「切换转发到备用接入点」能力，但过滤自指值）；
+ *   3. 官方候选主接入点 OFFICIAL_DEFAULT_BASE。
  *
- * ⚠️ 注意：KV 仅对部分取值器（异步 `_()`/`m()`）生效，前端权益 base 用的
- * `g()` 只读 sessionStorage 不读 KV。所以这里读 KV 只是「锦上添花」的显式覆盖，
- * 不能指望它让前端请求改道到本转发层——真正改道需改前端 base（见文件尾部）。
+ * ⚠️ 自指过滤（2026-08-05 修复登录回环）：
+ * KV `active_api_endpoint` 在前端「后端接入点」面板可被选成「本地引擎
+ * http://127.0.0.1:18080」（endpointConfig 候选列表首个，docs/20 §1.1）。
+ * 对 localTool 来说这是「把请求转发到自己」→ 无限回环 → `fetch failed`/
+ * `Passthrough failed`（登录 `/api/auth/*` 即走 catch-all，实测踩中）。
+ * 故读 KV 时必须过滤掉指向 localTool 自身（127.0.0.1/localhost + 18080）的值；
+ * 其余有效接入点（官方主/备用/自建）仍保留，`x-official-base` 头仍最优先。
  */
 export async function readOfficialBase(req: IncomingMessage): Promise<string> {
   // 优先级 1：请求头显式覆盖
   const headerBase = officialBaseHeader(req);
-  if (headerBase) return headerBase;
+  if (headerBase && !isSelfBase(headerBase)) return headerBase;
 
-  // 优先级 2：KV active_api_endpoint
+  // 优先级 2：KV active_api_endpoint（过滤自指值，避免回环）
   try {
     const db = await getDb();
     const row = queryOne(db, 'SELECT value FROM kv WHERE key = ?', ['active_api_endpoint']);
     if (row && row.value) {
       const raw = row.value.trim().replace(/^"|"$/g, '').trim();
-      if (raw) return raw.replace(/\/$/, '');
+      const base = raw.replace(/\/$/, '');
+      if (base && !isSelfBase(base)) return base;
     }
   } catch { /* 读 KV 失败回退默认 */ }
 
   // 优先级 3：官方候选主接入点
   return OFFICIAL_DEFAULT_BASE;
+}
+
+/**
+ * 判断 base 是否指向 localTool 自身（本机 18080）。
+ * 命中则必须忽略，否则转发层会把自己当目标 → 无限回环。
+ */
+function isSelfBase(base: string): boolean {
+  try {
+    const u = new URL(base);
+    const host = u.hostname.toLowerCase();
+    return (host === '127.0.0.1' || host === 'localhost' || host === '::1') && String(u.port) === '18080';
+  } catch {
+    return false;
+  }
 }
 
 /** 解析 x-official-base 覆盖头（可选） */

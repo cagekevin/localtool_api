@@ -43,7 +43,9 @@
  * 【设计约束】（与 official.ts 转发层一致，避免两套语义）
  * ----------------------------------------------------------------------------
  * - 目标 base 复用 official.ts 的 readOfficialBase()：
- *     x-official-base 头 → KV active_api_endpoint → 默认 https://www.1mao.cc。
+ *     x-official-base 头 → KV active_api_endpoint（过滤自指值）→ 默认 https://www.1mao.cc。
+ *   2026-08-05 修复登录回环：readOfficialBase 读 KV 时会过滤指向 localTool 自身
+ *   （127.0.0.1/localhost:18080）的值，避免「把请求转发给自己」的无限回环（见 official.ts）。
  *   这样「转发给谁」只有一个决策点，改一处即可整体改道（官方/自建/第三方）。
  * - 原样透传：method / path / query / body / 请求头（**尤其 Authorization: Bearer**）。
  * - 原样回传：状态码 / 响应头 / body，**不改写、不包装、不缓存**。
