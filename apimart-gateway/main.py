@@ -999,29 +999,42 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
     wait = body.get("wait") or False
 
     if wait:
-        # 同步模式：内部轮询到完成，直接返回结果（复用 check_and_fire_task）
-        deadline = time.time() + Config.LOVART_TIMEOUT
-        while time.time() < deadline:
-            is_done, response = await TaskService.check_and_fire_task(task_id, client)
-            if is_done:
-                body_data = json.loads(response.body)
-                data = body_data.get("data", {})
-                result = data.get("result", {})
-                images = result.get("images", [])
-                videos = result.get("videos", [])
-                url = ""
-                if images:
-                    url = (images[0].get("url") or [""])[0]
-                elif videos:
-                    url = (videos[0].get("url") or [""])[0]
-                if url:
-                    return ok([{"url": url, "status": "completed", "task_id": task_id}])
-                return ok([{"url": "", "status": "failed", "task_id": task_id,
-                            "error": (data.get("error") or {}).get("message", "no artifact")}])
-            await asyncio.sleep(3)
-        # P0-4：同步 wait 模式 504 超时埋点。配合 [poll] 日志区分"超时"vs"Lovart 卡住"。
-        _log(f"[submit:sync-timeout] traceId={tid or '-'} task_id={task_id} timeout={Config.LOVART_TIMEOUT}s")
-        return err(504, "同步等待生成结果超时", "timeout_error", 504)
+        # 同步模式：内部轮询到完成，SSE 流式输出 progress，最后输出结果。
+        # 前端图片节点（OpenAI 兼容）通过 SSE 分支读取 progress 更新任务中心进度，
+        # 收到 status:succeeded + results[0].url 后取最终图片，等价于原同步 JSON 返回。
+        async def sse_gen():
+            deadline = time.time() + Config.LOVART_TIMEOUT
+            while time.time() < deadline:
+                is_done, response = await TaskService.check_and_fire_task(task_id, client)
+                if is_done:
+                    body_data = json.loads(response.body)
+                    data = body_data.get("data", {})
+                    result = data.get("result", {})
+                    images = result.get("images", [])
+                    videos = result.get("videos", [])
+                    url = ""
+                    if images:
+                        url = (images[0].get("url") or [""])[0]
+                    elif videos:
+                        url = (videos[0].get("url") or [""])[0]
+                    if url:
+                        yield f"data: {json.dumps({'status':'succeeded','results':[{'url':url}]})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'status':'failed','error':(data.get('error') or {}).get('message','no artifact')})}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+                # 未完成：解析 progress 实时推给前端
+                try:
+                    prog = json.loads(response.body).get("data", {}).get("progress", 0)
+                except Exception:
+                    prog = 0
+                yield f"data: {json.dumps({'progress':prog})}\n\n"
+                await asyncio.sleep(3)
+            # P0-4：同步 wait 模式 504 超时埋点。配合 [poll] 日志区分"超时"vs"Lovart 卡住"。
+            _log(f"[submit:sync-timeout] traceId={tid or '-'} task_id={task_id} timeout={Config.LOVART_TIMEOUT}s")
+            yield f"data: {json.dumps({'status':'failed','error':'同步等待生成结果超时'})}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(sse_gen(), media_type="text/event-stream")
 
     # 异步模式（默认）：返回 task_id，由调用方自行轮询或等待 webhook
     if webhook:

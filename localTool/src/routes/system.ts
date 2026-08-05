@@ -78,7 +78,11 @@ export async function handleGatewayTask(
         out = Buffer.from(JSON.stringify(parsed));
       }
     } catch { /* 非 JSON 原样透传 */ }
-    res.writeHead(fetchRes.status, {
+    // 网关对「已结束/已清理任务」返回 400，而前端特惠轮询（Vr.jsx）只把 404 当「任务未找到」
+    // 累加 notFoundCount 并在 3 次后停止；400 会被前端忽略 → 无限轮询 → 控制台刷 400。
+    // 故把 400 归一为 404，让前端正确识别「任务未找到」并停止轮询（见 docs/01 变更 #6、daily/2026-08-05）。
+    const status = fetchRes.status === 400 ? 404 : fetchRes.status;
+    res.writeHead(status, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
     });
@@ -128,7 +132,35 @@ function createSSEParserTransform(): Transform {
   });
 }
 
-// ── GET /api/status ──
+// ── SSE 流式透传（wait 同步分支复用）：网关 wait 模式现返回 SSE 流（progress + 结果），
+// 需不缓冲逐块 pipe 给前端图片节点，否则 fetchRes.json() 会把 SSE 当 JSON 解析失败。
+// 返回是否成功进入流式透传（content-type 不是 text/event-stream 时返回 false，由调用方回退 json）。
+function pipeSseStream(res: ServerResponse, fetchRes: Response, logMethod: string, logUrl: string): boolean {
+  const ct = fetchRes.headers.get('content-type') || '';
+  if (!ct.includes('text/event-stream')) return false;
+  const streamHeaders: Record<string, string> = {};
+  const streamSkip = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
+  fetchRes.headers.forEach((value, key) => {
+    if (!streamSkip.has(key)) streamHeaders[key] = value;
+  });
+  streamHeaders['content-type'] = 'text/event-stream';
+  res.writeHead(fetchRes.status, streamHeaders);
+  let bodyStream = Readable.fromWeb(fetchRes.body as any);
+  const ce = fetchRes.headers.get('content-encoding') || '';
+  if (ce === 'gzip' || ce === 'x-gzip') bodyStream = bodyStream.pipe(createGunzip());
+  else if (ce === 'deflate') bodyStream = bodyStream.pipe(createInflate());
+  else if (ce === 'br') bodyStream = bodyStream.pipe(createBrotliDecompress());
+  const sseParser = createSSEParserTransform();
+  bodyStream.on('error', (err: Error) => {
+    console.error(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | stream error | ${err.message}`);
+    if (!res.writableEnded) res.destroy();
+  });
+  bodyStream.pipe(sseParser).pipe(res);
+  console.log(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${logMethod} ${logUrl} | ${fetchRes.status} | started`);
+  return true;
+}
+
+// GET /api/status ──
 export async function handleStatus(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   return json(res, {
     status: 'ok',
@@ -204,6 +236,8 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
           signal: controller.signal,
         });
         clearTimeout(timeout);
+        // 网关 wait 模式现返回 SSE 流（progress + 结果），须流式透传；否则回退 JSON 同步返回
+        if (pipeSseStream(res, fetchRes, method, targetUrl)) return;
         const result = await fetchRes.json();
         return json(res, result);
       } catch (e: any) {
@@ -359,6 +393,8 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
           signal: controller.signal,
         });
         clearTimeout(timeout);
+        // 网关 wait 模式现返回 SSE 流（progress + 结果），须流式透传；否则回退 JSON 同步返回
+        if (pipeSseStream(res, fetchRes, body.method || 'POST', body.url)) return;
         const result = await fetchRes.json();
         return json(res, result);
       } catch (e: any) {

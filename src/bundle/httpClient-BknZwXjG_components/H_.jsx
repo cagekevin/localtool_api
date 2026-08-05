@@ -2523,7 +2523,7 @@ ${C}`;
       let B = {};
       let re = false;
       let V = h.replace(/\/$/, ``);
-      let ie = _shared.R && F.includes(`*`);
+      let ie = _shared.R;
       let oe = {
         '1:1': {
           '1K': `1024x1024`,
