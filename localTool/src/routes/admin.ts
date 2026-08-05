@@ -37,6 +37,51 @@ export async function handleAdminStats(_req: IncomingMessage, res: ServerRespons
   return json(res, { kv, tasks, resources, disk: { uploadDirBytes: diskBytes } });
 }
 
+// ── GET /api/admin/kv-list（列出所有 KV 键，供缓存清理脚本精准定位）──
+export async function handleAdminKvList(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const db = await getDb();
+  const rows = queryAll(db, 'SELECT key, length(value) as len, updated_at FROM kv ORDER BY key');
+  return json(res, { keys: rows });
+}
+
+// ── POST /api/admin/clear-cache（按缓存前缀精准清理 KV，保留业务数据）──
+// 只删缓存类键（img_* 图片缓存、接入点、同步元数据、画布版本标记等），
+// 绝不碰 canvas-state-v1-* 本体 / auth_token / projects / users 等业务数据。
+// body: { confirm: true, prefixes?: string[], exactKeys?: string[] }
+export async function handleAdminClearCache(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const body = (await parseJsonBody(req)) as { confirm?: boolean; prefixes?: string[]; exactKeys?: string[] } | null;
+  if (!body?.confirm) return sendError(res, 'Set confirm: true to proceed', 400);
+
+  const db = await getDb();
+  const all = queryAll(db, 'SELECT key FROM kv') as Array<{ key: string }>;
+  const toDelete: string[] = [];
+
+  const prefixes = body.prefixes?.filter(Boolean) ?? [
+    'img_orig_',      // 原始图缓存
+    'img_thumb_',     // 缩略图缓存
+  ];
+  const exactKeys = body.exactKeys?.filter(Boolean) ?? [
+    'active_api_endpoint',  // 接入点选择（曾致登录回环）
+    '_syncMeta',            // 云同步元数据缓存
+    '__debug_probe',
+    't',
+    'lastOpenedProject',
+  ];
+
+  for (const { key } of all) {
+    // 画布状态本体、登录 token、项目等业务键绝不删（即使命中前缀）
+    if (key === 'auth_token' || key.startsWith('canvas-state-v1-')) continue;
+    if (exactKeys.includes(key)) { toDelete.push(key); continue; }
+    for (const p of prefixes) {
+      if (key.startsWith(p)) { toDelete.push(key); break; }
+    }
+  }
+
+  for (const key of toDelete) run(db, 'DELETE FROM kv WHERE key = ?', [key]);
+  saveDb();
+  return json(res, { ok: true, deleted: toDelete, count: toDelete.length });
+}
+
 // ── POST /api/admin/cleanup ──
 export async function handleAdminCleanup(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   const db = await getDb();

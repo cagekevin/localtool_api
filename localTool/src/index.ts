@@ -20,7 +20,7 @@ import { handleTasksGet, handleTasksSave, handleTasksBatchSave, handleTasksDelet
 import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, handleResourcesDelete, handleResourcesClear, handleResourcesRescan } from './routes/resources.js';
 import { handleStatus, handleProxy, handleJianyingSend, handleGatewayTask } from './routes/system.js';
 import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
-import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport } from './routes/admin.js';
+import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport, handleAdminKvList, handleAdminClearCache } from './routes/admin.js';
 import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
 import { handleAgentChat } from './routes/agentChat.js';
 // catch-all 兜底透传：未命中本地具名路由的请求原样转发官方（详见 routes/passthrough.ts 文件头）
@@ -342,6 +342,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // ── 管理 ──
     if (pathname === '/api/admin/stats' && method === 'GET') {
       return await handleAdminStats(req, res);
+    }
+    if (pathname === '/api/admin/kv-list' && method === 'GET') {
+      return await handleAdminKvList(req, res);
+    }
+    if (pathname === '/api/admin/clear-cache' && method === 'POST') {
+      return await handleAdminClearCache(req, res);
     }
     if (pathname === '/api/admin/cleanup' && method === 'POST') {
       return await handleAdminCleanup(req, res);
