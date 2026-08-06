@@ -101,7 +101,14 @@ function handleStaticFile(req: http.IncomingMessage, res: http.ServerResponse, u
   if (!urlPath.startsWith('/files/')) return false;
 
   const uploadDir = getUploadDir();
-  const relativePath = urlPath.replace(/^\/files\//, '');
+  // url.pathname 是 percent-encoded 的（new URL().pathname 不自动解码）。
+  // 中文 subfolder（如 migrated/人物）经浏览器编码成 %E4%BA%BA%E7%89%A9 后，此处必须解码才能命中磁盘真实目录。
+  let relativePath = urlPath.replace(/^\/files\//, '');
+  try {
+    relativePath = decodeURIComponent(relativePath);
+  } catch {
+    // 非法编码保留原样，交给下方 existsSync 判 404
+  }
   const filePath = path.join(uploadDir, relativePath);
 
   // 安全检查：防止路径遍历
