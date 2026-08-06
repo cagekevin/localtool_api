@@ -2880,18 +2880,23 @@ async function Pa(e) {
   return t;
 }
 var Fa = (e, t) => {
+  // 语义：判断文本 e 中是否存在合法的 `@资产名` 引用（@资产名 后一位非中英文/数字，或位于文本末尾）。
+  // 旧版仅检查「首个命中位置」，导致文本同时含 `@小马妈妈` 与 `@小马` 时，`@小马` 永远匹配不上（indexOf 先撞上 `@小马妈妈`，后一位「妈」非法即放弃）。
+  // 现改为：检查所有命中位置，任一位置后一位合法即返回 true；全部命中后一位均非法才返回 false（保留防误报：`@小红帽` 仍不会误匹配资产 `@小红帽子`）。
   if (!e || !t) {
     return false;
   }
-  let n = e.indexOf(`@${t}`);
-  if (n < 0) {
-    return false;
-  }
-  let r = e[n + 1 + t.length];
-  if (r === undefined) {
-    return true;
-  } else {
-    return !/[\u4e00-\u9fa5A-Za-z0-9]/.test(r);
+  let n = 0;
+  while (true) {
+    n = e.indexOf(`@${t}`, n);
+    if (n < 0) {
+      return false;
+    }
+    let r = e[n + 1 + t.length];
+    if (r === undefined || !/[\u4e00-\u9fa5A-Za-z0-9]/.test(r)) {
+      return true;
+    }
+    n += 1;
   }
 };
 var Ia = (e, t, n = `image`) => {

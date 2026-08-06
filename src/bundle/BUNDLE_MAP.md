@@ -39,10 +39,10 @@
 | 文件 | 行数 | API 路径 | KV 键 | Hooks | 导出组件 |
 |---|---|---|---|---|---|
 | `src-_qSScO88_components/shared.js` | 34659 | — | — | — | _cmp_xs e t n 📦聚合导出 |
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions /v1/images/edits /v1/images/generations /api/assets/upload | proxyMode local-tool transitResources | useState useEffect useRef useMemo | H_ H_ |
-| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app /api/tasks /api/tasks/save /api/tasks/batch-save | proxyMode local-tool canvas-state-v1 transitResources api_configs | useState useEffect useRef useCallback | _cmp_Bn _cmp_Er _cmp_Tr _cmp_Vn 📦聚合导出 |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions /v1/images/edits /v1/images/generations /api/assets/upload | proxyMode local-tool transitResources | useState useEffect useRef useMemo | H_ H_ |
+| `httpClient-BknZwXjG_components/shared.js` | 11727 | /api/jianying/send /v1/gateway/ai-app /api/tasks /api/tasks/save /api/tasks/batch-save | proxyMode local-tool canvas-state-v1 transitResources api_configs | useState useEffect useRef useCallback | _cmp_Bn _cmp_Er _cmp_Tr _cmp_Vn 📦聚合导出 |
 | `vendor-Z-adA07W.js` | 4682 | /api/objects | — | useState useEffect useRef useMemo | $ $n $t A 📦聚合导出 |
-| `App-BX6o9fW5_components/Vr.jsx` | 4519 | /v1/gateway/task/ /files/resources/ | local-tool canvas-state-v1 transitResources api_configs | useState useEffect useRef useMemo | Vr Vr |
+| `App-BX6o9fW5_components/Vr.jsx` | 4527 | /v1/gateway/task/ /files/resources/ | local-tool canvas-state-v1 transitResources api_configs | useState useEffect useRef useMemo | Vr Vr |
 | `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ /v1/gateway/task/ /api/resources /api/resources/save | — | useState useEffect useRef useCallback | _cmp_Ln _cmp_Lt _cmp_Qt _cmp_Sr 📦聚合导出 |
 | `httpClient-BknZwXjG_components/c_.jsx` | 2806 | — | transitResources | useState useEffect useRef useMemo | — |
 | `httpClient-BknZwXjG_components/As.jsx` | 2088 | — | — | useState useEffect useRef useMemo | — |
@@ -142,9 +142,9 @@
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions |
-| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
-| `App-BX6o9fW5_components/Vr.jsx` | 4519 | /v1/gateway/task/ /files/resources/ |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11727 | /api/jianying/send /v1/gateway/ai-app |
+| `App-BX6o9fW5_components/Vr.jsx` | 4527 | /v1/gateway/task/ /files/resources/ |
 | `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
 | `httpClient-BknZwXjG_components/Un.jsx` | 658 | /api/files/open /files/ |
 | `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default |
@@ -155,15 +155,15 @@
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions |
-| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11727 | /api/jianying/send /v1/gateway/ai-app |
 | `httpClient-BknZwXjG_components/Un.jsx` | 658 | /api/files/open /files/ |
 
 ### 画布编辑器核心 UI / 状态
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `App-BX6o9fW5_components/Vr.jsx` | 4519 | /v1/gateway/task/ /files/resources/ |
+| `App-BX6o9fW5_components/Vr.jsx` | 4527 | /v1/gateway/task/ /files/resources/ |
 | `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
 | `App-BX6o9fW5_components/_Component40.jsx` | 559 | — |
 | `App-BX6o9fW5_components/jn.jsx` | 544 | — |
@@ -176,10 +176,10 @@
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions |
-| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11727 | /api/jianying/send /v1/gateway/ai-app |
 | `vendor-Z-adA07W.js` | 4682 | /api/objects |
-| `App-BX6o9fW5_components/Vr.jsx` | 4519 | /v1/gateway/task/ /files/resources/ |
+| `App-BX6o9fW5_components/Vr.jsx` | 4527 | /v1/gateway/task/ /files/resources/ |
 | `httpClient-BknZwXjG_components/c_.jsx` | 2806 | — |
 | `httpClient-BknZwXjG_components/As.jsx` | 2088 | — |
 | `httpClient-BknZwXjG_components/bo.jsx` | 1694 | — |
@@ -189,9 +189,9 @@
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions |
-| `httpClient-BknZwXjG_components/shared.js` | 11722 | /api/jianying/send /v1/gateway/ai-app |
-| `App-BX6o9fW5_components/Vr.jsx` | 4519 | /v1/gateway/task/ /files/resources/ |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/shared.js` | 11727 | /api/jianying/send /v1/gateway/ai-app |
+| `App-BX6o9fW5_components/Vr.jsx` | 4527 | /v1/gateway/task/ /files/resources/ |
 | `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
 | `ShareAppPage-C4RerI9i.js` | 623 | /api/workflow-apps/ /api/sync/default |
 
@@ -206,13 +206,13 @@
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
 
 ### 视频生成
 
 | 文件 | 行数 | 关键特征 |
 |---|---|---|
-| `httpClient-BknZwXjG_components/H_.jsx` | 12672 | /v1/chat/completions /v1/draw/completions |
+| `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
 | `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
 
 ## 八、重建命令
