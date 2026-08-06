@@ -5516,35 +5516,90 @@ ${C}`;
     if (!x.ok) {
       throw x.status === 401 || x.status === 403 ? Error(`未登录或鉴权失败（请先登录/检查 API Key）`) : Error(`生图失败: ${x.status} ${x.statusText}`);
     }
-    let C = await x.text();
-    let w;
-    try {
-      w = JSON.parse(C);
-    } catch {
-      throw Error(`生图响应不完整（可能被网络/代理截断），请重试`);
-    }
     let T = ``;
-    if (g) {
-      let e = w.data?.[0];
-      if (e?.b64_json) {
-        T = `data:image/png;base64,${e.b64_json}`;
-      } else {
-        T = e?.url || ``;
+    // 兼容两种响应：网关 wait 模式返回 SSE 流（text/event-stream），旧/非流式返回纯 JSON。
+    // 参考 Sr(L2786) 的 SSE 解析：逐块读 data: 事件，succeeded 取 results[0].url。
+    let contentType = (x.headers.get(`content-type`) || ``);
+    if (contentType.includes(`text/event-stream`) && x.body) {
+      let reader = x.body.getReader();
+      let dec = new TextDecoder();
+      let buf = ``;
+      try {
+        while (true) {
+          let {
+            done,
+            value
+          } = await reader.read();
+          if (done) {
+            break;
+          }
+          buf += dec.decode(value, {
+            stream: true
+          });
+          let lines = buf.split(`
+`);
+          buf = lines.pop() || ``;
+          for (let ln of lines) {
+            let t = ln.trim();
+            if (!t.startsWith(`data:`)) {
+              continue;
+            }
+            let payload = t.slice(5).trim();
+            if (!payload || payload === `[DONE]`) {
+              continue;
+            }
+            try {
+              let ev = JSON.parse(payload);
+              if (ev.status === `succeeded` && ev.results?.[0]?.url) {
+                T = ev.results[0].url;
+              }
+              if (ev.status === `failed` || ev.error) {
+                throw Error(ev.error || ev.failure_reason || `生成失败`);
+              }
+            } catch (e) {
+              if (e.message === `Unexpected token` || e instanceof SyntaxError) {
+                continue;
+              }
+              throw e;
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      if (!T) {
+        throw Error(`流式响应未返回最终图片URL`);
       }
     } else {
-      let e = w.candidates?.[0];
-      let t = e?.content?.parts?.find(e => {
-        return e.inlineData;
-      });
-      let n = e?.content?.parts?.find(e => {
-        return e.text;
-      });
-      if (t?.inlineData) {
-        T = `data:${t.inlineData.mimeType || `image/png`};base64,${t.inlineData.data}`;
-      } else if (n?.text) {
-        let e = n.text.match(/!\[.*?\]\((data:image\/[^;]+;base64,[^)]+)\)/);
-        if (e?.[1]) {
-          T = e[1];
+      let C = await x.text();
+      let w;
+      try {
+        w = JSON.parse(C);
+      } catch {
+        throw Error(`生图响应不完整（可能被网络/代理截断），请重试`);
+      }
+      if (g) {
+        let e = w.data?.[0];
+        if (e?.b64_json) {
+          T = `data:image/png;base64,${e.b64_json}`;
+        } else {
+          T = e?.url || ``;
+        }
+      } else {
+        let e = w.candidates?.[0];
+        let t = e?.content?.parts?.find(e => {
+          return e.inlineData;
+        });
+        let n = e?.content?.parts?.find(e => {
+          return e.text;
+        });
+        if (t?.inlineData) {
+          T = `data:${t.inlineData.mimeType || `image/png`};base64,${t.inlineData.data}`;
+        } else if (n?.text) {
+          let e = n.text.match(/!\[.*?\]\((data:image\/[^;]+;base64,[^)]+)\)/);
+          if (e?.[1]) {
+            T = e[1];
+          }
         }
       }
     }
