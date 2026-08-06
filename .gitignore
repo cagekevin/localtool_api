@@ -47,6 +47,11 @@ readable/
 # ── 逆向还原目录：整目录入库（含中间产物 pipeline/dist/step0_raw/verifiers），仅忽略其下的系统文件 ──
 # 注：CLAUDE.md §四.4 标注此目录「AI 禁止读」，但需随仓库分发，故纳入版本库。
 
+# ── 一键启动脚本（Mac .command）──
+# 本机需可执行权限(755)以支持 ./ 双击启动；该权限为本地环境特定、易与远端
+# 100644 冲突反复刷屏，故整体忽略，本地自行 chmod +x（见 docs 提及的启动方式）。
+launch-all.command
+
 # ── 运行时日志（启动脚本落盘，含 [proxy] 转发明细）──
 logs/
 *.log
