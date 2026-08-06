@@ -25,25 +25,66 @@ if os.environ.get("LOVART_INSECURE_SSL") == "1":
 
 _RETRYABLE = {404, 429, 502, 503}
 
+# ── 出站代理（base64 上传等直连 Lovart 失败时的兜底通道）──
+# 网关 python 进程不继承浏览器/系统代理，直连 Lovart 在未开全局 VPN 时会失败。
+# 这里读代理环境变量或探测本机常见代理端口，用带代理的 httpx client 重试。
+# 策略与 localTool 的 netProxy.ts 一致（HTTPS_PROXY > HTTP_PROXY > ALL_PROXY，大小写兼容）。
+_PROXY_ENV_KEYS = ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy")
+# 本机常见代理端口探测（clash / v2ray / 系统代理等默认端口）
+_PROXY_PROBE_PORTS = (7897, 7890, 1087, 1080, 8888, 8118)
+_PROXY_PROBE_HOSTS = ("127.0.0.1", "localhost")
+
 _http_client_pool: Optional[httpx.AsyncClient] = None
+_http_proxy_client_pool: Optional[httpx.AsyncClient] = None
 _pool_lock: Optional[asyncio.Lock] = None
 
-async def _get_http_client() -> httpx.AsyncClient:
-    global _http_client_pool, _pool_lock
-    if _http_client_pool is None:
-        if _pool_lock is None:
-            _pool_lock = asyncio.Lock()
-        async with _pool_lock:
-            if _http_client_pool is None:
-                limits = httpx.Limits(max_keepalive_connections=50, max_connections=200)
-                _http_client_pool = httpx.AsyncClient(verify=_ssl_ctx, limits=limits)
-    return _http_client_pool
+def _detect_proxy_url() -> Optional[str]:
+    """优先读代理环境变量；无则探测本机常见代理端口。返回可用的代理 URL 或 None。"""
+    for key in _PROXY_ENV_KEYS:
+        val = (os.environ.get(key) or "").strip()
+        if val:
+            return val
+    # 环境变量缺失时，探测本机常见代理端口（选择第一个能建立 TCP 连接的端口）
+    import socket
+    for host in _PROXY_PROBE_HOSTS:
+        for port in _PROXY_PROBE_PORTS:
+            try:
+                with socket.create_connection((host, port), timeout=0.4):
+                    return f"http://{host}:{port}"
+            except OSError:
+                continue
+    return None
+
+async def _get_http_client(use_proxy: bool = False) -> httpx.AsyncClient:
+    global _http_client_pool, _http_proxy_client_pool, _pool_lock
+    if _pool_lock is None:
+        _pool_lock = asyncio.Lock()
+    target = _http_proxy_client_pool if use_proxy else _http_client_pool
+    async with _pool_lock:
+        if target is None:
+            limits = httpx.Limits(max_keepalive_connections=50, max_connections=200)
+            proxy_url = _detect_proxy_url() if use_proxy else None
+            if use_proxy and proxy_url:
+                target = httpx.AsyncClient(verify=_ssl_ctx, limits=limits, proxy=proxy_url)
+            else:
+                target = httpx.AsyncClient(verify=_ssl_ctx, limits=limits)
+        if use_proxy:
+            _http_proxy_client_pool = target
+        else:
+            _http_client_pool = target
+    return target
+
+def _is_conn_error(e: Exception) -> bool:
+    """判断是否为「连接类」错误（直连不通，值得换代理重试）。"""
+    return isinstance(e, (httpx.ConnectError, httpx.ConnectTimeout, httpx.NetworkError))
 
 async def close_http_client() -> None:
-    global _http_client_pool
-    if _http_client_pool is not None:
-        await _http_client_pool.aclose()
-        _http_client_pool = None
+    global _http_client_pool, _http_proxy_client_pool
+    for pool in (_http_client_pool, _http_proxy_client_pool):
+        if pool is not None:
+            await pool.aclose()
+    _http_client_pool = None
+    _http_proxy_client_pool = None
 
 class LovartError(Exception):
     def __init__(self, message: str, http_status: int = 502, code: int = 0):
@@ -104,10 +145,21 @@ class LovartClient:
                 )
             except httpx.HTTPError as e:
                 last_err = e
+                # 连接类错误（直连不通）→ 换代理通道再试一次，不占原重试次数
+                if _is_conn_error(e):
+                    try:
+                        client = await _get_http_client(use_proxy=True)
+                        r = await client.request(
+                            method, url, params=params, json=body, headers=headers, timeout=self.timeout
+                        )
+                        last_err = None
+                        break
+                    except httpx.HTTPError as pe:
+                        last_err = pe
                 if attempt < self.retries - 1:
                     await asyncio.sleep(2 * (attempt + 1))
                     continue
-                raise LovartError(f"连接 Lovart 失败: {e}", 502)
+                raise LovartError(f"连接 Lovart 失败(直连及代理均不可达): {last_err}", 502)
 
             if r.status_code in _RETRYABLE and attempt < self.retries - 1:
                 last_err = RuntimeError(f"HTTP {r.status_code}")
@@ -215,10 +267,19 @@ class LovartClient:
                 r = await client.post(url, files=files, headers=headers, timeout=self.timeout)
             except httpx.HTTPError as e:
                 last_err = e
+                # 连接类错误（直连不通）→ 换代理通道再试一次，不占原重试次数
+                if _is_conn_error(e):
+                    try:
+                        client = await _get_http_client(use_proxy=True)
+                        r = await client.post(url, files=files, headers=headers, timeout=self.timeout)
+                        last_err = None
+                        break
+                    except httpx.HTTPError as pe:
+                        last_err = pe
                 if attempt < self.retries - 1:
                     await asyncio.sleep(2 * (attempt + 1))
                     continue
-                raise LovartError(f"上传连接失败: {e}", 502)
+                raise LovartError(f"上传连接失败(直连及代理均不可达): {last_err}", 502)
             if r.status_code in _RETRYABLE and attempt < self.retries - 1:
                 last_err = RuntimeError(f"HTTP {r.status_code}")
                 await asyncio.sleep(2 * (attempt + 1))

@@ -599,6 +599,7 @@ class TaskService:
         blob: 等无法访问的丢弃；未知格式丢弃（避免原样透传给 Lovart 导致图生图卡死）。
         """
         out = []
+        last_upload_err: Optional[str] = None
         for i, u in enumerate(raw_urls):
             if not u or not isinstance(u, str) or not u.strip():
                 # 异常：空 / 非字符串素材
@@ -618,12 +619,14 @@ class TaskService:
                     cdn = await client.upload_file(f"_ref_{uuid.uuid4().hex[:8]}.{ext}", raw)
                 except Exception as e:
                     # 异常：解码或上传抛异常
+                    last_upload_err = str(e)
                     _log(f"[resolve:error] 第{i}个 data:base64 处理失败: {e}，前80字符={u[:80]!r}")
                     continue
                 if cdn:
                     out.append(cdn)  # 正常，不打日志
                 else:
                     # 异常：上传 CDN 返回空
+                    last_upload_err = "上传 CDN 返回空"
                     _log(f"[resolve:warn] 第{i}个 data:base64 上传CDN返回空，已丢弃")
                 continue
             # 3) 无前缀裸 base64：识别魔数后解码上传 CDN
@@ -634,18 +637,29 @@ class TaskService:
                     cdn = await client.upload_file(f"_ref_{uuid.uuid4().hex[:8]}.{ext}", raw)
                 except Exception as e:
                     # 异常：解码或上传抛异常
+                    last_upload_err = str(e)
                     _log(f"[resolve:error] 第{i}个裸base64 解码/上传失败: {e}，前80字符={u[:80]!r}")
                     continue
                 if cdn:
                     out.append(cdn)  # 正常，不打日志
                 else:
                     # 异常：上传 CDN 返回空
+                    last_upload_err = "上传 CDN 返回空"
                     _log(f"[resolve:warn] 第{i}个裸base64 上传CDN返回空，已丢弃")
                 continue
             # 4) 其他（blob: / 本地路径 / 未知）：网关拿不到内容，直接丢弃，
             #    避免把无效 URL 原样透传给 Lovart 造成图生图一直 running
             _log(f"[resolve:drop] 第{i}个参考素材无法识别，已丢弃（不再透传给Lovart）: {str(u)[:160]}")
         _log(f"[resolve:end] 翻译完成，产出 {len(out)} 个 attachment")
+        # 兜底：参考素材本应上传，却全部失败 → 抛出清晰业务错误，避免前端收到笼统 502
+        # （仅当存在 base64 且上传失败时触发；URL 透传/主动丢弃不属此列）
+        if raw_urls and not out and last_upload_err:
+            raise LovartError(
+                "参考素材上传失败，无法进行图生图/图生视频。"
+                "请确认已开启 VPN 或检查网络后重试（代理重传也失败）。"
+                f"详情: {last_upload_err}",
+                502,
+            )
         return out
 
     @staticmethod
