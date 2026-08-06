@@ -47,6 +47,7 @@ import os
 import re
 import time
 import uuid
+from urllib.parse import urlparse
 from typing import Any, Dict, Optional, Tuple, List
 
 import httpx
@@ -590,6 +591,22 @@ def _ext_from_data_header(header: str) -> str:
     if any(x in h for x in ("mpeg", "mp3", "audio")): return "mp3"
     return "png"
 
+
+def _ext_from_content_type(ct: Optional[str]) -> str:
+    """从 HTTP 响应的 Content-Type 推断扩展名（本地回环图下载用）。"""
+    if not ct:
+        return "png"
+    h = ct.lower()
+    if any(x in h for x in ("jpeg", "jpg")): return "jpg"
+    if "png" in h: return "png"
+    if "gif" in h: return "gif"
+    if "webp" in h: return "webp"
+    if "bmp" in h: return "bmp"
+    if "mp4" in h: return "mp4"
+    if "webm" in h: return "webm"
+    if any(x in h for x in ("mpeg", "mp3", "audio")): return "mp3"
+    return "png"
+
 class TaskService:
     @staticmethod
     async def resolve_attachments(client: LovartClient, raw_urls: list) -> list:
@@ -606,8 +623,30 @@ class TaskService:
                 _log(f"[resolve:skip] 第{i}个参考素材为空或非字符串，已跳过: {type(u).__name__}={str(u)[:80]!r}")
                 continue
             u = u.strip()
-            # 1) 合法 http(s) URL：直接透传（正常，不打日志）
+            # 1) 合法 http(s) URL
             if u.startswith(("http://", "https://")):
+                # 1a) 本机回环地址（127.0.0.1 / localhost / 0.0.0.0）：Lovart 服务器
+                #     访问不到用户本地端口，必须网关自下载后转 CDN 再透传，否则垫图失效。
+                host = (urlparse(u).hostname or "").lower()
+                if host in ("127.0.0.1", "localhost", "0.0.0.0", "[::1]"):
+                    try:
+                        cli = await _get_http_client()
+                        dl = await cli.get(u, timeout=30)
+                        dl.raise_for_status()
+                        raw = dl.content
+                        ext = _ext_from_content_type(dl.headers.get("content-type")) or "png"
+                        cdn = await client.upload_file(f"_local_{uuid.uuid4().hex[:8]}.{ext}", raw)
+                    except Exception as e:
+                        last_upload_err = str(e)
+                        _log(f"[resolve:error] 第{i}个本机回环URL下载/上传失败，已丢弃: {u[:160]} -> {e}")
+                        continue
+                    if cdn:
+                        out.append(cdn)
+                    else:
+                        last_upload_err = "本机图上传CDN返回空"
+                        _log(f"[resolve:warn] 第{i}个本机回环URL上传CDN返回空，已丢弃: {u[:160]}")
+                    continue
+                # 1b) 其余外网 URL：直接透传（正常，不打日志）
                 out.append(u)
                 continue
             # 2) data: 前缀的 base64：解析 header 得扩展名后上传 CDN

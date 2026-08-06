@@ -60,7 +60,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **八类职责**：
   1. **前端托管**：托管 `dist/` 静态产物并自动打开浏览器。
   2. **代理转发**：画布所有请求（`proxyMode=local-tool`）的唯一入口 `/api/proxy`，负责协议翻译（剥 `{code,data}` 信封、SSE 过滤、异步转同步、超时），转发给网关或透传给 kkidc。
-  3. **本地存储**：KV、任务、资源、文件 `/files/` 落盘（SQLite）。
+  3. **本地存储**：KV、任务、资源、文件 `/files/` 落盘（**SQLite 即 `sql.js` 本地 WASM，库文件 `~/.maomao-localtool/localtool.db`，非云端**；schema 见 `localTool/src/db/database.ts`，仅 `tasks` 表存生成任务 prompt）。
   4. **接口替换**：自研实现平台接口（`/public/platform/builtin`、`/public/platform/models`、`/plugin/manifest.json`、`/api/workflow-apps/*`、`/api/sync/default` 兜底），**替代官方 1mao 的对应能力**（官方为闭源外部服务，非自研），返回本地静态兜底，不连官方服务，也不实时连 Lovart。
   5. **管理接口**：`/api/admin/*`（统计/清理/导入导出）。
   6. **上传/资产**：`/api/assets/upload`、`/api/upload/app-asset`。
