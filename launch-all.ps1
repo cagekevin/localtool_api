@@ -122,15 +122,21 @@ function Write-Log {
 }
 
 # 端口清理工具（释放被占用的端口）
+# 不限定 State=Listen：仅 Listen 会漏掉「启动中/已崩溃残留」但已绑定该端口的进程，
+# 导致新实例 EADDRINUSE 或旧进程残留。按端口查所有 TCP 连接取 OwningProcess，确保必杀干净。
 function Clear-Port {
     param([int]$Port)
-    $connections = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    $connections = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
     if ($connections) {
         Write-Log "  🧹 端口 $Port 被占用，正在清理旧进程..." "Warn"
         $connections.OwningProcess | Sort-Object -Unique | ForEach-Object {
             Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue
         }
-        Start-Sleep -Seconds 1
+        # 等待端口真正释放，避免新实例因 TIME_WAIT / 进程未退出而绑定失败
+        $deadline = (Get-Date).AddSeconds(5)
+        while ((Get-Date) -lt $deadline -and (Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue)) {
+            Start-Sleep -Milliseconds 200
+        }
     }
 }
 
@@ -174,10 +180,27 @@ function Ensure-NodeEnvironment {
             Where-Object { -not (Test-Path $distIndex) -or $_.LastWriteTime -gt (Get-Item $distIndex -ErrorAction SilentlyContinue).LastWriteTime }
         if ($srcHasNewer) {
             Write-Log "  🛠️ [$Path] 检测到源码更新，正在编译 TypeScript..." "Info"
-            npm run build 2>&1 | Out-Null
+            # 捕获编译输出与退出码：tsc 失败会抛错，这里必须显式检查，
+            # 否则错误被 Out-Null 吞掉，后续 node dist/index.js 启动失败、
+            # Wait-PortReady 只会报"启动超时"，让人误以为是端口时序问题。
+            $buildOutput = npm run build 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Log "  ❌ [$Path] TypeScript 编译失败，中止启动。" "Error"
+                Write-Log "     编译输出：$($buildOutput -join ' | ')" "Error"
+                Pop-Location
+                return $false
+            }
+        }
+        # 编译（或判定无需编译）后，dist\index.js 必须存在；缺失即中止，
+        # 避免"dist 缺失/编译失败但未触发上述分支"时继续启动导致端口空窗卡死。
+        if (-not (Test-Path $distIndex)) {
+            Write-Log "  ❌ [$Path] 编译产物 dist\index.js 不存在，中止启动。" "Error"
+            Pop-Location
+            return $false
         }
     }
     Pop-Location
+    return $true
 }
 
 # 打开画布
@@ -265,8 +288,16 @@ function Start-LocalTool {
     $dir = Join-Path $ScriptDir $Config.LocalTool.Dir
     if (-not (Test-Path $dir)) { Write-Log "❌ 未找到 localTool 目录: $dir" "Error"; return $false }
 
+    # 时序修复：先确保 dist 就绪（build/重建），再清端口杀旧进程。
+    # 否则先 Clear-Port 会把正在运行的旧 localTool 杀掉，端口进入空窗，
+    # 若随后 build 耗时较长，Wait-PortReady 轮询期间端口一直未监听，
+    # 表现为"卡在读取端口状态"。先 build 后杀旧 → 空窗仅剩「杀旧→启新」。
+    # build 失败时直接中止：不杀旧进程、不启动，避免服务空转且无报错。
+    if (-not (Ensure-NodeEnvironment -Path $dir -NeedsBuild)) {
+        Write-Log "  ❌ LocalTool 环境准备失败，已中止启动（保留原服务不动）。" "Error"
+        return $false
+    }
     Clear-Port -Port $Config.LocalTool.Port
-    Ensure-NodeEnvironment -Path $dir -NeedsBuild
 
     if ($RunInForeground) {
         Write-Log "`n🚀 前台运行 LocalTool (端口 $($Config.LocalTool.Port))... [按 Ctrl+C 停止]" "Success"
@@ -294,10 +325,15 @@ function Start-LocalTool {
 
 # 3. 守护模式：同时启动并自动重启
 function Start-Watchdog {
-    # 单实例保护：获取锁失败（已有存活守护进程）则直接退出
+    # 强制重启语义：无论是否已有守护/localTool，按 2 都干净重来一遍。
+    # 先停旧守护（杀进程+删锁），再拿锁，避免被单实例锁挡住导致"开着就不重启"。
+    # Stop-Watchdog 会跳过当前 PID，故此处安全。
+    Stop-Watchdog
     if (-not (Acquire-WatchdogLock)) { exit 1 }
 
     Write-Log "`n📡 正在启动服务群..." "Info"
+    # Start-LocalTool 内部先 Ensure-NodeEnvironment（确保 dist 最新）再无条件 Clear-Port 杀旧启新，
+    # 因此按 2 时 localTool 必然被重启：开着就替换成新进程，没开就启动。网关同理。
     $null = Start-Gateway
     $null = Start-LocalTool
     Start-Sleep -Seconds 1
