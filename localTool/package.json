@@ -10,6 +10,7 @@
     "dev": "tsc && node dist/index.js"
   },
   "dependencies": {
+    "jimp": "^0.22.12",
     "sql.js": "^1.10.3"
   },
   "devDependencies": {

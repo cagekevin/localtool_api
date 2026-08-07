@@ -9,7 +9,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getUploadDir } from '../db/database.js';
-import { ensureDir, sanitizeFilename, resolveUploadTarget, writeUploadBuffer, writeUploadBufferAt, ensureThumbnailTarget } from '../utils/fileStore.js';
+import { ensureDir, sanitizeFilename, resolveUploadTarget, writeUploadBuffer, writeUploadBufferAt, ensureThumbnailTarget, resizeImage } from '../utils/fileStore.js';
 import { json, parseMultipart, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
 import { fetchWithProxy } from '../utils/netProxy.js';
 
@@ -123,7 +123,11 @@ async function tryGenerateThumbnail(filePath: string, _urlPath: string): Promise
 
   const { thumbPath, thumbUrl } = ensureThumbnailTarget(filePath);
   try {
-    if (!fs.existsSync(thumbPath)) fs.copyFileSync(filePath, thumbPath);
+    if (!fs.existsSync(thumbPath)) {
+      // 真实缩放（最长边 ≤256）生成缩略图；jimp 不可用/异常时回退复制原图（兜底，docs/35 §6）
+      const ok = await resizeImage(filePath, thumbPath, { maxDim: 256, quality: 80 });
+      if (!ok) fs.copyFileSync(filePath, thumbPath);
+    }
     return thumbUrl;
   } catch {
     return null;
@@ -232,9 +236,11 @@ export async function handleThumbnail(req: IncomingMessage, res: ServerResponse,
   // 生成缩略图（与 tryGenerateThumbnail 共用 ensureThumbnailTarget）
   const { thumbPath, thumbUrl } = ensureThumbnailTarget(filePath, `${maxDim}x${quality}_`);
 
-  // 简单复制（无 sharp 时）
+  // maxDim/quality 真正参与缩放与压缩（此前仅拼进文件名后缀，见 docs/35 §2.3）；
+  // jimp 不可用/异常时回退复制原图（兜底，docs/19 约束 3「兜底保留」）
   if (!fs.existsSync(thumbPath)) {
-    fs.copyFileSync(filePath, thumbPath);
+    const ok = await resizeImage(filePath, thumbPath, { maxDim, quality });
+    if (!ok) fs.copyFileSync(filePath, thumbPath);
   }
 
   // 返回 JSON {thumbnailUrl: string}，不是直接返回 JPEG 二进制
