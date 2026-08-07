@@ -609,13 +609,18 @@ def _ext_from_content_type(ct: Optional[str]) -> str:
 
 class TaskService:
     @staticmethod
-    async def resolve_attachments(client: LovartClient, raw_urls: list) -> list:
+    async def resolve_attachments(client: LovartClient, raw_urls: list) -> Tuple[list, int]:
         """把各种形式的参考素材统一转成 Lovart 可用的 CDN URL。
 
         覆盖：http(s) 直接透传；data: base64；无前缀裸 base64（JPEG/PNG/GIF/WebP/视频/音频）；
         blob: 等无法访问的丢弃；未知格式丢弃（避免原样透传给 Lovart 导致图生图卡死）。
+
+        返回 (out, failed_count)：out 为成功转出的 CDN URL 列表；
+        failed_count 为「真实上传/下载失败」的素材数（主动 drop 的 blob/未知格式不计入，
+        便于调用方区分「部分失败」与「设计上丢弃」，见方案 A）。
         """
         out = []
+        failed_count = 0
         last_upload_err: Optional[str] = None
         for i, u in enumerate(raw_urls):
             if not u or not isinstance(u, str) or not u.strip():
@@ -638,12 +643,14 @@ class TaskService:
                         cdn = await client.upload_file(f"_local_{uuid.uuid4().hex[:8]}.{ext}", raw)
                     except Exception as e:
                         last_upload_err = str(e)
+                        failed_count += 1
                         _log(f"[resolve:error] 第{i}个本机回环URL下载/上传失败，已丢弃: {u[:160]} -> {e}")
                         continue
                     if cdn:
                         out.append(cdn)
                     else:
                         last_upload_err = "本机图上传CDN返回空"
+                        failed_count += 1
                         _log(f"[resolve:warn] 第{i}个本机回环URL上传CDN返回空，已丢弃: {u[:160]}")
                     continue
                 # 1b) 其余外网 URL：直接透传（正常，不打日志）
@@ -659,6 +666,7 @@ class TaskService:
                 except Exception as e:
                     # 异常：解码或上传抛异常
                     last_upload_err = str(e)
+                    failed_count += 1
                     _log(f"[resolve:error] 第{i}个 data:base64 处理失败: {e}，前80字符={u[:80]!r}")
                     continue
                 if cdn:
@@ -666,6 +674,7 @@ class TaskService:
                 else:
                     # 异常：上传 CDN 返回空
                     last_upload_err = "上传 CDN 返回空"
+                    failed_count += 1
                     _log(f"[resolve:warn] 第{i}个 data:base64 上传CDN返回空，已丢弃")
                 continue
             # 3) 无前缀裸 base64：识别魔数后解码上传 CDN
@@ -677,6 +686,7 @@ class TaskService:
                 except Exception as e:
                     # 异常：解码或上传抛异常
                     last_upload_err = str(e)
+                    failed_count += 1
                     _log(f"[resolve:error] 第{i}个裸base64 解码/上传失败: {e}，前80字符={u[:80]!r}")
                     continue
                 if cdn:
@@ -684,22 +694,25 @@ class TaskService:
                 else:
                     # 异常：上传 CDN 返回空
                     last_upload_err = "上传 CDN 返回空"
+                    failed_count += 1
                     _log(f"[resolve:warn] 第{i}个裸base64 上传CDN返回空，已丢弃")
                 continue
             # 4) 其他（blob: / 本地路径 / 未知）：网关拿不到内容，直接丢弃，
             #    避免把无效 URL 原样透传给 Lovart 造成图生图一直 running
             _log(f"[resolve:drop] 第{i}个参考素材无法识别，已丢弃（不再透传给Lovart）: {str(u)[:160]}")
         _log(f"[resolve:end] 翻译完成，产出 {len(out)} 个 attachment")
-        # 兜底：参考素材本应上传，却全部失败 → 抛出清晰业务错误，避免前端收到笼统 502
-        # （仅当存在 base64 且上传失败时触发；URL 透传/主动丢弃不属此列）
-        if raw_urls and not out and last_upload_err:
+        # 方案 A（2026-08-07）：只要存在「真实上传/下载失败」的参考素材（failed_count>0），
+        # 即阻断发出——垫图不齐就不应把「有参考图」的生成请求发出去，否则 Lovart 收不到完整
+        # 垫图、prompt 却声称有参考图，生成结果与用户意图偏差且无法察觉。
+        # 主动 drop（blob:/未知格式）与 URL 透传不计入 failed_count，不受此阻断影响。
+        if raw_urls and failed_count > 0:
             raise LovartError(
-                "参考素材上传失败，无法进行图生图/图生视频。"
+                f"有 {failed_count} 个参考素材上传失败，无法进行图生图/图生视频。"
                 "请确认已开启 VPN 或检查网络后重试（代理重传也失败）。"
                 f"详情: {last_upload_err}",
                 502,
             )
-        return out
+        return out, failed_count
 
     @staticmethod
     async def send_with_project(client: LovartClient, **kwargs) -> Tuple[str, str]:
@@ -910,7 +923,8 @@ async def chat_completions(request: Request, client: LovartClient = Depends(get_
     stream = body.get("stream", True)
 
     async def run_and_get():
-        attachments = await TaskService.resolve_attachments(client, vision_urls) if vision_urls else None
+        # 方案 A：resolve_attachments 返回 (out, failed_count)；failed_count>0 已抛错阻断。
+        attachments = (await TaskService.resolve_attachments(client, vision_urls))[0] if vision_urls else None
         try:
             await client.set_mode(unlimited=False)
         except LovartError:
@@ -1076,7 +1090,9 @@ async def _do_submit(client, body: dict, category: str, tid: str = None):
              f"audios={len(DataFormatter.extract_raw_urls(body.get('audios') or body.get('reference_audios')))} "
              f"files={len(DataFormatter.extract_raw_urls_from_files(body.get('files')))} "
              f"=> raw_urls合计={len(raw_urls)}")
-    attachments = await TaskService.resolve_attachments(client, raw_urls)
+    # 方案 A：resolve_attachments 返回 (out, failed_count)；failed_count>0 时内部已抛 LovartError 阻断，
+    # 故此处正常到达即说明参考素材全部就绪（或本就无参考素材）。attachments 即成功转出的 CDN 列表。
+    attachments, _failed = await TaskService.resolve_attachments(client, raw_urls)
     prefer = DataFormatter.resolve_prefer_models(body.get("model", ""), category)
     webhook = body.get("webhook")
 
