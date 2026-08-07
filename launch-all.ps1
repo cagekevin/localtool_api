@@ -166,9 +166,16 @@ function Ensure-NodeEnvironment {
         Write-Log "  📦 [$Path] 首次运行，正在安装依赖..." "Info"
         npm install 2>&1 | Out-Null
     }
-    if ($NeedsBuild -and -not (Test-Path "dist\index.js")) {
-        Write-Log "  🛠️ [$Path] 正在编译 TypeScript..." "Info"
-        npm run build 2>&1 | Out-Null
+    if ($NeedsBuild) {
+        # 仅在 dist 缺失，或 src 下存在比 dist 更新的 .ts 源文件时重新编译。
+        # 避免"dist 已存在就永远不 build"导致改源码后启动仍跑旧代码。
+        $distIndex = Join-Path $Path "dist\index.js"
+        $srcHasNewer = Get-ChildItem (Join-Path $Path "src") -Recurse -File -Filter "*.ts" -ErrorAction SilentlyContinue |
+            Where-Object { -not (Test-Path $distIndex) -or $_.LastWriteTime -gt (Get-Item $distIndex -ErrorAction SilentlyContinue).LastWriteTime }
+        if ($srcHasNewer) {
+            Write-Log "  🛠️ [$Path] 检测到源码更新，正在编译 TypeScript..." "Info"
+            npm run build 2>&1 | Out-Null
+        }
     }
     Pop-Location
 }
