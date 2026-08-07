@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getDb, getUploadDir, queryAll, queryOne, run, debouncedSaveDb, deleteLocalFile } from '../db/database.js';
 import { json, parseJsonBody, sendError, parsePagination, buildPaginatedQuery, paginatedResult } from '../utils/helpers.js';
+import { writeUploadBuffer } from '../utils/fileStore.js';
 
 // ── rescan：扫描 upload 目录，把磁盘文件/文件夹元数据同步进 resources 表 ──
 const RESCAN_FILE_TYPE: Record<string, string> = {
@@ -22,6 +23,35 @@ const RESCAN_FILE_TYPE: Record<string, string> = {
 
 function extToFileType(ext: string): string | null {
   return RESCAN_FILE_TYPE[ext.toLowerCase()] || null;
+}
+
+// MIME → 扩展名（dataURL 落盘时需要）。不在表内的兜底用 .bin。
+const MIME_TO_EXT: Record<string, string> = {
+  'image/png': '.png', 'image/jpeg': '.jpg', 'image/jpg': '.jpg', 'image/webp': '.webp',
+  'image/gif': '.gif', 'image/bmp': '.bmp', 'image/svg+xml': '.svg',
+  'video/mp4': '.mp4', 'video/webm': '.webm', 'video/quicktime': '.mov', 'video/x-msvideo': '.avi', 'video/x-matroska': '.mkv',
+  'audio/mpeg': '.mp3', 'audio/wav': '.wav', 'audio/x-wav': '.wav', 'audio/flac': '.flac', 'audio/ogg': '.ogg', 'audio/x-m4a': '.m4a',
+  'text/markdown': '.md', 'text/plain': '.txt',
+};
+
+/**
+ * 把 dataURL（形如 data:<mime>;base64,xxxx）解成二进制 Buffer，并给出扩展名。
+ * @returns null 表示不是可解析的 dataURL
+ */
+function decodeDataUrl(dataUrl: string): { buffer: Buffer; ext: string } | null {
+  const m = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(dataUrl);
+  if (!m || !m[3]) return null;
+  const mime = (m[1] || '').toLowerCase();
+  const isBase64 = !!m[2];
+  let buffer: Buffer;
+  try {
+    buffer = isBase64 ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf8');
+  } catch {
+    return null;
+  }
+  if (buffer.length === 0) return null;
+  const ext = MIME_TO_EXT[mime] || (isBase64 && mime.startsWith('image/') ? '.bin' : '.bin');
+  return { buffer, ext };
 }
 
 // 本地工具服务基址：资源面板运行在 chrome-extension:// 页面，
@@ -182,6 +212,24 @@ export async function handleResourcesGet(req: IncomingMessage, res: ServerRespon
 export async function handleResourcesSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = (await parseJsonBody(req)) as Record<string, unknown> | null;
   if (!body || !body.id) return sendError(res, 'Missing id field', 400);
+
+  // dataURL 素材（剪贴板粘贴等）：先解码落盘为真实文件，再入库。
+  // 否则只把 dataURL 长字符串塞进 SQLite、磁盘 upload/ 无文件，刷新/重开页面后素材会丢。
+  // 落盘后 URL 改写为 18080 文件地址，与 ci/hi/rescan 共用同一文件体系，删除/备份也统一。
+  if (typeof body.url === 'string' && body.url.startsWith('data:')) {
+    const decoded = decodeDataUrl(body.url);
+    if (decoded) {
+      const folder = typeof body.folder === 'string' && body.folder ? body.folder : 'migrated';
+      const filename = `clip-${Date.now()}${decoded.ext}`;
+      try {
+        const { urlPath } = writeUploadBuffer(folder, filename, decoded.buffer);
+        body.url = toAbsoluteFileUrl(urlPath);
+      } catch (e) {
+        // 落盘失败不阻断：仍按原 dataURL 入库，避免前端报错
+        console.error(`[resources] save dataURL 落盘失败，按原样入库:`, e);
+      }
+    }
+  }
 
   const db = await getDb();
   upsertResource(db, resourceToRow(body));
