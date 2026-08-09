@@ -225,6 +225,44 @@ CodeBuddy 的 skill 本质是「一段预设的指令 + 触发描述」。映射
 ```
 > ⚠️ SOP 提醒：`test:e`（npm React）与 Chrome 用的 vendor React **不等价**，真机验证不可跳过——本项目的 `test:smoke` 同理，最终以 Chrome 真机为准。
 
+### 7.5 渐进式路线图 + 翻车铁律（借鉴 maomao 拆分计划，**勿全量重写**）
+
+> maomao `docs/拆分计划.md` 用**真实多次翻车**证明：混淆还原工程「整块迁移/全量重写」必踩 TDZ/初始化依赖链崩。对本次 AI 助手重设计 + 后续任何混淆码改造，**必须渐进式，不能全量**。
+
+#### 7.5.1 为什么不能「把每个文件都重写」（maomao 实测铁律）
+
+| maomao 翻车 | 现象 | 根因 | 对本项目（11 万行）的影响 |
+|---|---|---|---|
+| #6/#7 editorStore 整块迁移 2094 行 | `Cannot access 'Lj' before initialization` TDZ | 改变 ES module 加载图，打乱 `let/const` 初始化顺序 | `src/bundle` 的 `shared.js`（34k/11k 行）+ 跨文件互相 import 正是这种「不可分割有机体」，全量迁移会密集触发 |
+| #16 提取 48 行共享函数 `si` | build 过但运行时 `Bd is not a function`，扩展打不开 | 模块级函数间隐式初始化依赖链，抽任何函数都改变加载图 | `lr`/`dr`/30 工具等被高频依赖的共享函数**绝不可抽** |
+| #9 新文件 import App.js | 循环依赖 TDZ | App.js 无命名导出，加 export 再 import 必然循环 | 新面板不 import 顶层大 chunk（已在 §五 约束） |
+
+> **结论**：你问的「把每个文件都重新写、重写事件总线、每个文件改 CSS」——**非常麻烦且高风险**（maomao 实证），且官方每次发新版会冲掉所有重写。正确路径是下面 7.5.2 的「渐进式」。
+
+#### 7.5.2 渐进式路线图（maomao §8~§11 精化，对应本项目）
+
+```
+① 注释化/可读化（先建地图，再动手）     ← docs/36 已落地（symbol_map.json + 注释）
+② 语义化重命名（切和改分离，逐个评估）   ← 只改引用范围可控的本地短名
+③ vendor 翻译层（不删 vendor，只加映射） ← 远期：vendor-readable.js 映射标准库名
+④ 新代码直连标准库（新组件语义名）        ← 本次 Skill/新面板就从此步开始
+⑤ 旧代码按需替换（逐个换，不一次全换）   ← 只重写要改的组件（如 _Component40）
+```
+
+**本项目落地建议**：
+- **本次（AI 助手重设计 + Skill）只做 ④ + ⑤ 的"按需"子集**：新面板用语义名 + 自包含 CSS + 事件总线（§3.1 SOP），`_Component40` 只重写要改的部分，其余官方组件不动。
+- **③ vendor 翻译层**：远期才做（当前新组件已能 `import { useState } from 'react'`，通过 `_react_shim`/`_jsx_runtime` 单实例 alias 支持，见 CLAUDE.md §五.4）。
+- **绝不碰**：`shared.js` 聚合、`lr` 执行器、30 工具、vendor/运行时——它们是「不可分割有机体」。
+
+#### 7.5.3 翻车铁律速记（实施时避坑）
+
+1. **被高频依赖的共享函数不可从 chunk 抽取**（`lr`/`dr`/`ar`/30 工具）——抽了必崩。
+2. **不能从新文件 import 顶层大 chunk**（TDZ）——用事件总线或从 `component_map.json` 指定文件 import。
+3. **整块迁移几千行必翻车**（store+helper 不可分割）——只做最小差异。
+4. **`npm run build` 通过 ≠ 没回归**——必须 Chrome 真机验证（vendor React 不等价 npm React）。
+5. **先理解再动手**（注释化/symbol_map 先建地图）——直接拆不懂的代码是 maomao 翻车根因。
+6. **官方更新会冲掉所有重写**——重写只针对「确认要改的」组件，且登记到 docs/01 变更台账。
+
 ---
 
 ## 附：相关文档索引
@@ -236,3 +274,4 @@ CodeBuddy 的 skill 本质是「一段预设的指令 + 触发描述」。映射
 - `src/bundle/App-BX6o9fW5_components/shared.js:1270 or[]` / `:1896 lr`：30 工具 schema / 执行器（**不动**）。
 - `localTool/src/routes/agentChat.ts`：`/api/agent/:id/chat` 后端（已落地）。
 - `/Users/kevin/Documents/maomao/docs/SOP-代码拆解标准流程.md`：同源混淆还原工程的拆解方法论（自包含 CSS / 事件总线 / 前置检查 / 大块删除用脚本）——§七 已摘要点。
+- `/Users/kevin/Documents/maomao/docs/拆分计划.md`：同源混淆还原工程的渐进式拆分路线图 + 翻车铁律（**勿全量重写**，TDZ/初始化链）——§7.5 已摘要点。
