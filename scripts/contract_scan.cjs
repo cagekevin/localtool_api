@@ -14,7 +14,7 @@ const SNAP_PATH = path.join(ROOT, 'scripts/contract_snapshot.json');
 const CONTRACTS_MD = path.join(ROOT, 'CONTRACTS.md');
 
 // 始终排除的目录/文件
-const EXCLUDE = ['node_modules', 'dist', 'docs/逆向专用_ai 禁止读'];
+const EXCLUDE = ['node_modules', 'dist', 'docs/逆向专用_ai 禁止读', 'symbol_map.json'];
 function inExclude(p) {
   return EXCLUDE.some((e) => p.split('/').includes(e) || p.includes('/' + e + '/'));
 }

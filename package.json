@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "map": "node scripts/gen_bundle_map.cjs",
+    "ask": "node scripts/ai_ask.cjs",
     "contracts": "node scripts/contract_scan.cjs",
     "test:smoke": "node scripts/smoke_test.cjs",
     "health": "node scripts/health-check.cjs"

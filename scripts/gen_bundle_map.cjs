@@ -1,8 +1,8 @@
 'use strict';
-// 地图生成器：自动扫描 src/bundle/ 生成 BUNDLE_MAP.md（AI 检索入口）。
-// 解决两层问题：① 文件名混淆看不懂（AI 靠特征反查落点）；② 改一处漏一处（反向索引 + 高危文件标记）。
+// 地图生成器：自动扫描 src/bundle/ 生成 BUNDLE_MAP.md（AI 检索入口）+ symbol_map.json（符号级索引）。
+// 解决三层问题：① 文件名混淆看不懂（AI 靠特征反查落点）；② 改一处漏一处（反向索引 + 高危文件标记）；③ 短名/匿名组件不知道干嘛（符号级索引：混淆名 → 用途 → 落点 → 行号）。
 // 用法：node scripts/gen_bundle_map.cjs   （或 npm run map）
-// 不读 docs/逆向专用_ai 禁止读/，不依赖任何运行时包。
+// 不读 docs/逆向专用_ai 禁止读/，不依赖任何运行时包（用途推断用纯正则，借鉴 archived/tools/summarize.cjs 思路）。
 const fs = require('fs');
 const path = require('path');
 
@@ -104,7 +104,68 @@ function extractFeatures(file) {
   return feats;
 }
 
+// 顶层符号提取（函数/变量声明）+ 用途推断（纯正则，零依赖）
+// 借鉴 archived/tools/summarize.cjs 的 inferPurpose 思路：从中文文案/hooks/API 调用/data 字段反推语义。
+function extractSymbols(file) {
+  const c = file.content;
+  const lines = c.split('\n');
+  const syms = [];
+  const re = /^(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:function|const|let|var)\s+([A-Za-z0-9_$]+)\s*(?:=|\(|\{)/gm;
+  let m;
+  while ((m = re.exec(c))) {
+    const name = m[1];
+    // 行号
+    let line = 1;
+    for (let i = 0; i <= m.index; i++) if (c[i] === '\n') line++;
+    // 取该符号的源码片段（从声明起 ~40 行内，用于推断）
+    const start = m.index;
+    let end = c.indexOf('\n', start);
+    let depth = 0, braceStart = -1, found = false;
+    for (let i = start; i < c.length && i < start + 40000; i++) {
+      if (c[i] === '{') { depth++; if (braceStart < 0) braceStart = i; }
+      else if (c[i] === '}') { depth--; if (depth === 0 && braceStart >= 0) { end = i + 1; found = true; break; } }
+    }
+    if (!found) end = Math.min(c.length, start + 3000);
+    const body = c.slice(start, end);
+    syms.push({ name, line, body });
+  }
+  // 对每个符号推断用途
+  for (const s of syms) s.role = inferSymbolRole(s.body, file);
+  return syms;
+}
+
+// 推断单个符号/文件的用途（返回中文短标签）
+function inferSymbolRole(body, file) {
+  const clues = [];
+  // 中文文案（UI 组件/面板）
+  const cn = [...body.matchAll(/>([\u4e00-\u9fff][\u4e00-\u9fff\s，。！？、；：""''（）《》\-+]{1,})/g)].map((x) => x[1].trim());
+  if (cn.length >= 2) clues.push('UI:' + [...new Set(cn)].slice(0, 4).join('|'));
+  // hooks → 组件
+  const hooks = [...new Set(body.match(/\b(use[A-Z]\w+)\s*[\(<]/g) || [])].map((h) => h.replace(/[\s(<]/g, ''));
+  if (hooks.length) clues.push('hooks:' + hooks.slice(0, 6).join(','));
+  // API 路径
+  const apis = [...new Set(body.match(/\/api\/[a-zA-Z0-9_/-]+|\/v1\/[a-zA-Z0-9_/-]+|\/public\/[a-zA-Z0-9_/-]+|\/files\/[a-zA-Z0-9_/-]*/g) || [])];
+  if (apis.length) clues.push('api:' + apis.slice(0, 4).join(','));
+  // 契约键（local-tool / proxyMode 等）
+  if (/\blocal-tool\b/.test(body)) clues.push('local-tool');
+  if (/\bproxyMode\b/.test(body)) clues.push('proxyMode');
+  // data 字段（区分"读/写节点数据"）
+  const fields = [...new Set([...body.matchAll(/(?:data|n|t)\.([A-Za-z][A-Za-z0-9]{2,})/g)].map((x) => x[1]))].filter((f) => !['type', 'id', 'label', 'selected', 'expanded', 'loading', 'hasChanged', 'width', 'height'].includes(f));
+  if (fields.length) clues.push('字段:' + fields.slice(0, 6).join(','));
+  // fetch 调用
+  if (/\bfetch\(/.test(body)) clues.push('fetch');
+  // 事件发布
+  if (/dispatchEvent|window\.postMessage/.test(body)) clues.push('派发事件');
+  if (!clues.length) {
+    // 无特征：可能是纯工具函数，标"无特征（工具/空壳）"
+    if (body.trim().length < 200) return '短函数';
+    return '';
+  }
+  return clues.join(' · ');
+}
+
 for (const f of allCompFiles) f.feats = extractFeatures(f);
+for (const f of allCompFiles) f.symbols = extractSymbols(f);
 
 // 反向索引：契约字符串 -> 文件
 const REVERSE_KEYS = ['/api/proxy', '18080', '9004', '/public/platform', 'transitResources', 'active_api_endpoint', 'canvas-state-v1', 'proxyMode', 'local-tool', 'x-proxy-url'];
@@ -286,15 +347,112 @@ for (const dom of DOMAINS) {
   L.push('');
 }
 
-L.push('## 八、重建命令');
+// ---- 符号级索引（第八章，AI 按功能反查符号+落点）----
+// 生成 symbol_map.json（全局符号 → 文件/行号/用途/被引用数），并在 BUNDLE_MAP.md 内嵌高价值符号表。
+const SYMBOL_MAP = {};
+for (const f of allCompFiles) {
+  for (const s of f.symbols) {
+    // 去重：同名符号可能跨文件（同名影子），统一存数组
+    const key = s.name;
+    (SYMBOL_MAP[key] = SYMBOL_MAP[key] || []).push({
+      file: f.rel,
+      line: s.line,
+      role: s.role,
+      apis: [...f.feats.apis].slice(0, 3),
+    });
+  }
+}
+// 写入 symbol_map.json（供工具/脚本查询，不内嵌进 md 以免过大）
+const SYMBOL_JSON_PATH = path.join(BUNDLE, 'symbol_map.json');
+try {
+  fs.writeFileSync(SYMBOL_JSON_PATH, JSON.stringify(SYMBOL_MAP, null, 2));
+} catch (e) { console.warn('[symbol_map.json 写入失败]', e.message); }
+
+// 选择内嵌 md 的高价值符号：优先"有实质用途"（api/hooks/UI/fetch 等），排除无用的短函数噪音；
+// 同名×N 反而降低优先级（影子文件，AI 更需谨慎，不属于"优先看"）。
+function symbolScore(entries) {
+  let score = 0;
+  for (const e of entries) {
+    const r = e.role || '';
+    // 噪音：短函数 / 无特征 —— 不计分
+    if (!r || r === '短函数') continue;
+    // 实质用途加分（api/hooks/UI/fetch/local-tool/proxyMode 是强信号）
+    if (/api:|hooks:|UI:|local-tool|proxyMode|fetch|派发事件/.test(r)) score += 12;
+    else if (/字段:/.test(r)) score += 4;
+    else score += 6;
+  }
+  return score;
+}
+const rankedSymbols = Object.entries(SYMBOL_MAP)
+  .map(([name, entries]) => ({ name, entries, score: symbolScore(entries) }))
+  .filter((s) => s.score > 0) // 只留至少一个"有实质用途"的符号
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 40);
+
+L.push('## 八、符号级索引（混淆名 → 用途 → 落点，AI 反查用）');
+L.push('');
+L.push('> 自动生成。`src/bundle/symbol_map.json` 是**全量**符号表（所有顶层函数/变量 → 文件/行号/用途），本文只内嵌**最有用的前 40 个**（带用途、被引用多的，尤其聚合导出与同名影子）。');
+L.push('> **怎么用**：看到一个短名（`Bl`/`Vr`/`_Component128`）不知干嘛 → 查本表或 `symbol_map.json` → 直接得用途 + 落点 + 行号，不靠猜。');
+L.push('> ⚠️ 行号为**定义位置**；同名符号可能跨文件（同名影子），改前务必确认是哪个文件。');
+L.push('');
+L.push('| 符号 | 用途/角色 | 落点（文件:行） |');
+L.push('|---|---|---|');
+for (const s of rankedSymbols) {
+  const first = s.entries.find((e) => e.role) || s.entries[0];
+  const role = first.role || '—';
+  const allLocs = s.entries.map((e) => `\`${e.file}:${e.line}\``).join(' · ');
+  const extra = s.entries.length > 1 ? ` ⚠同名×${s.entries.length}` : '';
+  L.push(`| \`${s.name}\`${extra} | ${role.replace(/\|/g, ' / ')} | ${allLocs} |`);
+}
+L.push('');
+L.push('> 全量符号（含无用途推断的短函数）见 `src/bundle/symbol_map.json`。');
+L.push('');
+
+L.push('## 九、重建命令');
 L.push('');
 L.push('```bash');
-L.push('npm run map        # 重建本图');
+L.push('npm run map        # 重建本图 + symbol_map.json');
 L.push('npm run contracts  # 校验契约全端同步（漏改检测）');
 L.push('npm run contracts -- --resnap  # 混淆重排后重建基线');
 L.push('```');
 L.push('');
 
 fs.writeFileSync(OUT, L.join('\n'));
+
+// ---- AI_NAVIGATION.md（AI 改代码第一站：极简导航，主推 npm run ask）----
+// 目的：让 AI 只记一条必用命令，其余靠它自动取用生成物，零记忆成本。
+const NAV = [];
+NAV.push('# AI_NAVIGATION.md · AI 改代码第一站（极简导航）');
+NAV.push('');
+NAV.push('> 自动生成（scripts/gen_bundle_map.cjs）。**改 `src/bundle/` 前先看本表**，别凭混淆文件名猜。');
+NAV.push('');
+NAV.push('## 一、遇到"X 是啥" → 只记这一条命令（必用）');
+NAV.push('');
+NAV.push('```');
+NAV.push('npm run ask -- symbol <短名>      # 查符号：用途 + 落点 + 同名影子警示');
+NAV.push('npm run ask -- contract <键>      # 查契约：影响哪些文件/端');
+NAV.push('npm run ask -- file <关键词>      # 查功能/特征：进哪个文件');
+NAV.push('```');
+NAV.push('');
+NAV.push('改码前不确定任何东西，先跑 `npm run ask`，答案秒出，不用自己翻大文件。');
+NAV.push('');
+NAV.push('## 二、改动完成验证');
+NAV.push('');
+NAV.push('```');
+NAV.push('npm run test:smoke    # 契约漂移/React单实例/chunk完整性');
+NAV.push('npm run build        # 回灌 dist/');
+NAV.push('```');
+NAV.push('');
+NAV.push('## 三、铁律速记');
+NAV.push('');
+NAV.push('- **运行时只认 `dist/`**，改前端一律改 `src/bundle/` 后 `npm run build` 回灌。');
+NAV.push('- **BUNDLE_MAP.md / symbol_map.json / CONTRACTS.md 是自动生成物，禁止手改**（`npm run map` / `npm run contracts` 重建）。');
+NAV.push('- **React 单实例不可破**（`_react_shim.js`/`_jsx_runtime.js`/`vendor` 勿改）；**字符串契约零损伤**。');
+NAV.push('');
+const NAV_OUT = path.join(BUNDLE, 'AI_NAVIGATION.md');
+fs.writeFileSync(NAV_OUT, NAV.join('\n'));
+
 console.log('✓ 地图已生成 → src/bundle/BUNDLE_MAP.md');
-console.log(`  顶层 chunk: ${topChunks.length}, _components 目录: ${compDirs.length}, 组件文件: ${allCompFiles.length}, 大文件(>500行): ${big.length}, 高危文件标记: ${topDeps.length}`);
+console.log('✓ 符号表已生成 → src/bundle/symbol_map.json');
+console.log('✓ AI 导航已生成 → src/bundle/AI_NAVIGATION.md');
+console.log(`  顶层 chunk: ${topChunks.length}, _components 目录: ${compDirs.length}, 组件文件: ${allCompFiles.length}, 大文件(>500行): ${big.length}, 高危文件标记: ${topDeps.length}, 符号: ${Object.keys(SYMBOL_MAP).length}`);

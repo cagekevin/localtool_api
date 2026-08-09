@@ -215,10 +215,61 @@
 | `httpClient-BknZwXjG_components/H_.jsx` | 12746 | /v1/chat/completions /v1/draw/completions |
 | `App-BX6o9fW5_components/shared.js` | 3088 | /v1/video/generations/ /v1/videos/ |
 
-## 八、重建命令
+## 八、符号级索引（混淆名 → 用途 → 落点，AI 反查用）
+
+> 自动生成。`src/bundle/symbol_map.json` 是**全量**符号表（所有顶层函数/变量 → 文件/行号/用途），本文只内嵌**最有用的前 40 个**（带用途、被引用多的，尤其聚合导出与同名影子）。
+> **怎么用**：看到一个短名（`Bl`/`Vr`/`_Component128`）不知干嘛 → 查本表或 `symbol_map.json` → 直接得用途 + 落点 + 行号，不靠猜。
+> ⚠️ 行号为**定义位置**；同名符号可能跨文件（同名影子），改前务必确认是哪个文件。
+
+| 符号 | 用途/角色 | 落点（文件:行） |
+|---|---|---|
+| `ar` ⚠同名×3 | 字段:json,status · fetch | `App-BX6o9fW5_components/shared.js:1248` · `httpClient-BknZwXjG_components/shared.js:319` · `src-_qSScO88_components/shared.js:4240` |
+| `m` ⚠同名×3 | 字段:fromEntries,entries | `src-_qSScO88_components/shared.js:81` · `mediabunny-mp3-encoder-CZeRAvEV.js:102` · `endpointConfig-Bt85xi8d.js:84` |
+| `Rn` ⚠同名×3 | 字段:text,query,caption,style,resolution,videoDuration | `App-BX6o9fW5_components/shared.js:924` · `httpClient-BknZwXjG_components/shared.js:114` · `src-_qSScO88_components/shared.js:3223` |
+| `dr` ⚠同名×3 | hooks:useState,useRef,useEffect,useCallback · 字段:push,tool,error,index,function,name · fetch | `App-BX6o9fW5_components/shared.js:2537` · `httpClient-BknZwXjG_components/shared.js:399` · `src-_qSScO88_components/shared.js:4573` |
+| `Or` ⚠同名×3 | 字段:set,keys,toString | `App-BX6o9fW5_components/shared.js:2975` · `httpClient-BknZwXjG_components/shared.js:714` · `src-_qSScO88_components/shared.js:4916` |
+| `Cn` ⚠同名×2 | hooks:useState,useEffect,useMemo · 字段:trim,displayCategory,name,description,items,value | `App-BX6o9fW5_components/Cn.jsx:5` · `src-_qSScO88_components/shared.js:2582` |
+| `Vr` ⚠同名×3 | hooks:useMemo,useEffect,useState,useRef,useCallback · 字段:current,items,total,totalPages,page | `App-BX6o9fW5_components/Vr.jsx:30` · `httpClient-BknZwXjG_components/shared.js:840` · `src-_qSScO88_components/shared.js:7200` |
+| `Bt` ⚠同名×2 | 字段:text,status · fetch | `App-BX6o9fW5_components/shared.js:434` · `src-_qSScO88_components/shared.js:1737` |
+| `Fn` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:902` · `httpClient-BknZwXjG_components/shared.js:52` · `src-_qSScO88_components/shared.js:3087` |
+| `Jn` ⚠同名×2 | 字段:nodes,entries,has,videoDurations,discountVideoModel,sd2VideoModel | `App-BX6o9fW5_components/shared.js:1079` · `httpClient-BknZwXjG_components/shared.js:189` |
+| `or` ⚠同名×3 | api:/api/tasks/delete · fetch | `App-BX6o9fW5_components/shared.js:1270` · `httpClient-BknZwXjG_components/shared.js:336` · `src-_qSScO88_components/shared.js:4381` |
+| `sr` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:1890` · `httpClient-BknZwXjG_components/shared.js:346` · `src-_qSScO88_components/shared.js:4534` |
+| `cr` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:1893` · `httpClient-BknZwXjG_components/shared.js:370` · `src-_qSScO88_components/shared.js:4535` |
+| `ur` ⚠同名×3 | hooks:useState,useRef,useEffect,useCallback · 字段:push,tool,error,index,function,name · fetch | `App-BX6o9fW5_components/shared.js:2536` · `httpClient-BknZwXjG_components/shared.js:392` · `src-_qSScO88_components/shared.js:4572` |
+| `fr` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:2909` · `httpClient-BknZwXjG_components/shared.js:434` · `src-_qSScO88_components/shared.js:4574` |
+| `pr` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:2910` · `httpClient-BknZwXjG_components/shared.js:435` · `src-_qSScO88_components/shared.js:4575` |
+| `mr` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:2911` · `httpClient-BknZwXjG_components/shared.js:459` · `src-_qSScO88_components/shared.js:4576` |
+| `hr` ⚠同名×3 | 短函数 | `App-BX6o9fW5_components/shared.js:2912` · `httpClient-BknZwXjG_components/shared.js:478` · `src-_qSScO88_components/shared.js:4624` |
+| `br` ⚠同名×3 | hooks:useContext | `App-BX6o9fW5_components/shared.js:2929` · `httpClient-BknZwXjG_components/shared.js:505` · `src-_qSScO88_components/shared.js:4833` |
+| `Nr` ⚠同名×3 | api:/api/resources/clear · 字段:json · fetch | `App-BX6o9fW5_components/shared.js:3046` · `httpClient-BknZwXjG_components/shared.js:771` · `src-_qSScO88_components/shared.js:4955` |
+| `Pr` ⚠同名×3 | api:/api/resources/rescan · fetch | `App-BX6o9fW5_components/shared.js:3068` · `httpClient-BknZwXjG_components/shared.js:772` · `src-_qSScO88_components/shared.js:4956` |
+| `Z` ⚠同名×2 | api:/api/jianying/send · 字段:json,status,message,error,includes · fetch | `httpClient-BknZwXjG_components/shared.js:51` · `src-_qSScO88_components/shared.js:24493` |
+| `xr` ⚠同名×2 | hooks:useContext | `httpClient-BknZwXjG_components/shared.js:510` · `src-_qSScO88_components/shared.js:4841` |
+| `$r` ⚠同名×2 | api:/files/resources/ · 字段:indexOf,slice | `httpClient-BknZwXjG_components/shared.js:1576` · `src-_qSScO88_components/shared.js:7867` |
+| `ei` ⚠同名×2 | api:/api/status · 字段:clone · fetch | `httpClient-BknZwXjG_components/shared.js:1599` · `src-_qSScO88_components/shared.js:7917` |
+| `ti` ⚠同名×2 | api:/api/status · 字段:clone · fetch | `httpClient-BknZwXjG_components/shared.js:1600` · `src-_qSScO88_components/shared.js:7961` |
+| `Xi` ⚠同名×2 | api:/public/platform/models · fetch | `httpClient-BknZwXjG_components/shared.js:2458` · `src-_qSScO88_components/shared.js:11185` |
+| `$a` ⚠同名×2 | 字段:success,data · fetch | `httpClient-BknZwXjG_components/shared.js:3268` · `src-_qSScO88_components/shared.js:15432` |
+| `eo` ⚠同名×2 | 字段:success,data · fetch | `httpClient-BknZwXjG_components/shared.js:3287` · `src-_qSScO88_components/shared.js:15461` |
+| `to` ⚠同名×2 | 字段:status,json · fetch | `httpClient-BknZwXjG_components/shared.js:3304` · `src-_qSScO88_components/shared.js:15464` |
+| `io` ⚠同名×2 | 派发事件 | `httpClient-BknZwXjG_components/shared.js:3355` · `src-_qSScO88_components/shared.js:15610` |
+| `ao` ⚠同名×2 | 派发事件 | `httpClient-BknZwXjG_components/shared.js:3356` · `src-_qSScO88_components/shared.js:15611` |
+| `js` ⚠同名×2 | api:/v1/audio/transcriptions · 字段:trim,error,word,start,end · fetch | `httpClient-BknZwXjG_components/shared.js:4368` · `src-_qSScO88_components/shared.js:18901` |
+| `zl` ⚠同名×2 | api:/api/proxy | `httpClient-BknZwXjG_components/shared.js:6089` · `src-_qSScO88_components/shared.js:24042` |
+| `Bl` ⚠同名×2 | api:/api/files/read,/api/proxy · local-tool · proxyMode · 字段:body,proxyMode,localPort,localToolBaseUrl,method,headers · fetch | `httpClient-BknZwXjG_components/shared.js:6097` · `src-_qSScO88_components/shared.js:24043` |
+| `Gl` ⚠同名×2 | hooks:useContext,useState,useCallback,useEffect · api:/api/status,/api/files/upload,/api/kv/set,/api/kv/get · 字段:status,version,message,isConnected,statusText,json · fetch | `httpClient-BknZwXjG_components/shared.js:6207` · `src-_qSScO88_components/shared.js:24243` |
+| `_f` ⚠同名×2 | hooks:useRef,useCallback,useEffect · 字段:current | `httpClient-BknZwXjG_components/shared.js:9397` · `src-_qSScO88_components/shared.js:28794` |
+| `p` ⚠同名×3 | 短函数 | `src-_qSScO88_components/shared.js:73` · `mediabunny-mp3-encoder-CZeRAvEV.js:73` · `endpointConfig-Bt85xi8d.js:65` |
+| `h` ⚠同名×3 | 短函数 | `src-_qSScO88_components/shared.js:86` · `mediabunny-mp3-encoder-CZeRAvEV.js:105` · `endpointConfig-Bt85xi8d.js:92` |
+| `_Component24` ⚠同名×2 | hooks:useState,useEffect,useMemo · 字段:name | `App-BX6o9fW5_components/_Component24.jsx:6` · `httpClient-BknZwXjG_components/_Component24.jsx:4` |
+
+> 全量符号（含无用途推断的短函数）见 `src/bundle/symbol_map.json`。
+
+## 九、重建命令
 
 ```bash
-npm run map        # 重建本图
+npm run map        # 重建本图 + symbol_map.json
 npm run contracts  # 校验契约全端同步（漏改检测）
 npm run contracts -- --resnap  # 混淆重排后重建基线
 ```
