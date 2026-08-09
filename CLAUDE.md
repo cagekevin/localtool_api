@@ -91,6 +91,44 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 
 ## 三、 修改代码步骤与提交前验证流程（不跑不许提交）
 
+### 3.0 先分清两类代码：改「混淆还原」 vs 新建「自研」（SOP 不同）
+
+> **AI 动手前先判断这次改的是哪类代码，用对应 SOP。** 混淆还原码和自研新代码的约束完全不同，混用会踩坑。
+
+| 场景 | 代表位置 | 命名 | SOP |
+|---|---|---|---|
+| **① 改/扩官方混淆码** | `src/bundle/*_components/` 内**已有**的混淆文件（`H_.jsx`/`shared.js`/`_Component40.jsx` 等） | **沿用混淆名**，改动处加语义注释 + 原名（如 `// ol = tasks 数组`） | 走本 §三 + §五.4（最小差异 ≤30 行、混淆留痕、官方更新重打边界） |
+| **② 新建自研代码** | `src/bundle/*_components/` 内**新建**文件，或 `localTool/src/**`、`scripts/**` | **用语义化命名**（不用混淆名），如 `_cmp_AssistantPanel.jsx`、`agentChat.ts` | 走下方「新建自研 SOP」（§3.1） |
+
+> ⚠️ 判断要点：**改动落在既有混淆函数内 = ①**（必须最小差异、留痕、可重打）；**新增独立功能/组件 = ②**（可用语义名、自包含资源、独立文件）。若拿不准，按①保守处理（混淆码宁可少动）。
+
+### 3.1 新建自研代码 SOP（新写组件/模块，不用混淆名）
+
+> 适用于**我们自研新增**、不在官方混淆包里的逻辑。借鉴 maomao `SOP-代码拆解标准流程.md`（同源混淆还原工程）。**验证链路仍走本 §三 通用流程（0~5 步）**，只是代码风格/资源独立有额外要求。
+
+**① 放置与命名**
+- 前端新组件：放 `src/bundle/*_components/` 内**新建文件**，用语义名（如 `_cmp_AssistantPanel.jsx`），复用现有 barrel 导出；**不要 import 顶层大 chunk**（TDZ 循环依赖）。
+- 后端新逻辑：放 `localTool/src/**` 新建文件，语义名。
+- 脚本：放 `scripts/**`。
+
+**② 资源自包含（CSS / 图标）**
+- **CSS 自包含**：组件内 `const STYLES = \`...\`` 定义 CSS 字符串（统一前缀），`<style>{STYLES}</style>` 注入；**禁止 Tailwind 任意值**（`gap-[16px]`/`text-[#e5e5e5]`），颜色 hex/rgba、字体/间距 px、伪类写 CSS 字符串里。
+- **图标内联 SVG**：写进组件 JSX，不 `import` vendor 图标，不复用混淆 JS 里的 svg 别名（官方更新会重排失效）。
+- **别改/依赖官方混淆 CSS**（`src/bundle/assets/` 的 `src-DoQUrSOl.css` 等，是官方产物 + `post-build-fixups` 引用）。
+
+**③ 通信用事件总线**
+- 新组件与已有混淆组件/`Vr.jsx` 之间状态同步：用 `window.dispatchEvent('yimao:xxxChanged')` 事件总线（调用点 ≤2 才用 props 回调）；**不要从新文件 import 混淆大组件**。
+
+**④ 引用混淆符号**
+- 若新组件要复用混淆模块的能力（如 `dr`/`lr`/`ar`）：**必须从同一个 `shared.js`/`component_map.json` 指定的文件 import**（同模块同实例），不能另起炉灶，否则句柄/状态绑定错。
+
+**⑤ 验证**
+- 仍走本 §三 流程：`npm run ask` 定位 → `npm run test:smoke` → `npm run build` 回灌 → `npm run map`（新增文件后更新检索地图）→ 真机走查。**真机验证不可跳过**（`test:smoke` 的 npm React 与 Chrome 的 vendor React 不等价）。
+
+> 大段删除/替换（300+ 行）用 Node 脚本（`indexOf`+`substring` 定位），别用 `replace_in_file`（易上下截断错位）。
+
+### 3.2 通用改动流程（①改混淆码 + ②新建自研 都走此验证）
+
 **AI 每次改动后的默认自检**：`npm run test:smoke`（冒烟质量门，~194ms 极快，立即发现契约漂移/React 单实例破坏/chunk 完整性）。
 **按需触发**：**改前**先 `npm run ask` 定位（短名/契约/文件是啥，见 §五.8）→ **改动完** `npm run test:smoke`，契约相关再 `npm run contracts`（漂移 FAIL 用 `--resnap` 重建基线）、需更新检索地图 `npm run map`；较大改动或环境异常时 `npm run health`（全量体检，0 错 0 警为佳）；预览走 `npm run dev`（开发服务器，非校验）。
 
@@ -154,7 +192,9 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **AI 禁止读目录**：`docs/逆向专用_ai 禁止读/` 明确标注「AI 禁止读」，AI 助手默认不读取该目录，仅在需要时引用其存在，不展开其内容。
 * **混淆符号随官方版本变动**：官方每次发新版，还原出的变量名/组件名可能整体重排。我们的最小改动钉在特定混淆符号/行号上，**官方更新重打补丁时必须重新对照现版本，禁止直接套用旧映射**（见 §五.2 定位与 §五.4 ⑧）。
 
-### 5.4 `src/bundle/` 可编辑化改造规范（适配 gougou 铁律）
+### 5.4 `src/bundle/` 可编辑化改造规范（改「官方混淆码」专用，适配 gougou 铁律）
+
+> 本节规范**只针对「改动 `src/bundle/` 内既有的官方混淆码」**（§三 3.0 场景①）。**若是新建自研组件/模块，走 §三 3.1（新建自研 SOP）**，不必受"最小差异/混淆留痕/重打边界"约束（那是改官方代码的红线）。
 
 `src/bundle/` 已支持 `npm run build` 直接回灌 `dist/`（Vite + `post-build-fixups` 自动补图标/CSS 引用/CSP）。改造遵循以下铁律（借鉴 gougou 反编译还原工程化经验）：
 
