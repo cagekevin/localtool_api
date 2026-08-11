@@ -2776,7 +2776,7 @@ var c_ = Z.memo(({
         }} onWheel={e => {
           return e.stopPropagation();
         }}>
-              <Component2426 className={`relative w-[min(720px,92vw)] rounded-2xl border border-[#3a3a3a] bg-[#1c1c1c] p-5 shadow-2xl flex flex-col`} onClick={e => {
+              <Component2426 className={`relative w-[min(920px,94vw)] max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl border border-[#3a3a3a] bg-[#1c1c1c] p-5 shadow-2xl flex flex-col`} onClick={e => {
             return e.stopPropagation();
           }}>
                 <Component2427 className={`mb-3 flex items-center justify-between`}>
@@ -2809,7 +2809,7 @@ var c_ = Z.memo(({
                   return null;
                 });
               }
-            }} placeholder={`输入或修改该${({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || ``}，可直接键入 @资产名 引用资产`} className={`w-full min-h-[220px] resize-y rounded-lg border border-[#3a3a3a] bg-[#262626] p-3 text-sm text-gray-200 outline-none custom-scrollbar`} />
+            }} placeholder={`输入或修改该${({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || ``}，可直接键入 @资产名 引用资产`} className={`w-full min-h-[480px] max-h-[75vh] resize-y rounded-lg border border-[#3a3a3a] bg-[#262626] p-3 text-sm text-gray-200 outline-none custom-scrollbar`} />
                 {p.length > 0 && <Component2431 className={`mt-2`}>
                     <Component2432 className={`mb-1 text-[10px] text-gray-500`}>{`点资产名插入 @引用`}</Component2432>
                     <Component2433 className={`flex flex-wrap gap-1`}>

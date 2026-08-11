@@ -224,6 +224,12 @@ export async function handleResourcesSave(req: IncomingMessage, res: ServerRespo
       try {
         const { urlPath } = writeUploadBuffer(folder, filename, decoded.buffer);
         body.url = toAbsoluteFileUrl(urlPath);
+        // 落盘文件会被 rescan 扫到并以 `local-${folder}-${basename}` 为 id 入库（resources.ts:126）。
+        // 前端剪贴板粘贴自造的 id 是时间戳字符串，与 rescan 的 id 不一致 → 同一文件两条记录（「来自剪贴板」+ 落盘文件各一条）。
+        // 这里把 id 对齐为 rescan 命名，使 rescan 扫到同文件时因 id 相同而 skipped，避免前端重复显示。
+        // 参考：docs/34 素材落盘修复 + 本处 dup 修复。
+        const basename = path.basename(urlPath);
+        body.id = `local-${folder}-${basename}`;
       } catch (e) {
         // 落盘失败不阻断：仍按原 dataURL 入库，避免前端报错
         console.error(`[resources] save dataURL 落盘失败，按原样入库:`, e);
