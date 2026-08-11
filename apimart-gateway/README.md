@@ -27,26 +27,41 @@ export LOVART_SECRET_KEY=sk_xxx
 # 多用户（可选）：用户Key -> "ak|sk"
 # export USER_KEYS='{"sk-user-1":"ak_1|sk_1","sk-user-2":"ak_2|sk_2"}'
 
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 9004
 ```
 
 生产环境务必 `OPEN_RELAY=false`（默认即 false）并配置 `USER_KEYS` 或 `LOVART_ACCESS_KEY/SECRET_KEY`。
 
 ## 端点映射
 
-| 外向（APIMart 兼容） | 内部（Lovart） |
+> 异步任务统一模型：生图/视频提交后返回 `[{status:"submitted", task_id}]`，需用 `GET /v1/tasks/{id}`（或带 `?wait=1` 同步 SSE）轮询到 `completed` 再取 `result.images[].url`。
+
+### 已实现（OpenAI/APIMart 兼容）
+
+| 外向（APIMart 兼容） | 内部（Lovart） | 备注 |
+|---|---|---|
+| `POST /v1/chat/completions` | `chat`（拼接全部 messages，poll 后取 assistant 文本，SSE） | 无 user 消息 → 400 |
+| `POST /v1/images/generations` | `chat` + `IMAGE` 模型偏好（异步 task） | `size` 像素尺寸自动换算比例+分辨率 |
+| `POST /v1/images/edits` | 图生图（multipart）：参考图上传 CDN → attachment → IMAGE 生成 | 支持多参考图 |
+| `POST /v1/videos/generations` | `chat` + `VIDEO` 模型偏好（异步 task） | 别名：`/v1/videos`、`/v1/video/generations` |
+| `GET /v1/tasks/{id}` | `chat/result`（任务终态 result 映射） | 别名：`/v1/video/generations/{id}`、`/v1/gateway/task/{id}` |
+| `POST /v1/tasks/{id}/confirm` | 高成本任务手动确认（见「已知限制」auto-confirm） | 提交返回 `requires_confirmation` 时调用 |
+| `POST /v1/uploads/images` | `file/upload`（multipart → CDN URL） | 别名：`/v1/gateway/upload` |
+| `GET /v1/balance` | `mode/query`（Lovart 无余额，占位返回） | |
+| `GET /v1/models` | 返回支持模型清单（含 IMAGE/VIDEO 偏好标识） | |
+| `POST /v1/draw/completions` | 兼容别名：同 `/v1/images/generations` | 老调用方兼容 |
+| `POST /v1/gateway/generate` | 兼容别名：同 `/v1/videos/generations` | 老调用方兼容 |
+
+### 诚实 501（Lovart 后端无对应能力，不编造接口）
+
+| 端点 | 原因 |
 |---|---|
-| `POST /v1/chat/completions` | `chat`（取最后一条 user 消息为 prompt，poll 后取 assistant 文本） |
-| `POST /v1/images/generations` | `chat` + `IMAGE` 模型偏好（异步 task） |
-| `POST /v1/videos/generations` | `chat` + `VIDEO` 模型偏好（异步 task） |
-| `POST /v1/music/generations` | `chat`（agent 处理音乐，异步 task） |
-| `GET /v1/tasks/{id}` | `chat/result`（任务完成后的 result 映射） |
-| `POST /v1/uploads/images` | `file/upload`（multipart → CDN URL） |
-| `GET /v1/balance` | `mode/query`（Lovart 无余额，返回占位） |
-| `POST /v1/audio/generations` | `chat`（音乐 agent，别名，方便老调用方） |
-| `POST /v1/audio/speech` | **诚实 501**：Lovart 后端无 TTS 能力，不编造接口 |
-| `POST /v1/audio/transcriptions` | **诚实 501**：Lovart 后端无语音转写能力，不编造接口 |
-| `POST /v1/images/edits` | 图生图（multipart）：参考图上传 CDN → 当 attachment → IMAGE 生成 |
+| `POST /v1/music/generations` | Lovart 后端未暴露音乐生成 |
+| `POST /v1/audio/generations` | Lovart 后端未暴露音频生成 |
+| `POST /v1/audio/speech` | Lovart 后端无 TTS 能力 |
+| `POST /v1/audio/transcriptions` | Lovart 后端无语音转写能力 |
+
+> 以上四个音频/音乐端点统一返回 `not_supported_error`（501），请以本表为准（旧文档曾仅列后两者）。
 
 ## 兼容性说明
 
@@ -57,6 +72,10 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 - `webhook` 字段：提交时传入基础 URL，任务终态会 POST 到 `<webhook>/callback`。
 - chat 多模态：messages 里的 `image_url`（支持 `data:` base64 内联图）会上传 CDN 当附件；chat 走 `thinking` 线程级推理（`LOVART_CHAT_MODE` 可配）。
 - 生图/视频支持 `size` 像素尺寸（如 `1008x1344`）自动换算为 Lovart 比例+分辨率，并强制单图/单视频输出。
+- 参考素材鲁棒解析：messages 里的 `image_url` 支持 `data:` base64 内联图、blob 临时地址、以及本网关回环地址（`/v1/uploads/...` / `/v1/gateway/upload/...`），统一自动转 CDN 当附件。
+- 同步模式：提交时带 `?wait=1` 可走 SSE 同步等待任务终态（替代手动轮询）。
+- 链路追踪：关键路径注入 `X-Trace-Id` 响应头，便于跨调用排查。
+- webhook：提交时传 `webhook` 基础 URL，任务终态 POST 到 `<webhook>/callback`（重试策略见「测试」段 §webhook）。
 
 ## 测试
 
@@ -82,7 +101,7 @@ python3 verify_gateway.py
   - mode 语义：`unlimited`→`set_mode(True)`、`fast`→`set_mode(False)`、非法→不调；
   - SSE：`stream:true` 吐 chunk + `[DONE]`、`stream:false` 同步 JSON；
   - 信封/错误形状：`ok()` / `err()` / `auth_error()`；
-  - audio 端点：诚实 501 `not_supported_error`；
+  - audio/music 端点（`/v1/music/generations`、`/v1/audio/generations`、`/v1/audio/speech`、`/v1/audio/transcriptions`）：诚实 501 `not_supported_error`；
   - 异步提交信封：`{code:200,data:[{status:submitted,task_id}]}`。
 
 > ② 的 webhook 契约测试最初从 relay 侧移植而来（relay 早期曾因缺此测试漏掉 webhook
@@ -105,3 +124,5 @@ python3 verify_gateway.py
 - 模型映射为常见子集，未命中的 model 走 Lovart agent 自动路由。
 - 流式 chat 为最小实现：生成完成后一次性吐完整内容 + `[DONE]`（非逐字增量）。
 - `/v1/balance` 为占位（Lovart 未提供余额接口）。
+- auto-confirm：高成本任务（Lovart 标记需确认）提交后返回 `requires_confirmation`。默认 `AUTO_CONFIRM=true` 自动放行；置 `false` 则需客户端调 `POST /v1/tasks/{id}/confirm` 手动确认后方可继续轮询结果。
+- 音频/音乐四类端点（`/v1/music/generations`、`/v1/audio/generations`、`/v1/audio/speech`、`/v1/audio/transcriptions`）为诚实 501，Lovart 后端无对应能力（见「端点映射」）。

@@ -37,7 +37,7 @@ APIMart 兼容中转站（Relay） —— 后端对接 Lovart
     pip install -r requirements.txt
     export LOVART_ACCESS_KEY=ak_xxx
     export LOVART_SECRET_KEY=sk_xxx
-    uvicorn main:app --host 0.0.0.0 --port 8000
+    uvicorn main:app --host 0.0.0.0 --port 9004
 """
 
 import asyncio
@@ -52,7 +52,7 @@ from typing import Any, Dict, Optional, Tuple, List
 
 import httpx
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, Response, PlainTextResponse
 
 from contract import normalize_body
 from lovart_client import LovartClient, LovartError, close_http_client, _get_http_client
@@ -872,6 +872,81 @@ class TaskService:
 async def health():
     return {"status": "ok", "backend": "lovart", "base": Config.LOVART_BASE,
             "auto_confirm": Config.AUTO_CONFIRM, "mode": Config.DEFAULT_MODE or "account-default"}
+
+@app.get("/llms.txt")
+async def llms_txt():
+    """
+    机器可读的 API 文档（llms.txt 约定）。
+    供 Nomi 等客户端在接入时自动发现端点协议，无需人工配置 mapping。
+    端点形状与 apimart.ai / OpenAI 兼容。
+    """
+    doc = """# APIMart-compatible Relay (Lovart backend)
+
+本服务是一个 apimart.ai 协议兼容的中转网关，后端为 Lovart。
+所有端点前缀均为 /v1，鉴权使用 Bearer user_key（在 USER_KEYS 中配置）。
+
+## 鉴权
+Authorization: Bearer <user_key>
+
+## 模型列表
+GET /v1/models
+返回 OpenAI 风格模型列表：{ "object": "list", "data": [ { "id": <model_id>, "object": "model", "category": "image"|"video"|"chat" } ] }
+可用模型示例：lovart-chat（对话）、nano-bn-pro / gpt-image-2-*（文生图）、seedance-2（文生视频）。
+
+## 对话（文本生成）
+POST /v1/chat/completions
+请求体（OpenAI 兼容）：{ "model": "lovart-chat", "messages": [ { "role": "user", "content": "..." } ], "stream": false }
+响应：{ "choices": [ { "message": { "role": "assistant", "content": "..." } } ], "usage": { "prompt_tokens": N, "completion_tokens": N } }
+
+## 文生图 / 图生图
+POST /v1/images/generations
+POST /v1/images/edits
+请求体：{ "model": "<image_model_id>", "prompt": "...", "size": "1024x1024"|"1:1", "image_urls": ["<参考图URL>"]（可选）, "n": 1 }
+响应（同步返回任务）：{ "data": [ { "task_id": "task_xxx" } ] }
+
+## 文生视频
+POST /v1/videos/generations
+POST /v1/video/generations
+POST /v1/videos
+请求体：{ "model": "<video_model_id>", "prompt": "...", "size": "1280x720"|"16:9", "image_urls": ["<参考图URL>"]（可选） }
+响应（同步返回任务）：{ "data": [ { "task_id": "task_xxx" } ] }
+
+## 任务查询（轮询）
+GET /v1/tasks/{task_id}
+GET /v1/videos/{task_id}
+GET /v1/video/generations/{task_id}
+状态枚举：pending / queued / submitted / processing / running / completed / failed / abort
+终态 completed 的响应体：
+{
+  "id": "task_xxx",
+  "status": "completed",
+  "result": {
+    "images": [ { "url": [ "<图片URL>" ] } ],
+    "videos": [ { "url": [ "<视频URL>" ] } ]
+  }
+}
+结果取用路径：
+  图片：result.images[0].url[0]
+  视频：result.videos[0].url[0]
+
+## 人工确认（可选）
+POST /v1/tasks/{task_id}/confirm
+当 AUTO_CONFIRM=false 且任务 pending_confirmation 时调用。
+
+## 上传辅助
+POST /v1/uploads/images  （multipart/form-data，字段 file）
+POST /v1/gateway/upload
+GET  /v1/balance
+
+## 不支持的能力
+以下端点返回 HTTP 501（Lovart 后端不提供音频/音乐生成）：
+POST /v1/music/generations
+POST /v1/audio/generations
+POST /v1/audio/speech
+POST /v1/audio/transcriptions
+"""
+    return PlainTextResponse(doc)
+
 
 @app.get("/v1/models")
 async def list_models(client: LovartClient = Depends(get_lovart_client)):
