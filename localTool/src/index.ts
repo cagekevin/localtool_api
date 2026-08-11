@@ -8,11 +8,10 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { createServer } from 'node:net';
-import { getDb, closeDb, getUploadDir } from './db/database.js';
+import { getDb, closeDb, getUploadDir, getDataDir, backupDb, startBackupSchedule } from './db/database.js';
 import { json, sendError } from './utils/helpers.js';
 import { handleKvGet, handleKvSet, handleKvDelete } from './routes/kv.js';
 import { handleUpload, handleRead, handleThumbnail, handleMkdir, handleMove, handleOpen, handleOpenDir, handleList } from './routes/files.js';
@@ -484,7 +483,7 @@ async function main(): Promise<void> {
     console.log('  ╚══════════════════════════════════════════╝');
     console.log('');
     console.log(`  地址: http://127.0.0.1:${PORT}`);
-    console.log(`  数据: ${path.join(os.homedir(), '.maomao-localtool')}`);
+    console.log(`  数据: ${getDataDir()}`);
     console.log('');
     console.log('  端点:');
     console.log('    系统:   /api/status');
@@ -509,6 +508,14 @@ async function main(): Promise<void> {
     console.log('');
     console.log('  按 Ctrl+C 停止');
     console.log('');
+
+    // ── 数据安全（性能/安全平衡）：启动仅做轻量备份，导出交给每日定时 ──
+    try {
+      backupDb();
+      startBackupSchedule();
+    } catch (e) {
+      console.error(`  ⚠️  备份初始化失败：${(e as Error).message}`);
+    }
 
     // 自动打开浏览器
     const pageUrl = `http://127.0.0.1:${PORT}`;
