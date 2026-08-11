@@ -63,6 +63,9 @@ var c_ = Z.memo(({
   let [oe, H] = Z.useState(null);
   let [se, ce] = Z.useState(null);
   let [U, W] = Z.useState(false);
+  // [新增·自研] em = 分镜字段双击弹窗编辑状态 {shotId, field, value}；null=关闭。解决 contentEditable 原地编辑崩溃（见 docs/38）
+  let [em, ems] = Z.useState(null);
+  let emRef = Z.useRef(null);
   let [le, G] = Z.useState(() => {
     try {
       if (localStorage.getItem(`script-box-view-${e}`) === `single`) {
@@ -543,66 +546,21 @@ var c_ = Z.memo(({
   };
   let rt = (e, t, n, r) => {
     let i = e[t] || ``;
-    let a = `${e.id}:${t}`;
     const Component2417 = `div`;
-    const Component2418 = `span`;
-    const Component2419 = `span`;
-    const Component2420 = `span`;
-    const Component2421 = `div`;
-    const Component2422 = `div`;
-    const Component2423 = `div`;
     const Component2424 = `div`;
-    return <Component2424 className={`relative group w-full h-full flex flex-col`}>
-        <Component2417 role={`textbox`} contentEditable={true} suppressContentEditableWarning={true} data-placeholder={r} className={`${n} whitespace-pre-wrap break-words cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-600`} onInput={n => {
-        let r = n.currentTarget;
-        let i = r.innerText.replace(/\n$/, ``);
-        He(e.id, {
-          [t]: i
+    // [改造·自研] 原为 contentEditable 原地编辑，每按键 updateNodeData 触发全组件重渲染 + React 重排编辑中 DOM → 崩溃白屏（见 docs/38）。
+    // 现改为只读展示 + 双击打开弹窗编辑（em/ems），保存时才写回，彻底避开 contentEditable 双源冲突。
+    return <Component2424 className={`relative group w-full h-full flex flex-col`} onDoubleClick={e => {
+        e.stopPropagation();
+        ems({
+          shotId: e.id,
+          field: t,
+          value: i
         });
-        let o = window.getSelection();
-        if (o?.anchorNode && r.contains(o.anchorNode)) {
-          let e = o.getRangeAt(0).cloneRange();
-          let t = e.cloneRange();
-          t.selectNodeContents(r);
-          t.setEnd(e.startContainer, e.startOffset);
-          let n = t.toString().length;
-          if (i[n - 1] === `@`) {
-            N({
-              top: r.offsetHeight,
-              left: Math.min(r.clientWidth - 180, Math.max(0, n * 7))
-            });
-            j(a);
-          }
-        }
-      }} onKeyDown={n => {
-        return nt(n, e, t);
       }}>
+        <Component2417 role={`button`} title={`双击编辑`} data-placeholder={r} className={`${n} whitespace-pre-wrap break-words cursor-text empty:before:content-[attr(data-placeholder)] empty:before:text-gray-600`}>
           {i ? _cmp_a_(i, p) : null}
         </Component2417>
-        {A === `${e.id}:${t}` && M && <Component2423 className={`absolute z-50 mt-1 w-44 max-h-52 overflow-y-auto rounded-lg border border-[#3a3a3a] bg-[#202020] p-1 shadow-xl nowheel nopan nodrag`} style={{
-        top: M.top,
-        left: M.left
-      }} onWheel={e => {
-        return e.stopPropagation();
-      }} onClick={e => {
-        return e.stopPropagation();
-      }}>
-            {p.length > 0 ? p.map((n, r) => {
-          return <Component2421 role={`button`} className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px] cursor-pointer text-gray-300 hover:bg-[#2a2a2a]`} onClick={() => {
-            return et(e, n.name, t);
-          }} key={n.id}>
-                    <Component2418 className={`shrink-0 text-gray-500`}>
-                      {r_[n.category]}
-                    </Component2418>
-                    <Component2419 className={`flex-1 truncate`}>{n.name}</Component2419>
-                    <Component2420 className={`text-gray-600 text-[9px]`}>
-                      {`(@`}
-                      {r + 1}
-                      {`)`}
-                    </Component2420>
-                  </Component2421>;
-        }) : <Component2422 className={`px-2 py-2 text-[11px] text-gray-600`}>{`暂无资产，先生成脚本`}</Component2422>}
-          </Component2423>}
       </Component2424>;
   };
   let at = e => {
@@ -2800,6 +2758,103 @@ var c_ = Z.memo(({
         });
         W(false);
       }} />}
+        {em && (() => {
+        const Component2425 = `div`;
+        const Component2426 = `div`;
+        const Component2427 = `div`;
+        const Component2428 = `div`;
+        const Component2429 = `button`;
+        const Component2430 = `textarea`;
+        const Component2431 = `div`;
+        const Component2432 = `div`;
+        const Component2433 = `div`;
+        const Component2434 = `button`;
+        const Component2435 = `div`;
+        const Component2436 = `button`;
+        return Fn.createPortal(<Component2425 className={`fixed inset-0 z-[2147483647] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6`} onMouseDown={e => {
+          return e.stopPropagation();
+        }} onWheel={e => {
+          return e.stopPropagation();
+        }}>
+              <Component2426 className={`relative w-[min(720px,92vw)] rounded-2xl border border-[#3a3a3a] bg-[#1c1c1c] p-5 shadow-2xl flex flex-col`} onClick={e => {
+            return e.stopPropagation();
+          }}>
+                <Component2427 className={`mb-3 flex items-center justify-between`}>
+                  <Component2428 className={`text-sm text-white`}>{({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || em.field}</Component2428>
+                  <Component2429 className={`p-1.5 rounded text-gray-400 hover:text-white hover:bg-white/10 nodrag`} onClick={() => {
+                return ems(null);
+              }}>
+                    <Gt size={16} />
+                  </Component2429>
+                </Component2427>
+                <Component2430 ref={emRef} autoFocus={true} value={em.value || ``} onChange={n => {
+              return ems(o => {
+                return {
+                  ...o,
+                  value: n.target.value
+                };
+              });
+            }} onKeyDown={n => {
+              if (n.key === `Escape`) {
+                return ems(null);
+              }
+              if (n.key === `Enter` && (n.metaKey || n.ctrlKey)) {
+                n.preventDefault();
+                return ems(o => {
+                  if (o) {
+                    He(o.shotId, {
+                      [o.field]: o.value
+                    });
+                  }
+                  return null;
+                });
+              }
+            }} placeholder={`输入或修改该${({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || ``}，可直接键入 @资产名 引用资产`} className={`w-full min-h-[220px] resize-y rounded-lg border border-[#3a3a3a] bg-[#262626] p-3 text-sm text-gray-200 outline-none custom-scrollbar`} />
+                {p.length > 0 && <Component2431 className={`mt-2`}>
+                    <Component2432 className={`mb-1 text-[10px] text-gray-500`}>{`点资产名插入 @引用`}</Component2432>
+                    <Component2433 className={`flex flex-wrap gap-1`}>
+                      {p.map(n => {
+                return <Component2434 className={`rounded px-2 py-0.5 text-[11px] text-gray-300 hover:text-white hover:bg-[#2a2a2a] cursor-pointer nodrag`} onClick={() => {
+                  let r = emRef.current;
+                  let o = em.value || ``;
+                  let a = r ? r.selectionStart : o.length;
+                  let s = `${o.slice(0, a)}@${n.name} ${o.slice(a)}`;
+                  ems(x => {
+                    return {
+                      ...x,
+                      value: s
+                    };
+                  });
+                  if (r) {
+                    requestAnimationFrame(() => {
+                      r.focus();
+                      let c = a + n.name.length + 2;
+                      r.setSelectionRange(c, c);
+                    });
+                  }
+                }} key={n.id}>
+                          {r_[n.category]}
+                          {` `}
+                          {n.name}
+                        </Component2434>;
+              })}
+                    </Component2433>
+                  </Component2431>}
+                <Component2435 className={`flex justify-end gap-2 mt-3`}>
+                  <Component2436 className={`px-4 py-1.5 rounded-lg bg-gray-100 text-gray-950 text-xs font-medium hover:bg-white nodrag`} onClick={() => {
+                ems(o => {
+                  if (o) {
+                    He(o.shotId, {
+                      [o.field]: o.value
+                    });
+                  }
+                  return null;
+                });
+              }}>{`保存 (Ctrl+Enter)`}</Component2436>
+                </Component2435>
+              </Component2426>
+            </Component2425>, document.body);
+      })()}
       </Component2815>;
   }
 });

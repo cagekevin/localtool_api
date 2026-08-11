@@ -5,18 +5,18 @@
 
 | 契约 | 严重度 | 总命中 | 文件分布（文件:次数） |
 |---|---|---|---|
-| `proxy_mode_local_tool` | critical | 31 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/ShareAppPage-C4RerI9i.js(1) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(16) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(4) · src/bundle/httpClient-BknZwXjG_components/shared.js(3) · localTool/src/routes/resources.ts(4) |
-| `port_18080` | critical | 45 | src/bundle/App-BX6o9fW5_components/Tr.jsx(1) · src/bundle/endpointConfig-Bt85xi8d.js(5) · localTool/src/db/database.ts(2) · localTool/src/index.ts(5) · localTool/src/routes/files.ts(1) · localTool/src/routes/official.ts(17) · localTool/src/routes/passthrough.ts(3) · localTool/src/routes/resources.ts(1) · localTool/src/routes/system.ts(8) · public/background.js(2) |
+| `proxy_mode_local_tool` | critical | 31 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(16) · src/bundle/httpClient-BknZwXjG_components/shared.js(3) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(4) · src/bundle/ShareAppPage-C4RerI9i.js(1) · localTool/src/routes/resources.ts(4) |
+| `port_18080` | critical | 46 | src/bundle/App-BX6o9fW5_components/Tr.jsx(1) · src/bundle/endpointConfig-Bt85xi8d.js(5) · localTool/src/db/database.ts(2) · localTool/src/index.ts(5) · localTool/src/routes/files.ts(1) · localTool/src/routes/official.ts(17) · localTool/src/routes/passthrough.ts(3) · localTool/src/routes/resources.ts(2) · localTool/src/routes/system.ts(8) · public/background.js(2) |
 | `port_9004` | critical | 5 | localTool/src/routes/system.ts(4) · localTool/src/utils/netProxy.ts(1) |
 | `api_proxy_path` | critical | 12 | src/bundle/httpClient-BknZwXjG_components/shared.js(4) · localTool/src/index.ts(3) · localTool/src/routes/official.ts(1) · localTool/src/routes/system.ts(3) · localTool/src/utils/netProxy.ts(1) |
 | `x_proxy_url_header` | high | 2 | localTool/src/routes/files.ts(1) · localTool/src/routes/system.ts(1) |
 | `public_platform` | high | 14 | src/bundle/httpClient-BknZwXjG_components/shared.js(2) · localTool/src/index.ts(6) · localTool/src/routes/passthrough.ts(1) · localTool/src/routes/platform.ts(5) |
-| `envelope_code_data` | critical | 7 | src/bundle/App-BX6o9fW5_components/Vr.jsx(1) · src/bundle/App-BX6o9fW5_components/shared.js(1) · localTool/src/routes/system.ts(5) |
+| `envelope_code_data` | critical | 7 | src/bundle/App-BX6o9fW5_components/shared.js(1) · src/bundle/App-BX6o9fW5_components/Vr.jsx(1) · localTool/src/routes/system.ts(5) |
 | `kv_canvas_state_v1` | medium | 6 | src/bundle/App-BX6o9fW5_components/Vr.jsx(2) · src/bundle/httpClient-BknZwXjG_components/shared.js(2) · localTool/src/routes/admin.ts(2) |
 | `kv_active_api_endpoint` | medium | 9 | src/bundle/endpointConfig-Bt85xi8d.js(1) · localTool/src/routes/admin.ts(1) · localTool/src/routes/official.ts(6) · localTool/src/routes/passthrough.ts(1) |
-| `kv_transit_resources` | medium | 24 | src/bundle/App-BX6o9fW5_components/Vr.jsx(7) · src/bundle/ShareAppPage-C4RerI9i.js(2) · src/bundle/httpClient-BknZwXjG_components/Co.jsx(1) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(6) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(2) · src/bundle/httpClient-BknZwXjG_components/Zo.jsx(1) · src/bundle/httpClient-BknZwXjG_components/_Component118.jsx(2) · src/bundle/httpClient-BknZwXjG_components/c_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/shared.js(1) |
+| `kv_transit_resources` | medium | 24 | src/bundle/App-BX6o9fW5_components/Vr.jsx(7) · src/bundle/httpClient-BknZwXjG_components/Co.jsx(1) · src/bundle/httpClient-BknZwXjG_components/c_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(6) · src/bundle/httpClient-BknZwXjG_components/shared.js(1) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(2) · src/bundle/httpClient-BknZwXjG_components/Zo.jsx(1) · src/bundle/httpClient-BknZwXjG_components/_Component118.jsx(2) · src/bundle/ShareAppPage-C4RerI9i.js(2) |
 | `kv_api_configs` | medium | 4 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/httpClient-BknZwXjG_components/shared.js(1) |
-| `local_tool_label` | low | 15 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(4) · src/bundle/httpClient-BknZwXjG_components/shared.js(2) · localTool/src/routes/resources.ts(4) |
+| `local_tool_label` | low | 15 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/shared.js(2) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(4) · localTool/src/routes/resources.ts(4) |
 
 ## 各契约 scope 与含义
 
