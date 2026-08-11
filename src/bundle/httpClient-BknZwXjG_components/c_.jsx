@@ -2771,17 +2771,21 @@ var c_ = Z.memo(({
         const Component2434 = `button`;
         const Component2435 = `div`;
         const Component2436 = `button`;
-        return Fn.createPortal(<Component2425 className={`fixed inset-0 z-[2147483647] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6`} onMouseDown={e => {
+        // [自研·自包含 CSS] 不用 Tailwind 任意值类，样式由下方 <style> 注入的 shotedit-* 语义类承载（见 docs/01 新建自研 SOP）
+        const SHOTEDIT_CSS = `.shotedit-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px}.shotedit-panel{position:relative;width:920px;max-width:94vw;max-height:90vh;overflow-y:auto;border-radius:16px;border:1px solid #3a3a3a;background:#1c1c1c;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column}.shotedit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.shotedit-title{font-size:14px;color:#fff}.shotedit-close{padding:6px;border-radius:8px;color:#9ca3af;cursor:pointer;background:none;border:none}.shotedit-close:hover{color:#fff;background:rgba(255,255,255,.1)}.shotedit-area{width:100%;min-height:480px;max-height:75vh;height:60vh;resize:vertical;border-radius:8px;border:1px solid #3a3a3a;background:#262626;padding:12px;font-size:14px;color:#e5e7eb;outline:none;box-sizing:border-box;font-family:inherit;line-height:1.6}.shotedit-assets{margin-top:8px}.shotedit-assets-title{font-size:10px;color:#6b7280;margin-bottom:4px}.shotedit-assets-list{display:flex;flex-wrap:wrap;gap:4px}.shotedit-asset{padding:2px 8px;font-size:11px;color:#d1d5db;cursor:pointer;background:none;border:none}.shotedit-asset:hover{color:#fff;background:#2a2a2a}.shotedit-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.shotedit-save{padding:6px 16px;border-radius:8px;background:#f3f4f6;color:#111;font-size:12px;font-weight:500;cursor:pointer;border:none}.shotedit-save:hover{background:#fff}`;
+        return Fn.createPortal(<>
+          <style>{SHOTEDIT_CSS}</style>
+          <Component2425 className={`shotedit-overlay`} onMouseDown={e => {
           return e.stopPropagation();
         }} onWheel={e => {
           return e.stopPropagation();
         }}>
-              <Component2426 className={`relative w-[min(920px,94vw)] max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl border border-[#3a3a3a] bg-[#1c1c1c] p-5 shadow-2xl flex flex-col`} onClick={e => {
+              <Component2426 className={`shotedit-panel`} onClick={e => {
             return e.stopPropagation();
           }}>
-                <Component2427 className={`mb-3 flex items-center justify-between`}>
-                  <Component2428 className={`text-sm text-white`}>{({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || em.field}</Component2428>
-                  <Component2429 className={`p-1.5 rounded text-gray-400 hover:text-white hover:bg-white/10 nodrag`} onClick={() => {
+                <Component2427 className={`shotedit-head`}>
+                  <Component2428 className={`shotedit-title`}>{({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || em.field}</Component2428>
+                  <Component2429 className={`shotedit-close nodrag`} onClick={() => {
                 return ems(null);
               }}>
                     <Gt size={16} />
@@ -2809,12 +2813,12 @@ var c_ = Z.memo(({
                   return null;
                 });
               }
-            }} placeholder={`输入或修改该${({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || ``}，可直接键入 @资产名 引用资产`} className={`w-full min-h-[480px] max-h-[75vh] resize-y rounded-lg border border-[#3a3a3a] bg-[#262626] p-3 text-sm text-gray-200 outline-none custom-scrollbar`} />
-                {p.length > 0 && <Component2431 className={`mt-2`}>
-                    <Component2432 className={`mb-1 text-[10px] text-gray-500`}>{`点资产名插入 @引用`}</Component2432>
-                    <Component2433 className={`flex flex-wrap gap-1`}>
+            }} placeholder={`输入或修改该${({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || ``}，可直接键入 @资产名 引用资产`} className={`shotedit-area`} />
+                {p.length > 0 && <Component2431 className={`shotedit-assets`}>
+                    <Component2432 className={`shotedit-assets-title`}>{`点资产名插入 @引用`}</Component2432>
+                    <Component2433 className={`shotedit-assets-list`}>
                       {p.map(n => {
-                return <Component2434 className={`rounded px-2 py-0.5 text-[11px] text-gray-300 hover:text-white hover:bg-[#2a2a2a] cursor-pointer nodrag`} onClick={() => {
+                return <Component2434 className={`shotedit-asset nodrag`} onClick={() => {
                   let r = emRef.current;
                   let o = em.value || ``;
                   let a = r ? r.selectionStart : o.length;
@@ -2840,8 +2844,8 @@ var c_ = Z.memo(({
               })}
                     </Component2433>
                   </Component2431>}
-                <Component2435 className={`flex justify-end gap-2 mt-3`}>
-                  <Component2436 className={`px-4 py-1.5 rounded-lg bg-gray-100 text-gray-950 text-xs font-medium hover:bg-white nodrag`} onClick={() => {
+                <Component2435 className={`shotedit-foot`}>
+                  <Component2436 className={`shotedit-save nodrag`} onClick={() => {
                 ems(o => {
                   if (o) {
                     He(o.shotId, {
@@ -2853,7 +2857,8 @@ var c_ = Z.memo(({
               }}>{`保存 (Ctrl+Enter)`}</Component2436>
                 </Component2435>
               </Component2426>
-            </Component2425>, document.body);
+            </Component2425>
+        </>, document.body);
       })()}
       </Component2815>;
   }
