@@ -1,6 +1,11 @@
-# 34-画布右键导入-素材 tab 为空排查与素材系统梳理
+# 34-素材系统与落盘 rescan 专题
 
-> 本文档基于实际源码核对（核对时间：2026-08-07）。文中出现的 `L` / `Pe` / `ne` / `xt` / `mt` 等都是 **Vite 打包后的压缩（minified）变量名**，非源码原始命名；它们在同一份打包产物内一一对应，下方每条都给出了"压缩名 → 含义"的映射，便于对照。
+> 原文档名：`34-画布右键导入-素材 tab 为空排查与素材系统梳理`（2026-08-11 重命名，原主题「画布右键导入-素材 tab 为空排查」的排查记录见 §7 排查记录）。
+
+> **本文档即"素材 / 落盘 / rescan"的专题文档**，今后改动 rescan、落盘、素材库相关逻辑，以本文档为准。
+> **2026-08-11 同步**：rescan 已升级为**递归扫描子目录**（变更 #17，`resources.ts:88` `scanRescanDir`），修正了 §2.2/§4.3/§8 的相关描述与行号。此前 rescan 只扫顶层目录一层，导致 `migrated/人物|场景|道具` 下的剧本资产文件不入库、素材 tab 看不到（详见 §2.2 变更 #17 说明）。
+
+> 本文档基于实际源码核对（核对时间：2026-08-07，变更 #17 后已修订）。文中出现的 `L` / `Pe` / `ne` / `xt` / `mt` 等都是 **Vite 打包后的压缩（minified）变量名**，非源码原始命名；它们在同一份打包产物内一一对应，下方每条都给出了"压缩名 → 含义"的映射，便于对照。
 >
 > 已核对的源码文件：
 > - 前端（打包产物）：`src/bundle/App-BX6o9fW5_components/Vr.jsx`（App 主界面/资源面板）、`src/bundle/App-BX6o9fW5_components/shared.js`（资源 store：rescan / save / delete / clear）、`src/bundle/httpClient-BknZwXjG_components/H_.jsx`（画布）、`src/bundle/httpClient-BknZwXjG_components/Un.jsx`（资源面板内的目录/上传区）、`src/bundle/httpClient-BknZwXjG_components/_Component118.jsx`（右键「导入」弹窗）、`src/bundle/httpClient-BknZwXjG_components/shared.js`（文件上传 `ci`/`hi` 等）。
@@ -119,12 +124,17 @@ rescan 末尾还会做**孤儿清理**（120-130 行）：source='local-tool' �
 
 ### 2.2 rescan 到底扫了什么（resources.ts:37-134，已通读）
 
-`handleResourcesRescan`：
+`handleResourcesRescan`（**⚠️ 2026-08-11 已升级为「递归扫描」**，见变更 #17）：
 1. 取 `uploadDir`（`getUploadDir()`）。
-2. 列出其下所有子目录（`tasks` / `migrated` / `materials` / 其它），逐个遍历。
-3. 每个目录里的**子文件夹**作为 `type='folder'` 的资源录入（资源面板可点进去浏览）；**文件**按扩展名映射为 image/video/audio/text 录入。
-4. 入库 URL 规则：`toAbsoluteFileUrl('/files/${folder}/${name}')`。`LOCAL_FILE_BASE = 'http://127.0.0.1:18080/files/'`（`database.ts:22`），即完整地址形如 `http://127.0.0.1:18080/files/migrated/人物/xxx.png`。**原文 URL 规则正确。**
-5. 幂等（见 2.1）+ 孤儿清理。
+2. 对 `upload/` 下的每个顶层目录（`tasks` / `migrated` / `materials` / 其它），调用递归函数 `scanRescanDir(db, absDir, relFolderPath, counters)`（`resources.ts:88`）。
+3. `scanRescanDir` 对目录内每个 entry：
+   - **子目录**：作为 `type='folder'` 的资源录入（`folder=父路径`、`name=子目录名`），然后**递归进入该子目录继续扫描**（跳过 `.thumbnails`、以 `.` 开头的隐藏项）。
+   - **文件**：按扩展名映射为 image/video/audio/text 录入，`folder` 字段存**完整父路径**（如 `migrated/人物`）、`name` 存文件名、`id=local-<完整父路径>-<文件名>`。
+   - **顶层目录里的文件**：`relFolderPath=顶层目录名`，`id=local-<顶层名>-<文件名>`（如 `local-tasks-xxx.png`）——**与旧格式完全一致**，向后兼容。
+4. 入库 URL 规则：`toAbsoluteFileUrl('/files/${folder}/${name}')`，`LOCAL_FILE_BASE = 'http://127.0.0.1:18080/files/'`（`database.ts:22`），完整地址形如 `http://127.0.0.1:18080/files/migrated/人物/xxx.png`。
+5. 幂等（见 2.1）+ 孤儿清理：`DELETE` 磁盘路径（`path.join(uploadDir, folder, name)`）已不存在的 `source='local-tool'` 记录（`resources.ts:170-176`）——对多级 `folder`（含 `/`）同样正确。
+
+> **变更 #17（2026-08-11）**：此前 rescan **只遍历顶层目录一层**，`migrated/` 下的子目录（`人物`/`场景`/`道具`）只录一个 `type='folder'` 空条目、**不递归扫文件** → 剧本盒子资产（落盘 `migrated/人物/xxx.png`）无法进素材库。本次改成递归 `scanRescanDir`（`resources.ts:88`），通用扫描所有子目录文件。**顶层 id 格式不变**，旧数据无需迁移。详见 `docs/01` 变更 #17。
 
 > 注意：`materials` 是 `upload/` 下的独立子目录（见 `MATERIALS_DIR` 配置），与 `migrated` 并列；两者都会被 rescan 扫进 `resources` 表，只是 `folder` 字段不同。
 
@@ -204,6 +214,8 @@ let e = await hi(f, { subfolder: m });         // httpClient shared.js:1848
 二选一：
 1. 在 `handleAssetImageGenerate` 本地化成功后，额外调一次 `Ia(url, type, 'generated')`（走 `Ar` 入库 + 写 `L`）；注意 `Ia` 里 `n==='generated'` 会把 `folder` 设为 `tasks`，若想归到 `migrated` 需调整 folder 逻辑或新增一个参数。
 2. 本地化成功后直接 `POST /api/resources/rescan` 一次（轻量，仅扫该目录），再触发前端 `Xa()` 刷新 `L`。
+
+> **✅ 变更 #17 已落地（2026-08-11）**：rescan 已改为**递归扫描子目录**（`resources.ts:88`），因此方向 2 已完全可行且通用——剧本资产落盘到 `migrated/人物|场景|道具` 后，素材 tab 每次打开自动 rescan 即可收录，无需改前端。方向 1（`Ia` 主动入库）仍是"即时出现、不等 rescan"的增强项，目前未做。
 
 ---
 
@@ -315,7 +327,7 @@ export async function handleResourcesSave(req, res) {
 
 ## 8. 附：已核对的行号清单（均与实际代码一致）
 
-- `localTool/src/routes/resources.ts:37` `handleResourcesRescan`；`:98-103` 幂等跳过；`:120-130` 孤儿清理；`:133` 返回；`:169` 分页查询 `handleResourcesQuery`。
+- `localTool/src/routes/resources.ts:67` `handleResourcesRescan`；`:88` 递归函数 `scanRescanDir`；`:139` 文件幂等跳过；`:170-176` 孤儿清理；`:181` 返回；`:220` 分页查询 `handleResourcesQuery`；`:230` `handleResourcesSave`。
 - `localTool/src/db/database.ts:22` `LOCAL_FILE_BASE`；`:108` `resources` 表建表。
 - `src/bundle/App-BX6o9fW5_components/shared.js:3068` `Pr`(rescan)；`:3016` `Ar`(save)。
 - `src/bundle/httpClient-BknZwXjG_components/shared.js:11192` `Kg`(类型判断)；`:1752` `ci`(上传)；`:1848` `hi`(本地化)。

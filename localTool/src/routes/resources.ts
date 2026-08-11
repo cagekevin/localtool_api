@@ -82,37 +82,47 @@ export async function handleResourcesRescan(_req: IncomingMessage, res: ServerRe
     return json(res, { ok: true, count: 0 });
   }
 
-  for (const folder of subfolders) {
-    const folderPath = path.join(uploadDir, folder);
+  // 递归扫描 upload 下某目录，把文件与子目录元数据同步进 resources 表。
+  // relFolderPath: 相对 uploadDir 的目录路径（含子目录，如 'migrated/人物'；顶层目录传顶层名，如 'tasks'/'migrated'）。
+  // 顶层目录本身不录 folder 类型（它们是遍历根）；其下的子目录才录 folder 类型并递归进入。
+  const scanRescanDir = (
+    dbh: unknown,
+    absDir: string,
+    relFolderPath: string,
+    counters: { scanned: number; added: number; skipped: number },
+  ): void => {
     let entries: fs.Dirent[];
     try {
-      entries = fs.readdirSync(folderPath, { withFileTypes: true });
+      entries = fs.readdirSync(absDir, { withFileTypes: true });
     } catch {
-      continue;
+      return;
     }
     for (const entry of entries) {
       if (entry.name.startsWith('.')) continue;
+      if (entry.name === '.thumbnails') continue;
+      const childRel = relFolderPath ? `${relFolderPath}/${entry.name}` : entry.name;
 
-      // 文件夹：作为 type=folder 的资源录入，供资源面板浏览
+      // 文件夹：作为 type=folder 的资源录入，供资源面板浏览；再递归扫其内文件
       if (entry.isDirectory()) {
-        scanned++;
-        const id = `local-${folder}-${entry.name}`;
-        const exist = queryOne(db, 'SELECT id FROM resources WHERE id = ?', [id]);
-        if (exist) {
-          skipped++;
-          continue;
+        counters.scanned++;
+        const id = `local-${relFolderPath ? relFolderPath + '-' : ''}${entry.name}`;
+        const exist = queryOne(dbh, 'SELECT id FROM resources WHERE id = ?', [id]);
+        if (!exist) {
+          const row = resourceToRow({
+            id,
+            url: toAbsoluteFileUrl(`/files/${childRel}`),
+            type: 'folder',
+            source: 'local-tool',
+            folder: relFolderPath,
+            name: entry.name,
+            timestamp: Date.now(),
+          });
+          upsertResource(dbh, row);
+          counters.added++;
+        } else {
+          counters.skipped++;
         }
-        const row = resourceToRow({
-          id,
-          url: toAbsoluteFileUrl(`/files/${folder}/${entry.name}`),
-          type: 'folder',
-          source: 'local-tool',
-          folder,
-          name: entry.name,
-          timestamp: Date.now(),
-        });
-        upsertResource(db, row);
-        added++;
+        scanRescanDir(dbh, path.join(absDir, entry.name), childRel, counters);
         continue;
       }
 
@@ -120,32 +130,40 @@ export async function handleResourcesRescan(_req: IncomingMessage, res: ServerRe
       const ext = path.extname(entry.name).toLowerCase();
       const type = extToFileType(ext);
       if (!type) continue;
-      scanned++;
+      counters.scanned++;
 
-      const url = toAbsoluteFileUrl(`/files/${folder}/${entry.name}`);
-      const id = `local-${folder}-${entry.name}`;
+      const url = toAbsoluteFileUrl(`/files/${childRel}`);
+      const id = `local-${relFolderPath ? relFolderPath + '-' : ''}${entry.name}`;
 
       // 已存在同 id 则跳过（保留收藏/手动元数据）
-      const exist = queryOne(db, 'SELECT id FROM resources WHERE id = ?', [id]);
+      const exist = queryOne(dbh, 'SELECT id FROM resources WHERE id = ?', [id]);
       if (exist) {
-        skipped++;
+        counters.skipped++;
         continue;
       }
 
-      const stat = fs.statSync(path.join(folderPath, entry.name));
+      const stat = fs.statSync(path.join(absDir, entry.name));
       const row = resourceToRow({
         id,
         url,
         type,
         source: 'local-tool',
-        folder,
+        folder: relFolderPath,
         name: entry.name,
         timestamp: stat.mtimeMs ? Math.floor(stat.mtimeMs) : Date.now(),
       });
-      upsertResource(db, row);
-      added++;
+      upsertResource(dbh, row);
+      counters.added++;
     }
+  };
+
+  const counters = { scanned, added, skipped };
+  for (const folder of subfolders) {
+    scanRescanDir(db, path.join(uploadDir, folder), folder, counters);
   }
+  scanned = counters.scanned;
+  added = counters.added;
+  skipped = counters.skipped;
 
   // 孤儿清理：库中 source='local-tool' 但磁盘上对应路径已不存在的记录删除。
   // 否则本地删了文件夹/文件后，rescan 只新增不删除，前端仍显示陈旧条目。

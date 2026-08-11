@@ -550,8 +550,9 @@ var c_ = Z.memo(({
     const Component2424 = `div`;
     // [改造·自研] 原为 contentEditable 原地编辑，每按键 updateNodeData 触发全组件重渲染 + React 重排编辑中 DOM → 崩溃白屏（见 docs/38）。
     // 现改为只读展示 + 双击打开弹窗编辑（em/ems），保存时才写回，彻底避开 contentEditable 双源冲突。
-    return <Component2424 className={`relative group w-full h-full flex flex-col`} onDoubleClick={e => {
-        e.stopPropagation();
+    return <Component2424 className={`relative group w-full h-full flex flex-col`} onDoubleClick={ev => {
+        ev.stopPropagation();
+        // [修复·自研] 回调参数改名 ev，避免遮蔽外层 shot 对象 e；原写 e.id 拿到的是事件对象的 id=undefined → 保存时 He(undefined) 匹配不到 shot 不写回（见 daily/2026-08-11）
         ems({
           shotId: e.id,
           field: t,
@@ -2771,8 +2772,9 @@ var c_ = Z.memo(({
         const Component2434 = `button`;
         const Component2435 = `div`;
         const Component2436 = `button`;
+        const Component2437 = `button`;
         // [自研·自包含 CSS] 不用 Tailwind 任意值类，样式由下方 <style> 注入的 shotedit-* 语义类承载（见 docs/01 新建自研 SOP）
-        const SHOTEDIT_CSS = `.shotedit-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px}.shotedit-panel{position:relative;width:920px;max-width:94vw;max-height:90vh;overflow-y:auto;border-radius:16px;border:1px solid #3a3a3a;background:#1c1c1c;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column}.shotedit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.shotedit-title{font-size:14px;color:#fff}.shotedit-close{padding:6px;border-radius:8px;color:#9ca3af;cursor:pointer;background:none;border:none}.shotedit-close:hover{color:#fff;background:rgba(255,255,255,.1)}.shotedit-area{width:100%;min-height:480px;max-height:75vh;height:60vh;resize:vertical;border-radius:8px;border:1px solid #3a3a3a;background:#262626;padding:12px;font-size:14px;color:#e5e7eb;outline:none;box-sizing:border-box;font-family:inherit;line-height:1.6}.shotedit-assets{margin-top:8px}.shotedit-assets-title{font-size:10px;color:#6b7280;margin-bottom:4px}.shotedit-assets-list{display:flex;flex-wrap:wrap;gap:4px}.shotedit-asset{padding:2px 8px;font-size:11px;color:#d1d5db;cursor:pointer;background:none;border:none}.shotedit-asset:hover{color:#fff;background:#2a2a2a}.shotedit-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.shotedit-save{padding:6px 16px;border-radius:8px;background:#f3f4f6;color:#111;font-size:12px;font-weight:500;cursor:pointer;border:none}.shotedit-save:hover{background:#fff}`;
+        const SHOTEDIT_CSS = `.shotedit-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px}.shotedit-panel{position:relative;width:860px;max-width:94vw;max-height:90vh;overflow-y:auto;border-radius:16px;border:1px solid #3a3a3a;background:#1c1c1c;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column}.shotedit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.shotedit-title{font-size:14px;color:#fff}.shotedit-head-actions{display:flex;align-items:center;gap:8px}.shotedit-close{padding:6px;border-radius:8px;color:#9ca3af;cursor:pointer;background:none;border:none}.shotedit-close:hover{color:#fff;background:rgba(255,255,255,.1)}.shotedit-format{padding:5px 12px;border-radius:8px;color:#93c5fd;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);font-size:12px;font-weight:500;cursor:pointer}.shotedit-format:hover{background:rgba(59,130,246,.22);color:#bfdbfe}.shotedit-area{width:100%;min-height:480px;max-height:75vh;height:60vh;resize:vertical;border-radius:8px;border:1px solid #3a3a3a;background:#262626;padding:14px 16px;font-size:15px;color:#e5e7eb;outline:none;box-sizing:border-box;font-family:inherit;line-height:2;letter-spacing:.3px}.shotedit-assets{margin-top:8px}.shotedit-assets-title{font-size:10px;color:#6b7280;margin-bottom:4px}.shotedit-assets-list{display:flex;flex-wrap:wrap;gap:4px}.shotedit-asset{padding:2px 8px;font-size:11px;color:#d1d5db;cursor:pointer;background:none;border:none}.shotedit-asset:hover{color:#fff;background:#2a2a2a}.shotedit-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.shotedit-save{padding:6px 16px;border-radius:8px;background:#f3f4f6;color:#111;font-size:12px;font-weight:500;cursor:pointer;border:none}.shotedit-save:hover{background:#fff}`;
         return Fn.createPortal(<>
           <style>{SHOTEDIT_CSS}</style>
           <Component2425 className={`shotedit-overlay`} onMouseDown={e => {
@@ -2785,11 +2787,32 @@ var c_ = Z.memo(({
           }}>
                 <Component2427 className={`shotedit-head`}>
                   <Component2428 className={`shotedit-title`}>{({ description: `画面描述`, prompt: `生图提示词`, videoPrompt: `生视频提示词` })[em.field] || em.field}</Component2428>
-                  <Component2429 className={`shotedit-close nodrag`} onClick={() => {
+                  <div className={`shotedit-head-actions`}>
+                    <Component2437 className={`shotedit-format nodrag`} title={`把长段落按句/逗号拆成多行，方便逐句阅读修改`} onClick={() => {
+                return ems(o => {
+                  if (!o) return o;
+                  let s = o.value || ``;
+                  // [自研·一键排版] 先按句号类标点拆行；单行仍过长(>60字)再按中文逗号二次拆。保留标点在行尾，忽略已换行，过滤空行。不破坏 @资产名 引用。
+                  let lines = s.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                  let out = [];
+                  for (let line of lines) {
+                    // 按句号/感叹/问号/分号切分，分隔符留在行尾
+                    let segs = line.split(/(?<=[。！？；])/).map(x => x.trim()).filter(Boolean);
+                    if (segs.length <= 1 && line.length > 60) {
+                      // 无句号分隔的超长句 → 按中文逗号切分
+                      segs = line.split(/(?<=[，,])/).map(x => x.trim()).filter(Boolean);
+                    }
+                    out.push(...segs);
+                  }
+                  return { ...o, value: out.join(`\n`) };
+                });
+              }}>{`一键排版`}</Component2437>
+                    <Component2429 className={`shotedit-close nodrag`} onClick={() => {
                 return ems(null);
               }}>
-                    <Gt size={16} />
-                  </Component2429>
+                      <Gt size={16} />
+                    </Component2429>
+                  </div>
                 </Component2427>
                 <Component2430 ref={emRef} autoFocus={true} value={em.value || ``} onChange={n => {
               return ems(o => {
