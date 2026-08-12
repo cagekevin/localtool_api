@@ -107,9 +107,9 @@ export default function Vr() {
   let ft = W.useCallback(() => {
     let e = {};
     let t = pe === `generated` ? `tasks` : `migrated`;
-    e.folder = {
-      eqOrPrefix: ve ? `${t}/${ve}` : t
-    };
+    // ve 为空(根目录)时精确匹配当前层,只显示本层文件 + 子目录条目,不把后代全铺出来;
+    // 进入子目录后(ve 非空)才用 eqOrPrefix,把该文件夹及其子目录都查出来。
+    e.folder = ve ? { eqOrPrefix: `${t}/${ve}` } : t;
     if (oe !== `all`) {
       if (oe === `video`) {
         e.type = [`video`, `audio`, `folder`];
