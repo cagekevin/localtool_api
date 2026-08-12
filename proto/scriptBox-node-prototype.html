@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>剧本盒子节点 · 交互原型（完整字段）</title>
+<style>
+  :root{
+    --bg:#0e0e0e; --panel:#1c1c1c; --field:#262626; --field2:#242424;
+    --hover:#2a2a2a; --hover2:#333; --line:#3a3a3a; --line2:#333;
+    --text:#e5e5e5; --dim:#9ca3af; --mute:#6b7280;
+    --accent:#fff; --blue:#93c5fd; --red:#f87171; --green:#34d399; --purple:#c4b5fd;
+    --radius:20px;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  html,body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#191919,#0e0e0e 60%);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .canvas{min-height:100vh;display:flex;justify-content:center;padding:48px 24px;
+    background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:22px 22px}
+  .node{width:920px;background:var(--panel);border:1px solid rgba(255,255,255,.1);
+    border-radius:var(--radius);box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden;position:relative}
+  .hd{display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .hd .ic{width:18px;height:18px;color:var(--mute)}
+  .hd .title{font-size:13px;color:#d4d4d4;font-weight:500}
+  .hd .spacer{flex:1}
+  .dots{display:flex;gap:5px}.dots i{width:9px;height:9px;border-radius:50%;background:#333;display:block}
+  .hdbtn{font-size:11px;color:var(--dim);background:transparent;border:0;cursor:pointer;padding:4px 7px;border-radius:7px}
+  .hdbtn:hover{background:var(--hover2);color:#fff}
+  .glyph{width:14px;height:14px;display:inline-block;vertical-align:middle}
+
+  .steps{display:flex;align-items:center;justify-content:center;gap:0;padding:14px 18px 4px}
+  .step{display:flex;align-items:center;gap:10px;border:0;background:transparent;cursor:pointer;padding:6px 12px;border-radius:14px;width:180px;text-align:left}
+  .step.active{background:var(--hover)}
+  .step:hover:not(.active){background:#222}
+  .ring{position:relative;width:28px;height:28px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+  .step .t{font-size:12px;font-weight:500}.step .d{font-size:10px;color:var(--mute);margin-top:1px}
+  .step.active .t{color:#fff}.step.active .d{color:var(--dim)}
+  .step:not(.active) .t{color:var(--dim)}
+  .bar{flex:1;height:1px;background:var(--line2);margin:0 14px}
+
+  .view{padding:18px}
+  .row{display:flex;gap:14px}
+  .col{flex:1;min-width:0}
+  .lab{font-size:11px;color:var(--mute);margin-bottom:6px}
+  .story{width:100%;min-height:150px;resize:vertical;border-radius:16px;background:var(--field);
+    border:1px solid var(--line);padding:12px 14px;font-size:14px;color:var(--text);outline:none;line-height:1.6}
+  .story:focus{border-color:var(--dim)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{font-size:10px;padding:3px 8px;border-radius:8px;background:var(--field);color:var(--dim);cursor:pointer;border:0}
+  .chip.on{background:var(--accent);color:#111}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .seg button{font-size:11px;padding:5px 9px;border-radius:9px;background:var(--field);color:var(--dim);border:0;cursor:pointer}
+  .seg button.on{background:var(--accent);color:#111}
+  .numwrap{display:flex;align-items:center;gap:4px;margin-top:4px}
+  .numwrap input{width:72px;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:11px;color:var(--text);outline:none}
+  .modelwrap{position:relative}
+  .modelbtn{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:5px 9px;border-radius:9px;background:var(--field);color:var(--dim);border:0;cursor:pointer}
+  .modelbtn.on{background:var(--hover2);color:#fff}
+  .menu{position:absolute;right:0;top:34px;z-index:40;width:260px;background:#202020;border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .menu .mh{font-size:10px;color:var(--mute);padding:4px 6px;text-transform:uppercase;letter-spacing:.5px}
+  .menu .mi{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font-size:11px;padding:7px 8px;border-radius:8px;background:transparent;color:#ddd;border:0;cursor:pointer;text-align:left}
+  .menu .mi:hover{background:var(--hover)}
+  .menu .mi .bal{font-size:9px;color:var(--green)}
+  .menu .detail{width:100%;text-align:right;font-size:10px;color:var(--blue);background:transparent;border:0;cursor:pointer;padding:6px 8px}
+  .gen{margin-top:14px;width:100%;padding:12px;border:0;border-radius:12px;background:var(--accent);color:#111;font-size:13px;font-weight:600;cursor:pointer}
+  .gen:hover{background:#e5e5e5}
+  .progress{font-size:11px;color:var(--dim);margin-top:8px;text-align:center}
+
+  /* script result readable list */
+  .script{margin-top:16px;border-top:1px solid #2a2a2a;padding-top:14px}
+  .script .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .script .sh .t{font-size:12px;color:#d4d4d4;font-weight:500}
+  .script .sh .meta{font-size:10px;color:var(--mute)}
+  .shotcard{border:1px solid #2a2a2a;border-radius:12px;padding:10px 12px;margin-bottom:10px;background:#1a1a1a}
+  .shotcard .ch{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .shotcard .ch b{font-size:15px;color:#fff;font-family:"Songti SC",STSong,serif;font-weight:600}
+  .shotcard .ch .d{font-size:10px;color:var(--mute)}
+  .shotcard .desc{font-size:12px;color:#ddd;line-height:1.6;outline:none;cursor:text}
+  .shotcard .desc:focus{background:var(--field)}
+  .shotcard .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .shotcard .tg{font-size:10px;color:var(--dim);background:var(--field2);border-radius:6px;padding:2px 7px}
+  .shotcard .tg b{color:#aaa;font-weight:500;margin-right:3px}
+  .shotcard .tg.dlg{background:rgba(34,211,238,.12);color:#67e8f9}
+  .shotcard .tg.narr{background:rgba(196,181,253,.12);color:var(--purple)}
+
+  /* ---- view2 assets ---- */
+  .toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px}
+  .tb{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:7px 12px;border-radius:10px;border:0;cursor:pointer}
+  .tb.dark{background:var(--hover);color:#ddd}.tb.dark:hover{background:var(--hover2)}
+  .tb.light{background:var(--accent);color:#111}.tb.light:hover{background:#e5e5e5}
+  .gstyle{width:100%;background:var(--field2);border:1px solid transparent;border-radius:10px;padding:9px 10px;font-size:12px;color:var(--text);outline:none;margin-bottom:14px}
+  .gstyle:focus{border-color:var(--dim)}
+  .catgroup{margin-bottom:16px}
+  .catgroup .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .catgroup .ch .cn{font-size:12px;color:#d4d4d4;font-weight:500}
+  .acatmodel{font-size:10px;padding:4px 8px;border-radius:8px;background:var(--field);color:var(--dim);border:0;cursor:pointer}
+  .assets{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .asset{background:#212121;border-radius:10px;overflow:hidden;border:1px solid transparent;cursor:pointer;position:relative}
+  .asset.sel{border-color:#d4d4d4}
+  .asset .thumb{aspect-ratio:1;background:linear-gradient(135deg,#2a2118,#1a1a1a);display:flex;align-items:center;justify-content:center;color:#555;font-size:10px;position:relative}
+  .asset .thumb .ld{position:absolute;inset:0;background:rgba(20,20,20,.55);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;font-size:10px;color:#ddd}
+  .asset .cap{font-size:10px;color:var(--dim);padding:5px 6px}
+  .asset .thumb img{width:100%;height:100%;object-fit:cover}
+  .asset .pick{position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:5px;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;cursor:pointer}
+  .asset .pick.on{background:var(--accent);border-color:var(--accent);color:#111}
+  .asset .more{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:6px;background:rgba(0,0,0,.6);color:#ddd;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer}
+  .asset .more:hover{background:#333}
+  .asset.addasset{cursor:pointer;align-items:center;justify-content:center;text-align:center}
+  .asset.addasset .thumb{background:transparent;color:var(--mute);font-size:20px}
+  .badge{position:absolute;top:4px;right:4px;font-size:9px;padding:1px 5px;border-radius:6px}
+  .badge.up{background:rgba(52,211,153,.85);color:#062}
+  .badge.ing{background:rgba(0,0,0,.7);color:#fde047}
+  .badge.fail{background:rgba(248,113,113,.85);color:#fff}
+  /* asset editor drawer */
+  .drawer{width:300px;flex:none;align-self:stretch;background:#191919;border-left:1px solid rgba(255,255,255,.1);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+  .drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1);font-size:12px;color:#ddd}
+  .drawer .x{background:transparent;border:0;color:var(--dim);font-size:16px;cursor:pointer}
+  .drawer .x:hover{color:#fff}
+  .drawer .db{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+  .drawer .prev{background:#222;border-radius:12px;min-height:96px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px}
+  .drawer .prev img{width:100%;object-fit:contain}
+  .drawer .lab{font-size:11px;color:var(--mute);margin:4px 0 4px}
+  .drawer .ainp{width:100%;background:var(--field2);border:1px solid transparent;border-radius:8px;padding:7px 9px;font-size:12px;color:var(--text);outline:none}
+  .drawer .ainp:focus,.drawer .adesc:focus,.drawer .aprompt:focus{border-color:var(--dim)}
+  .drawer .adesc{width:100%;min-height:70px;resize:vertical;background:var(--field2);border:1px solid transparent;border-radius:8px;padding:7px 9px;font-size:11px;color:var(--text);outline:none;line-height:1.5}
+  .drawer .aprompt{width:100%;min-height:200px;resize:vertical;background:var(--field2);border:1px solid transparent;border-radius:8px;padding:7px 9px;font-size:11px;color:var(--text);outline:none;line-height:1.5}
+  .drawer .dfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+  .drawer .dfoot .ghost{background:var(--hover);color:#ddd;font-size:11px;padding:7px 12px;border:0;border-radius:9px;cursor:pointer}
+  .drawer .dfoot .save{background:var(--accent);color:#111;font-size:11px;padding:7px 12px;border:0;border-radius:9px;cursor:pointer}
+  /* asset prompt panel buttons */
+  .agen-row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+  .agen-row .ghost{background:var(--hover);color:#ddd;font-size:12px;padding:8px 14px;border:0;border-radius:9px;cursor:pointer}
+  .agen-row .save{background:var(--accent);color:#111;font-size:12px;padding:8px 14px;border:0;border-radius:9px;cursor:pointer}
+
+  /* ---- view3 table + cards ---- */
+  .vtabs{display:flex;gap:2px;background:var(--field);padding:3px;border-radius:10px;width:max-content;margin:0 auto 12px}
+  .vtabs button{font-size:11px;padding:6px 14px;border:0;border-radius:8px;background:transparent;color:var(--dim);cursor:pointer}
+  .vtabs button.on{background:var(--accent);color:#111}
+  .bulk{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px}
+  .bulk .lab{font-size:10px;color:var(--mute)}
+  .connbar{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);font-size:10px;color:var(--mute)}
+  .connbar>span{margin-right:6px}
+  .connbar .htag{background:#242424;border-color:transparent;color:var(--dim)}
+  /* table */
+  table.script-tbl{width:100%;border-collapse:collapse;font-size:11px}
+  table.script-tbl th{text-align:left;color:var(--mute);font-weight:500;padding:6px 6px;border-bottom:1px solid #2a2a2a;font-size:10px}
+  table.script-tbl td{border-bottom:1px solid #1f1f1f;padding:4px 6px;vertical-align:top;color:var(--dim)}
+  table.script-tbl tr:hover td{background:#202020}
+  .cell-desc{color:#ddd;font-size:11px;line-height:1.5;cursor:text;min-height:40px}
+  .drop{position:relative}
+  .dropbtn{width:100%;text-align:left;background:transparent;border:0;color:var(--dim);font-size:11px;cursor:pointer;padding:3px 4px;border-radius:6px}
+  .dropbtn:hover{background:var(--hover)}
+  .dropbtn.f{color:#ddd}
+  .droplist{position:absolute;z-index:30;top:100%;left:0;margin-top:2px;background:#202020;border:1px solid var(--line);border-radius:8px;padding:4px;max-height:160px;overflow:auto;min-width:120px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .droplist div{padding:4px 8px;border-radius:6px;font-size:11px;color:#ddd;cursor:pointer}
+  .droplist div:hover{background:var(--hover)}
+  .durinput{width:46px;background:var(--field2);border:1px solid transparent;border-radius:6px;padding:3px 5px;font-size:11px;color:var(--text);outline:none}
+  .dlg-tag{color:#67e8f9;font-size:10px}
+  .narr-tag{color:var(--purple);font-size:10px}
+  /* cards */
+  .shot{border-bottom:1px solid #2a2a2a;padding:12px 0}
+  .shot .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .shot .no{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim)}
+  .shot .no b{font-size:17px;color:#fff;font-family:"Songti SC",STSong,serif;font-weight:600}
+  .shot .dur{font-size:10px;color:var(--mute)}
+  .shot .acts{display:flex;gap:6px}
+  .shot .acts button{font-size:11px;padding:5px 10px;border-radius:8px;border:0;cursor:pointer;background:var(--hover);color:#ddd}
+  .shot .acts button.p{background:var(--accent);color:#111}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .gbox .gl{font-size:11px;color:#d4d4d4;margin-bottom:5px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+  .gbox .gl .edit{font-size:10px;color:var(--dim);cursor:pointer}
+  .gbox .gl .edit:hover{color:#fff}
+  .gbox textarea{width:100%;min-height:64px;resize:vertical;background:var(--field);border:1px solid transparent;border-radius:9px;padding:8px 10px;font-size:11px;color:var(--text);outline:none;line-height:1.5}
+  .gbox textarea:focus{border-color:var(--dim)}
+  .gbox .readonly{width:100%;min-height:64px;background:var(--field);border:1px solid transparent;border-radius:9px;padding:8px 10px;font-size:11px;color:var(--text);line-height:1.5;cursor:pointer}
+  .gbox .readonly:hover{border-color:var(--line)}
+  .gridmode{display:flex;gap:4px;margin-top:8px;align-items:center}
+  .gridmode span{font-size:10px;color:var(--mute)}
+  .gridmode button{font-size:10px;padding:3px 8px;border-radius:7px;background:var(--field);color:var(--dim);border:0;cursor:pointer}
+  .gridmode button.on{background:var(--accent);color:#111}
+  .handles{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .htag{font-size:10px;padding:3px 8px;border-radius:7px;background:#242424;color:var(--dim);cursor:pointer;border:0}
+  .htag.on{background:var(--accent);color:#111}
+  /* single refs */
+  .refs{display:flex;align-items:center;gap:14px;background:#1b1b1b;border-radius:10px;padding:12px 16px;margin-bottom:14px}
+  .refs .pics{display:flex}
+  .refs .pics img{width:64px;height:64px;object-fit:cover;border:2px solid rgba(255,255,255,.9);border-radius:4px;box-shadow:0 8px 18px rgba(0,0,0,.38)}
+  .refs .pics img:not(:first-child){margin-left:-22px}
+  .refs .rmeta{min-width:0;flex:1}
+  .refs .rmeta b{font-size:12px;color:#f3f4f6}
+  .refs .rmeta small{display:block;font-size:10px;color:var(--mute);margin:3px 0}
+  .refs .rnms{font-size:11px;color:#d1d5db;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* dialogue editor */
+  .dlgbox{margin-top:4px}
+  .dlrow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .dlkind{width:52px;flex:none;font-size:10px;padding:4px;background:rgba(34,211,238,.2);color:#67e8f9;border:0;border-radius:6px;cursor:pointer}
+  .dlkind.旁白{background:rgba(196,181,253,.2);color:var(--purple)}
+  .dlrole{width:60px;background:var(--field2);border:1px solid var(--line);border-radius:6px;padding:5px;font-size:10px;color:var(--text);outline:none;text-align:center}
+  .dltxt{flex:1;background:var(--field2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:11px;color:var(--text);outline:none}
+  .dldel{background:transparent;border:0;color:var(--mute);cursor:pointer;font-size:13px}
+  .dldel:hover{color:var(--red)}
+  .add{margin-top:14px;display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:7px 12px;border-radius:10px;background:var(--field);color:var(--dim);border:0;cursor:pointer}
+  .add:hover{background:var(--hover2);color:#ddd}
+  .pager{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:12px}
+  .pager button{font-size:11px;padding:5px 10px;border-radius:8px;background:transparent;color:#bbb;border:0;cursor:pointer}
+  .pager button:hover{color:#fff}
+  .pager button:disabled{opacity:.3;cursor:default}
+  .singlenav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .singlenav .arrow{font-size:40px;font-weight:200;color:var(--mute);cursor:pointer;line-height:1;background:0;border:0}
+  .singlenav .arrow:hover{color:#fff}
+  .singlenav .mid{display:flex;align-items:center;gap:10px}
+  .singlenav .big{font-size:30px;color:#fff;font-family:"Songti SC",STSong,serif;font-weight:600}
+  .singlenav .sub{font-size:13px;color:var(--mute)}
+
+  .legend{position:fixed;left:16px;bottom:16px;font-size:11px;color:#777;background:rgba(20,20,20,.7);border:1px solid #2a2a2a;border-radius:8px;padding:8px 10px;line-height:1.6;max-width:250px}
+  .legend b{color:#bbb}
+  .nodeline{font-size:10px;color:var(--mute);margin:10px 0 0 2px}
+
+  /* gen mask */
+  .genmask{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    background:rgba(20,20,20,.75);border-radius:0 0 var(--radius) var(--radius)}
+  .genmask .spin{width:28px;height:28px;border:3px solid rgba(255,255,255,.25);border-top-color:#34d399;border-radius:50%;animation:sp .8s linear infinite}
+  .genmask>div{font-size:12px;color:#ddd}
+  .stopbtn{margin-top:4px;padding:6px 16px;border-radius:999px;background:rgba(248,113,113,.2);color:#f87171;font-size:12px;border:0;cursor:pointer}
+  .stopbtn:hover{background:rgba(248,113,113,.3)}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* overlays */
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:2147483646;padding:24px}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;max-height:90vh}
+  .modal .mh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #2c2c2c}
+  .modal .mh .t{font-size:13px;color:#fff}
+  .modal .mb{flex:1;overflow:auto;padding:16px 18px}
+  .modal .x{font-size:16px;color:var(--dim);background:transparent;border:0;cursor:pointer}
+  .modal .x:hover{color:#fff}
+  .prow{margin-bottom:14px}
+  .prow .hl{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+  .prow .pl{font-size:11px;color:var(--dim);margin-bottom:5px}
+  .prow .dflt{font-size:11px;color:var(--dim);cursor:pointer}
+  .prow .dflt:hover{color:#fff}
+  .ratio-row{display:flex;flex-wrap:wrap;gap:8px}
+  .ratio{font-size:12px;padding:8px 14px;border-radius:8px;background:var(--field);color:var(--dim);border:0;cursor:pointer}
+  .ratio.on{background:var(--accent);color:#111}
+  .prow textarea{width:100%;min-height:80px;resize:vertical;background:var(--field);border:1px solid transparent;border-radius:9px;padding:10px 12px;font-size:12px;color:var(--text);outline:none;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .prow textarea:focus{border-color:var(--dim)}
+  .tabs{display:flex;gap:4px;padding:10px 18px 0;border-bottom:1px solid #2c2c2c}
+  .tabs button{font-size:11px;padding:7px 12px;border:0;background:transparent;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+  .tabs button.on{color:#fff;border-bottom-color:#fff}
+  .mlist{display:flex;flex-direction:column;gap:8px}
+  .mitem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#181818;border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px}
+  .mitem .mn{font-size:12px;color:#ddd}
+  .mitem .mt{font-size:9px;padding:1px 6px;border-radius:5px;margin-left:6px}
+  .mitem .mt.in{background:rgba(52,211,153,.15);color:var(--green)}
+  .mitem .mt.out{background:rgba(147,197,253,.15);color:var(--blue)}
+  .mitem .bal{font-size:10px;color:var(--green);margin-left:auto;margin-right:8px}
+  .toggle{width:36px;height:20px;border-radius:11px;background:#333;position:relative;cursor:pointer;flex:none;border:0}
+  .toggle.on{background:#fff}
+  .toggle i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#aaa;transition:.2s}
+  .toggle.on i{left:18px;background:#111}
+  .apicard{background:#181818;border:1px solid #2a2a2a;border-radius:10px;padding:12px;margin-bottom:10px}
+  .apicard .ac{font-size:12px;color:#ddd;margin-bottom:8px}
+  .apicard input{width:100%;background:var(--field);border:1px solid transparent;border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);outline:none;margin-bottom:7px}
+  .apicard input:focus{border-color:var(--dim)}
+  .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #2c2c2c}
+  .foot button{font-size:11px;padding:7px 13px;border-radius:9px;border:0;cursor:pointer}
+  .foot .ghost{background:var(--hover);color:#ddd}.foot .ghost:hover{background:var(--hover2)}
+  .foot .save{background:var(--accent);color:#111}
+  .assetlist{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .assetlist span{font-size:10px;background:var(--field2);border-radius:6px;padding:3px 7px;color:var(--dim);cursor:pointer}
+  .assetlist span:hover{background:var(--hover2);color:#fff}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="node">
+    <div class="hd">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8h8v8H8z"/></svg>
+      <span class="title">脚本盒子</span>
+      <span class="spacer"></span>
+      <div class="dots"><i></i><i></i><i></i></div>
+      <button class="hdbtn" title="总体提示词设置" onclick="openSettings('prompt')">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="hdbtn" title="全屏显示" onclick="toggleFull()">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+    </div>
+
+    <div class="steps" id="steps"></div>
+    <div class="view" id="view"></div>
+  </div>
+</div>
+
+<div id="overlay"></div>
+
+<div class="legend">
+  <b>剧本盒子节点原型（完整字段）</b><br/>
+  三步：确认镜头 / 准备资产 / 合成提示词。<br/>
+  头部齿轮 = 总体提示词设置（5类模板+约束）<br/>
+  头部方框 = 全屏放大。<br/>
+  · 分镜含：序号/时长/描述/景别/光影/对白/音效/运镜/宫格/生图·生视频提示词<br/>
+  · 资产卡片单击=右侧抽屉编辑，双击=弹出提示词面板<br/>
+  · 提示词框双击进弹窗编辑（防崩溃）
+</div>
+
+<script>
+/* ===== 常量（来自 shared.js） ===== */
+const SHOT_TYPES = ["大远景","远景","全景","中景","中近景","近景","特写","大特写","主观镜头"];
+const MOTIONS = ["推","拉","摇","移","跟","升降","固定","俯拍","仰拍","手持"];
+const SOUNDS = ["无","环境音","动作音","雨声","风声","鸟鸣","翻页声","脚步声","钟声","音乐"];
+const LIGHTS = ["自然光","暖光","冷光","月光","烛光","霓虹","逆光","侧光","顶光","暗调"];
+
+const scriptPromptDefault = "你是顶级爆款短剧编剧 + 资深影视分镜师……（默认·顶级爆款短剧编剧模板）";
+const shotPromptDefault = "你是资深电影导演、分镜设计师、AI绘画与AI视频提示词工程师……（默认·导演/分镜工程师模板）";
+const assetTplDefault = {character:"白底摄影棚四视图…",scene:"2×2网格四大全景…",prop:"2×3网格六视图…"};
+
+/* ===== 状态 ===== */
+const state = {
+  step:1,
+  story:"一个落魄画家在旧书店发现一本会自己改写的画册，每夜画出他遗忘的往事……",
+  shotCount:"auto",
+  customCount:"",
+  style:"中世纪童话·皮克斯3D",
+  styleChips:["赛博朋克","水墨古风","皮克斯3D","电影胶片感","低多边形"],
+  model:"gpt-4o-mini",
+  modelOpen:false,
+  aspectRatio:"16:9", customAspectRatio:"",
+  customScriptPrompt:scriptPromptDefault,
+  customShotPrompt:shotPromptDefault,
+  customAssetTemplates:{...assetTplDefault},
+  imageGlobalConstraint:"",
+  videoGlobalConstraint:"",
+  customGlobalConstraint:"",
+  assets:[
+    {name:"画家",cat:"character",has:true,loading:false,loadingGen:false,desc:"圆脸瘦削的中年男子，旧毛衣，胡茬",prompt:"",imageUrl:"",videoStatus:"uploaded"},
+    {name:"旧书店",cat:"scene",has:true,loading:false,loadingGen:false,desc:"拥挤的二手书店，木架到顶",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"画册",cat:"prop",has:false,loading:false,loadingGen:false,desc:"皮质封面无字空白画册",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"猫",cat:"character",has:true,loading:false,loadingGen:false,desc:"橘猫，独眼",prompt:"",imageUrl:"",videoStatus:"uploading"},
+    {name:"路灯",cat:"scene",has:false,loading:false,loadingGen:false,desc:"昏黄路灯，湿地面",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"怀表",cat:"prop",has:true,loading:false,loadingGen:false,desc:"银壳怀表，停摆",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"雨夜",cat:"scene",has:false,loading:false,loadingGen:false,desc:"暴雨夜街景",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"阁楼",cat:"scene",has:true,loading:false,loadingGen:false,desc:"斜顶小窗阁楼",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"画笔",cat:"prop",has:false,loading:false,loadingGen:false,desc:"尖头貂毛画笔",prompt:"",imageUrl:"",videoStatus:""},
+    {name:"信",cat:"prop",has:true,loading:false,loadingGen:false,desc:"泛黄信纸，火漆封",prompt:"",imageUrl:"",videoStatus:"failed"}
+  ],
+  selAssets:new Set(),
+  editingAsset:null,
+  assetMenu:null,
+  view3:"list",
+  page:0, perPage:10,
+  cur:0,
+  selShots:new Set(),
+  genMask:false, genChars:0, genSecs:0,
+  _drop:null,
+  projectName:"",
+  shots:[
+    {index:1,dur:"3s",desc:"画家在昏暗的旧书店翻找，指尖触到一本无字画册，灯光忽明忽暗。",
+     shotType:"近景",lighting:"暖光",dialogue:[{kind:"台词",role:"画家",text:"这本册子……怎么是空的？"}],sound:"翻页声",motion:"推",grid:0,
+     prompt:"",videoPrompt:"",connImg:false,connVid:false,loading:false},
+    {index:2,dur:"4s",desc:"深夜，画册自动浮现出一座他童年记忆里的阁楼，墨迹未干。",
+     shotType:"中景",lighting:"月光",dialogue:[{kind:"旁白",role:"",text:"墨迹像是自己爬上了纸面。"}],sound:"",motion:"摇",grid:0,
+     prompt:"",videoPrompt:"",connImg:false,connVid:true,loading:false},
+    {index:3,dur:"3s",desc:"画家提笔补完阁楼的窗，窗外下起记忆中的雨，猫跳上桌。",
+     shotType:"特写",lighting:"烛光",dialogue:[{kind:"台词",role:"画家",text:"原来你一直都在。"}],sound:"雨声",motion:"固定",grid:0,
+     prompt:"",videoPrompt:"",connImg:false,connVid:false,loading:true},
+    {index:4,dur:"5s",desc:"画册最后一页画出了如今的他，身旁坐着当年失散的猫与怀表。",
+     shotType:"全景",lighting:"自然光",dialogue:[],sound:"",motion:"拉",grid:0,
+     prompt:"",videoPrompt:"",connImg:true,connVid:false,loading:false},
+    {index:5,dur:"3s",desc:"晨光透窗，画册合上，书店恢复平静，仿佛什么都没发生。",
+     shotType:"远景",lighting:"自然光",dialogue:[{kind:"旁白",role:"",text:"有些往事，只配留在画里。"}],sound:"鸟鸣",motion:"俯拍",grid:0,
+     prompt:"",videoPrompt:"",connImg:false,connVid:false,loading:false}
+  ]
+};
+
+const $=s=>document.querySelector(s);
+function esc(s){return (s==null?"":String(s)).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+/* 把结构化对白数组转成可读文本片段 */
+function dlgText(arr){
+  const list=Array.isArray(arr)?arr:[];
+  if(!list.length) return "";
+  return list.map(d=>d.kind==="旁白"?`[旁白] ${d.text}`:`${d.role||"台词"}: ${d.text}`).join(" / ");
+}
+
+/* ===== steps ===== */
+function renderSteps(){
+  const t=state.shots.length,n=state.assets.length,
+        i=state.assets.filter(a=>a.has).length,
+        a=state.shots.filter(s=>s.prompt||s.videoPrompt).length;
+  const data=[
+    {n:1,title:"确认镜头",desc:t?`${t}镜头`:"暂无镜头",p:+(t>0)},
+    {n:2,title:"准备资产",desc:n?`${i}/${n}`:"暂无资产",p:n?i/n:0},
+    {n:3,title:"合成提示词",desc:t?`${a}/${t}`:"暂无镜头",p:t?a/t:0}
+  ];
+  $("#steps").innerHTML=data.map((s,k)=>{
+    const active=state.step===s.n,last=k===data.length-1;
+    const off=2*Math.PI*11*(1-s.p);
+    return `<div class="step ${active?'active':''}" onclick="state.step=${s.n};render()">
+      <div class="ring"><svg width="28" height="28"><circle cx="12" cy="12" r="11" fill="none" stroke="${active?'#3a3a3a':'#2a2a2a'}" stroke-width="2"/>
+      <circle cx="12" cy="12" r="11" fill="none" stroke="${active?'#fff':'#666'}" stroke-width="2"
+        stroke-dasharray="${2*Math.PI*11}" stroke-dashoffset="${off}" style="transition:all .3s"/></svg>
+      <b style="color:${active?'#fff':'#9ca3af'}">${s.n}</b></div>
+      <div><div class="t">${s.title}</div><div class="d">${s.desc}</div></div>
+    </div>${last?'':'<div class="bar"></div>'}`;
+  }).join("");
+}
+
+/* ===== view1 ===== */
+function modelMenu(){
+  if(!state.modelOpen) return "";
+  return `<div class="menu">
+    <div class="mh">内置模型</div>
+    <button class="mi" onclick="pickModel('gpt-4o-mini')">gpt-4o-mini<span class="bal">⚡ 12.4k</span></button>
+    <button class="mi" onclick="pickModel('gpt-4o')">gpt-4o<span class="bal">⚡ 8.1k</span></button>
+    <div class="mh" style="margin-top:4px">第三方模型</div>
+    <button class="mi" onclick="pickModel('claude-3.5')">claude-3.5-sonnet</button>
+    <button class="mi" onclick="pickModel('gemini-1.5')">gemini-1.5-pro</button>
+    <button class="detail" onclick="openSettings('model')">详情 ›</button>
+  </div>`;
+}
+function renderV1(){
+  let html=`<div class="row">
+    <div class="col" style="flex:1.3">
+      <div class="lab">剧情</div>
+      <textarea class="story" oninput="state.story=this.value">${esc(state.story)}</textarea>
+    </div>
+    <div class="col" style="flex:.9">
+      <div class="lab">统一风格</div>
+      <div class="chips">${state.styleChips.map(c=>`<button class="chip ${state.style===c?'on':''}" onclick="state.style='${c}';render()">${c}</button>`).join("")}</div>
+      <div class="lab" style="margin-top:14px">镜头数量</div>
+      <div class="seg">
+        <button class="${state.shotCount==='auto'?'on':''}" onclick="state.shotCount='auto';render()">自动</button>
+        ${[10,20,30,50].map(n=>`<button class="${state.shotCount==n?'on':''}" onclick="state.shotCount=${n};render()">${n}</button>`).join("")}
+      </div>
+      <div class="numwrap"><span style="font-size:10px;color:var(--mute)">自定义</span>
+        <input type="number" min="1" max="300" placeholder="1~300" value="${esc(state.customCount)}" oninput="state.customCount=this.value;state.shotCount='custom';render()"/></div>
+      <div class="lab" style="margin-top:14px">模型</div>
+      <div class="modelwrap">
+        <button class="modelbtn ${state.modelOpen?'on':''}" onclick="state.modelOpen=!state.modelOpen;render()">${esc(state.model)} ▾</button>
+        ${modelMenu()}
+      </div>
+    </div>
+  </div>
+  <button class="gen" onclick="genScript()">⚡ 生成分镜脚本</button>
+  <div class="progress" id="pg1"></div>
+  ${state.genMask?`<div class="genmask"><div class="spin"></div><div>正在生成分镜脚本… 已接收 ${state.genChars||0} 字 · 已用 ${state.genSecs||0}s</div>
+    <button class="stopbtn" onclick="stopGen()">停止生成</button></div>`:''}`;
+
+  if(state.shots.length){
+    html+=`<div class="script">
+      <div class="sh"><span class="t">分镜脚本</span><span class="meta">${state.shots.length} 镜 · 风格：${esc(state.style)} · 项目：${esc(state.projectName||'—')}</span></div>
+      ${state.shots.map(s=>{const dt=dlgText(s.dialogue);return `<div class="shotcard">
+        <div class="ch"><b>镜${s.index}</b><span class="d">${esc(s.dur)} · ${esc(s.shotType)} · ${esc(s.lighting)} · ${esc(s.motion)}</span></div>
+        <div class="desc" contenteditable="true" onblur="state.shots[${s.index-1}].desc=this.innerText">${esc(s.desc)}</div>
+        <div class="tags">
+          <span class="tg"><b>运镜</b>${esc(s.motion)}</span>
+          <span class="tg"><b>音效</b>${esc(s.sound||'—')}</span>
+          ${dt?`<span class="tg ${s.dialogue.some(d=>d.kind==='旁白')?'narr':'dlg'}">${esc(dt)}</span>`:''}
+        </div>
+      </div>`;}).join("")}
+    </div>`;
+  }
+  return html;
+}
+
+/* ===== view2 assets (3 categories) ===== */
+const CATS=[{k:"character",n:"角色"},{k:"scene",n:"场景"},{k:"prop",n:"道具"}];
+function assetThumb(x){
+  if(x.imageUrl) return `<img src="${esc(x.imageUrl)}" style="width:100%;height:100%;object-fit:cover"/>`;
+  if(x.loadingGen) return `<div class="ld">生成中…</div>`;
+  if(x.has) return `✓`;
+  return `+ 待生成`;
+}
+function assetBadge(x){
+  const s=x.videoStatus;
+  if(s==='uploading') return `<span class="badge ing">↑上传中</span>`;
+  if(s==='uploaded') return `<span class="badge up">已上传</span>`;
+  if(s==='failed') return `<span class="badge fail" onclick="event.stopPropagation();retryUp('${esc(x.name)}')">↑重试</span>`;
+  return '';
+}
+function assetCard(x){
+  const gi=state.assets.indexOf(x);
+  const menu=state.assetMenu===x.name?`<div class="menu" style="top:28px;right:4px" onclick="event.stopPropagation()">
+      <button class="mi" onclick="event.stopPropagation();genAsset(${gi})">重新生成</button>
+      <button class="mi" onclick="event.stopPropagation();upOne('${esc(x.name)}')">上传</button>
+      <button class="mi" style="color:var(--red)" onclick="event.stopPropagation();delAsset(${gi})">删除</button>
+    </div>`:'';
+  return `<div class="asset ${state.selAssets.has(gi)?'sel':''}" onclick="openAsset(${gi})" ondblclick="editAssetPrompt(${gi})" title="单击编辑 · 双击弹出提示词面板">
+    <div class="thumb">${assetThumb(x)}
+      <div class="pick ${state.selAssets.has(gi)?'on':''}" onclick="event.stopPropagation();toggleAsset(${gi})">✓</div>
+      ${assetBadge(x)}
+      ${!x.loadingGen?`<div class="more" onclick="event.stopPropagation();state.assetMenu=state.assetMenu==='${esc(x.name)}'?null:'${esc(x.name)}';render()">⋯</div>${menu}`:''}
+    </div>
+    <div class="cap">${esc(x.name)}</div>
+  </div>`;
+}
+function renderV2(){
+  const a=state.assets,hasAny=a.some(x=>x.has);
+  let groups=CATS.map(cat=>{
+    const list=a.filter(x=>x.cat===cat.k);
+    const cards=list.map(assetCard).join("");
+    const addCard=`<div class="asset addasset" onclick="addAsset('${cat.k}')"><div class="thumb" style="background:transparent">＋</div><div class="cap">新增${cat.n}</div></div>`;
+    return `<div class="catgroup">
+      <div class="ch"><span class="cn">${cat.n}</span>
+        <button class="acatmodel" onclick="alert('${cat.n}栏独立生图模型：内置/第三方/调度')">生图模型 ▾</button></div>
+      <div class="assets">${cards}${addCard}</div>
+    </div>`;
+  }).join("");
+
+  let drawer=state.editingAsset!==null?assetDrawer(state.assets[state.editingAsset]):'';
+  return `<div style="display:flex;gap:14px;align-items:stretch">
+    <div class="col" style="flex:1;min-width:0">
+      <div class="toolbar">
+        <button class="tb dark" onclick="uploadAllVideo()">⬆ 上传全部素材到视频网关</button>
+        <button class="tb light" onclick="batchGen()">🎨 批量生成${state.selAssets.size?`(${state.selAssets.size})`:''}</button>
+      </div>
+      <div class="lab">统一风格说明</div>
+      <input class="gstyle" value="${esc(state.style)}" oninput="state.style=this.value"/>
+      ${groups}
+      ${!hasAny?`<div class="nodeline">请先在设置中配置生图模型</div>`:''}
+    </div>
+    ${drawer}
+  </div>`;
+}
+function assetDrawer(x){
+  const k=state.editingAsset;
+  return `<div class="drawer">
+    <div class="dh"><span>编辑${CATS.find(c=>c.k===x.cat).n} · ${esc(x.name)}</span>
+      <button class="x" onclick="state.editingAsset=null;render()">✕</button></div>
+    <div class="db">
+      <div class="prev">${x.imageUrl?`<img src="${esc(x.imageUrl)}"/>`:(x.has?'<span style="color:#6b7280">✓ 参考图</span>':'<span style="color:#555;font-size:11px">暂无参考图</span>')}</div>
+      <div class="lab">名称</div>
+      <input class="ainp" value="${esc(x.name)}" oninput="state.assets[${k}].name=this.value"/>
+      <div class="lab">主体描述</div>
+      <textarea class="adesc" oninput="state.assets[${k}].desc=this.value">${esc(x.desc)}</textarea>
+      <div class="lab">完整生图提示词（可编辑）</div>
+      <textarea class="aprompt" oninput="state.assets[${k}].prompt=this.value">${esc(x.prompt||'')}</textarea>
+      <div class="dfoot">
+        <button class="ghost" onclick="alert('从资源库选择图片')">从资源选择</button>
+        <button class="save" onclick="genAsset(${k})">用此提示词生成</button>
+      </div>
+    </div>
+  </div>`;
+}
+function editAssetPrompt(k){
+  const x=state.assets[k];
+  if(!x) return;
+  const catN=CATS.find(c=>c.k===x.cat).n;
+  function closeAssetPrompt(){$("#overlay").innerHTML="";}
+  $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeAssetPrompt()">
+    <div class="modal" style="width:min(640px,94vw);height:auto;max-height:88vh">
+      <div class="mh"><span class="t">编辑${catN}提示词 · ${esc(x.name)}</span><button class="x" onclick="closeAssetPrompt()">✕</button></div>
+      <div class="mb" id="apbody">
+        <div class="prev" style="background:#222;border-radius:12px;min-height:140px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:12px">
+          ${x.imageUrl?`<img src="${esc(x.imageUrl)}" style="max-width:100%;max-height:200px;object-fit:contain"/>`:(x.has?'<span style="color:#6b7280">✓ 参考图</span>':'<span style="color:#555;font-size:11px">暂无参考图</span>')}
+        </div>
+        <div class="lab">名称</div>
+        <input class="ainp" value="${esc(x.name)}" oninput="state.assets[${k}].name=this.value"/>
+        <div class="lab">主体描述</div>
+        <textarea class="adesc" oninput="state.assets[${k}].desc=this.value">${esc(x.desc)}</textarea>
+        <div class="lab">完整生图提示词（可编辑）</div>
+        <textarea class="aprompt" id="apPrompt" oninput="state.assets[${k}].prompt=this.value">${esc(x.prompt||'')}</textarea>
+        <div class="agen-row">
+          <button class="ghost" onclick="genAsset(${k});var ta=document.getElementById('apPrompt');if(ta){ta.value=state.assets[${k}].prompt||'';}var img=this.closest('.mb').querySelector('img');if(img&&state.assets[${k}].imageUrl){img.src=state.assets[${k}].imageUrl;}">用此提示词生成</button>
+          <button class="save" onclick="closeAssetPrompt()">完成</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+
+/* ===== view3 ===== */
+function drop(field,opts,val,onpick){
+  const open=state._drop===field;
+  return `<div class="drop">
+    <button class="dropbtn ${val?'f':''}" onclick="state._drop='${open?'':field}';render()">${esc(val)||'选择'}</button>
+    ${open?`<div class="droplist">${opts.map(o=>`<div onclick="${onpick}('${esc(o)}')">${esc(o)}</div>`).join("")}</div>`:''}
+  </div>`;
+}
+function shotTableRow(s){
+  const dt=dlgText(s.dialogue);
+  const dlgTxt=dt?`<span class="${s.dialogue.some(d=>d.kind==='旁白')?'narr-tag':'dlg-tag'}">${esc(dt)}</span>`:'<span style="color:#555">对白/旁白</span>';
+  const sel=state.selShots.has(s.index);
+  return `<tr>
+    <td><input type="checkbox" style="accent-color:#fff" ${sel?'checked':''} onclick="event.stopPropagation();state.selShots.has(${s.index})?state.selShots.delete(${s.index}):state.selShots.add(${s.index});render()"/></td>
+    <td style="color:#fff">${s.index}</td>
+    <td><input class="durinput" value="${parseInt(s.dur)||5}" onchange="state.shots[${s.index-1}].dur=this.value+'s';render()"/>秒</td>
+    <td><div class="cell-desc" contenteditable="true" onblur="state.shots[${s.index-1}].desc=this.innerText">${esc(s.desc)}</div></td>
+    <td>${drop('st'+s.index,SHOT_TYPES,s.shotType,`pick('shotType',${s.index-1})`)}</td>
+    <td>${drop('li'+s.index,LIGHTS,s.lighting,`pick('lighting',${s.index-1})`)}</td>
+    <td>${dlgTxt}</td>
+    <td>${drop('so'+s.index,SOUNDS,s.sound,`pick('sound',${s.index-1})`)}</td>
+    <td>${drop('mo'+s.index,MOTIONS,s.motion,`pick('motion',${s.index-1})`)}</td>
+    <td><button class="hdbtn" onclick="editField(${s.index-1},'dialogue')" style="font-size:10px">编辑</button></td>
+  </tr>`;
+}
+function shotCard(s,single){
+  const gridBtns=[0,4,9].map(g=>`<button class="${s.grid===g?'on':''}" onclick="state.shots[${s.index-1}].grid=${g};render()">${g===0?'单图':g+'宫格'}</button>`).join("");
+  const refs=state.assets.filter(a=>a.has&&(s.desc.includes('@'+a.name)||(s.prompt||'').includes('@'+a.name)));
+  const refHtml=refs.length?`<div class="refs">
+      <div class="pics">${refs.map(a=>`<img src="${esc(a.imageUrl||'')}" onerror="this.style.background='#333';this.removeAttribute('src')" title="${esc(a.name)}"/>`).join("")}</div>
+      <div class="rmeta"><b>引用资产</b><small>${refs.length} 张附图</small><div class="rnms">${refs.map(a=>a.name).join('、')}</div></div>
+    </div>`:'';
+  const dlgRows=(s.dialogue||[]).map((d,k)=>`<div class="dlrow">
+      <button class="dlkind ${d.kind}" onclick="toggleDlg(${s.index-1},${k})">${esc(d.kind)}</button>
+      ${d.kind==='台词'?`<input class="dlrole" value="${esc(d.role)}" onchange="setDlg(${s.index-1},${k},'role',this.value)"/>`:''}
+      <input class="dltxt" value="${esc(d.text)}" onchange="setDlg(${s.index-1},${k},'text',this.value)"/>
+      <button class="dldel" onclick="delDlg(${s.index-1},${k})">✕</button>
+    </div>`).join("");
+  return `<div class="shot">
+    <div class="top">
+      <div class="no"><b>镜${s.index}</b><span class="dur">${esc(s.dur)} · ${esc(s.shotType)} · ${esc(s.lighting)} · ${esc(s.motion)}</span>
+        <input type="checkbox" style="accent-color:#fff" ${state.selShots.has(s.index)?'checked':''} onclick="event.stopPropagation();state.selShots.has(${s.index})?state.selShots.delete(${s.index}):state.selShots.add(${s.index});render()"/></div>
+      <div class="acts">
+        ${s.loading?`<button onclick="alert('停止生成')">生成中…</button>`
+          :`<button onclick="genShot(${s.index})">${s.prompt||s.videoPrompt?'重生成提示词':'生成提示词'}</button>`}
+        <button class="p" onclick="connect('${s.index}','image')">${s.connImg?'√ 生图':'生图'}</button>
+        <button class="p" onclick="connect('${s.index}','video')">${s.connVid?'√ 视频':'生视频'}</button>
+      </div>
+    </div>
+    ${refHtml}
+    <div class="grid2">
+      <div class="gbox"><div class="gl">生图 ${s.prompt?'':'<span style="color:#555">（未生成）</span>'}<span class="edit" onclick="editField(${s.index-1},'prompt')">双击编辑</span></div>
+        ${s.prompt?`<div class="readonly" onclick="editField(${s.index-1},'prompt')">${esc(s.prompt)}</div>`:`<textarea placeholder="点上方按钮生成，或输入 @ 引用资产"></textarea>`}</div>
+      <div class="gbox"><div class="gl">生视频 ${s.videoPrompt?'':'<span style="color:#555">（未生成）</span>'}<span class="edit" onclick="editField(${s.index-1},'videoPrompt')">双击编辑</span></div>
+        ${s.videoPrompt?`<div class="readonly" onclick="editField(${s.index-1},'videoPrompt')">${esc(s.videoPrompt)}</div>`:`<textarea placeholder="点上方按钮生成，或输入 @ 引用资产"></textarea>`}</div>
+    </div>
+    <div class="gridmode"><span>宫格：</span>${gridBtns}</div>
+    <div class="gl" style="margin-top:10px">画面描述（输入 @ 引用资产）</div>
+    <div class="cell-desc" contenteditable="true" style="background:var(--field);border-radius:8px;padding:8px;margin-top:4px" onblur="state.shots[${s.index-1}].desc=this.innerText">${esc(s.desc)}</div>
+    <div class="gl" style="margin-top:10px">对白/旁白</div>
+    <div class="dlgbox">${dlgRows}
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="add" style="margin:0" onclick="addDlg(${s.index-1},'台词')">＋ 台词</button>
+        <button class="add" style="margin:0" onclick="addDlg(${s.index-1},'旁白')">＋ 旁白</button>
+      </div>
+    </div>
+    <div class="handles">
+      <button class="htag ${s.connImg?'on':''}" onclick="connect('${s.index}','image')">@{source:shot-${s.index}}</button>
+      <button class="htag ${s.connVid?'on':''}" onclick="connect('${s.index}','video')">@{source:shot-${s.index}-video}</button>
+    </div>
+  </div>`;
+}
+function renderV3(){
+  const shots=state.shots;
+  let tabs=`<div class="vtabs">
+    <button class="${state.view3==='list'?'on':''}" onclick="state.view3='list';render()">列表（表格）</button>
+    <button class="${state.view3==='single'?'on':''}" onclick="state.view3='single';render()">单镜头</button>
+  </div>`;
+  if(state.view3==='list'){
+    const total=Math.ceil(shots.length/state.perPage);
+    const slice=shots.slice(state.page*state.perPage,state.page*state.perPage+state.perPage);
+    const conn=shots.filter(s=>s.connImg||s.connVid);
+    const connHtml=conn.length?`<div class="connbar"><span>已连接镜头：</span>${conn.map(s=>`<span class="htag ${s.connImg&&s.connVid?'on':''}" onclick="state.cur=${s.index-1};state.view3='single';render()">镜${s.index}${s.connImg?'·图':''}${s.connVid?'·视':''}</span>`).join("")}</div>`:'';
+    return `${tabs}
+      <div class="bulk"><span class="lab" style="font-size:10px;color:var(--mute);align-self:center">批量操作：</span>
+        <button class="tb light" onclick="batchPrompt()">⚡ 提示词</button>
+        <button class="tb dark" onclick="connectShots('image')">连接生图</button>
+        <button class="tb dark" onclick="connectShots('video')">连接视频</button></div>
+      <table class="script-tbl">
+        <thead><tr><th></th><th>镜</th><th>时长</th><th>画面描述（@引用资产）</th><th>景别</th><th>光影</th><th>对白/旁白</th><th>音效</th><th>运镜</th><th>对白编辑</th></tr></thead>
+        <tbody>${slice.map(shotTableRow).join("")}</tbody>
+      </table>
+      <div class="pager">
+        <button ${state.page<=0?'disabled':''} onclick="state.page--;render()">上一页</button>
+        <span>${state.page+1} / ${total}　每页 ${state.perPage} 镜${state.selShots.size?` · 已选 ${state.selShots.size}`:''}</span>
+        <button ${state.page>=total-1?'disabled':''} onclick="state.page++;render()">下一页</button>
+      </div>
+      ${connHtml}
+      <button class="add" onclick="addShot()">＋ 添加镜头</button>`;
+  } else {
+    const s=shots[state.cur];
+    if(!s) return `${tabs}<div class="nodeline">没有镜头，请先到第一步生成。</div>`;
+    return `${tabs}
+      <div class="singlenav">
+        <button class="arrow" ${state.cur<=0?'disabled':''} onclick="state.cur--;render()">‹</button>
+        <div class="mid"><span class="big">镜${s.index}</span><span class="sub">/ ${shots.length}</span></div>
+        <button class="arrow" ${state.cur>=shots.length-1?'disabled':''} onclick="state.cur++;render()">›</button>
+      </div>
+      ${shotCard(s,true)}
+      <button class="add" onclick="addShot()">＋ 添加镜头</button>`;
+  }
+}
+
+/* ===== overlays ===== */
+function openSettings(kind){
+  if(kind==='prompt'){
+    $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeSettings()">
+      <div class="modal" style="width:min(920px,94vw);height:86vh">
+        <div class="mh"><span class="t">总体提示词设置</span><button class="x" onclick="closeSettings()">✕</button></div>
+        <div class="tabs">
+          <button class="on" onclick="switchTab(this,'pRatio')">画面比例</button>
+          <button onclick="switchTab(this,'pScript')">剧本提示词</button>
+          <button onclick="switchTab(this,'pShot')">分镜提示词</button>
+          <button onclick="switchTab(this,'pAsset')">资产参考图模板</button>
+          <button onclick="switchTab(this,'pCon')">全局约束</button>
+        </div>
+        <div class="mb" id="pbody"></div>
+        <div class="foot"><button class="ghost" onclick="closeSettings()">取消</button><button class="save" onclick="closeSettings()">保存</button></div>
+      </div></div>`;
+    renderPromptBody('pRatio');
+  } else if(kind==='model'){
+    state.modelOpen=false;
+    $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeSettings()">
+      <div class="modal" style="width:min(760px,92vw);height:84vh">
+        <div class="mh"><span class="t">模型设置（详情）</span><button class="x" onclick="closeSettings()">✕</button></div>
+        <div class="tabs">
+          <button class="on">文本模型</button><button>绘图模型</button><button>视频模型</button><button>第三方API</button>
+        </div>
+        <div class="mb">
+          <div class="mlist">
+            ${[['gpt-4o-mini','in','⚡ 12.4k'],['gpt-4o','in','⚡ 8.1k'],['claude-3.5-sonnet','out',''],['gemini-1.5-pro','out','']].map(m=>`<div class="mitem">
+              <div><span class="mn">${m[0]}</span><span class="mt ${m[1]}">${m[1]==='in'?'内置':'三方'}</span></div>
+              ${m[2]?`<span class="bal">${m[2]}</span>`:''}
+              <button class="toggle ${m[1]==='in'?'on':''}" onclick="this.classList.toggle('on')"><i></i></button>
+            </div>`).join("")}
+          </div>
+          <div class="apicard" style="margin-top:14px">
+            <div class="ac">第三方 API · OpenAI 兼容</div>
+            <input placeholder="API Base URL"/>
+            <input placeholder="API Key" type="password"/>
+          </div>
+        </div>
+        <div class="foot"><button class="ghost" onclick="closeSettings()">恢复默认</button><button class="save" onclick="closeSettings()">保存</button></div>
+      </div></div>`;
+  }
+}
+function switchTab(btn,key){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderPromptBody(key);
+}
+function renderPromptBody(key){
+  let h="";
+  if(key==='pRatio'){
+    const ratios=["16:9","9:16","4:3","3:4","1:1","custom"];
+    h=`<div class="prow"><div class="pl">画面比例（aspectRatio · 生成图像/视频的基准宽高比）</div>
+      <div class="ratio-row">${ratios.map(r=>`<button class="ratio ${state.aspectRatio===r?'on':''}" onclick="state.aspectRatio='${r}';renderPromptBody('pRatio')">${r==='custom'?'自定义':r}</button>`).join("")}</div>
+      ${state.aspectRatio==='custom'?`<input class="ainp" style="margin-top:8px;max-width:200px" placeholder="例如 21:9" value="${esc(state.customAspectRatio)}" oninput="state.customAspectRatio=this.value"/>`:''}
+    </div>`;
+  } else if(key==='pScript'){
+    h=`<div class="prow"><div class="hl"><div class="pl">总体剧本提示词（customScriptPrompt）</div><a class="dflt" onclick="state.customScriptPrompt=scriptPromptDefault;renderPromptBody('pScript')">填入默认</a></div>
+      <textarea oninput="state.customScriptPrompt=this.value">${esc(state.customScriptPrompt)}</textarea></div>`;
+  } else if(key==='pShot'){
+    h=`<div class="prow"><div class="hl"><div class="pl">总体分镜提示词（customShotPrompt）</div><a class="dflt" onclick="state.customShotPrompt=shotPromptDefault;renderPromptBody('pShot')">填入默认</a></div>
+      <textarea oninput="state.customShotPrompt=this.value">${esc(state.customShotPrompt)}</textarea></div>`;
+  } else if(key==='pAsset'){
+    h=`<div class="prow"><div class="hl"><div class="pl">角色参考图模板（customAssetTemplates.character）</div><a class="dflt" onclick="state.customAssetTemplates.character=assetTplDefault.character;renderPromptBody('pAsset')">填入默认</a></div>
+      <textarea oninput="state.customAssetTemplates.character=this.value">${esc(state.customAssetTemplates.character)}</textarea></div>
+      <div class="prow"><div class="hl"><div class="pl">场景参考图模板（customAssetTemplates.scene）</div><a class="dflt" onclick="state.customAssetTemplates.scene=assetTplDefault.scene;renderPromptBody('pAsset')">填入默认</a></div>
+      <textarea oninput="state.customAssetTemplates.scene=this.value">${esc(state.customAssetTemplates.scene)}</textarea></div>
+      <div class="prow"><div class="hl"><div class="pl">道具参考图模板（customAssetTemplates.prop）</div><a class="dflt" onclick="state.customAssetTemplates.prop=assetTplDefault.prop;renderPromptBody('pAsset')">填入默认</a></div>
+      <textarea oninput="state.customAssetTemplates.prop=this.value">${esc(state.customAssetTemplates.prop)}</textarea></div>`;
+  } else {
+    h=`<div class="prow"><div class="pl">生图强制约束（imageGlobalConstraint · 仅作用 prompt）</div>
+      <textarea oninput="state.imageGlobalConstraint=this.value" placeholder="如：禁止畸变、保持角色一致">${esc(state.imageGlobalConstraint)}</textarea></div>
+      <div class="prow"><div class="pl">生视频强制约束（videoGlobalConstraint · 仅作用 videoPrompt）</div>
+      <textarea oninput="state.videoGlobalConstraint=this.value" placeholder="如：全片无BGM、OS/OV期间嘴巴闭合">${esc(state.videoGlobalConstraint)}</textarea></div>
+      <div class="prow"><div class="pl">全局约束（customGlobalConstraint · 拼接「；」作用于两者）</div>
+      <textarea oninput="state.customGlobalConstraint=this.value" placeholder="统一约束，作用于所有镜头">${esc(state.customGlobalConstraint)}</textarea></div>`;
+  }
+  $("#pbody").innerHTML=h;
+}
+function editField(i,field){
+  const s=state.shots[i];
+  let cur="";
+  if(field==='dialogue'){
+    cur=dlgText(s.dialogue||[]);
+  } else {
+    cur=s[field]||"";
+  }
+  const titleMap={prompt:"生图提示词",videoPrompt:"生视频提示词",dialogue:"对白/旁白",desc:"画面描述"};
+  const showAssets=(field==='prompt'||field==='videoPrompt'||field==='desc');
+  $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeSettings()">
+    <div class="modal" style="width:min(720px,92vw);height:76vh">
+      <div class="mh"><span class="t">编辑 镜${s.index} · ${titleMap[field]||field}</span><button class="x" onclick="closeSettings()">✕</button></div>
+      <div class="mb"><textarea id="ef" style="width:100%;height:100%;min-height:300px;resize:none;background:var(--field);border:1px solid transparent;border-radius:10px;padding:12px;font-size:12px;color:var(--text);outline:none;line-height:1.6">${esc(cur)}</textarea>
+        ${showAssets?`<div class="assetlist">插入资产： ${state.assets.map(a=>`<span onclick="insAsset('${esc(a.name)}')">@${esc(a.name)}</span>`).join("")}</div>`:''}
+      </div>
+      <div class="foot"><button class="ghost" onclick="closeSettings()">取消</button><button class="save" onclick="saveField(${i},'${field}')">保存写回</button></div>
+    </div></div>`;
+}
+function insAsset(name){
+  const ta=$("#ef"); if(!ta)return;
+  const s=ta.selectionStart, e=ta.selectionEnd;
+  ta.value=ta.value.slice(0,s)+"@"+name+" "+ta.value.slice(e);
+  ta.focus(); ta.selectionStart=ta.selectionEnd=s+name.length+2;
+}
+function saveField(i,field){
+  const ta=$("#ef"); if(ta){
+    if(field==='dialogue'){
+      // 文本 -> 结构化对象数组
+      const arr=ta.value.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
+        if(l.startsWith("[旁白]")) return {kind:"旁白",role:"",text:l.slice(4).trim()};
+        if(l.startsWith("[台词]")) return {kind:"台词",role:"角色",text:l.slice(4).trim()};
+        const m=l.match(/^(.*?)[:：]\s*(.*)$/);
+        if(m) return {kind:"台词",role:m[1],text:m[2]};
+        return {kind:"台词",role:"",text:l};
+      });
+      state.shots[i].dialogue=arr;
+    } else {
+      state.shots[i][field]=ta.value;
+    }
+  }
+  closeSettings();render();
+}
+
+function toggleFull(){
+  $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeSettings()">
+    <div class="modal" style="width:92vw;height:88vh">
+      <div class="mh"><span class="t">脚本盒子 · 全屏</span><button class="x" onclick="closeSettings()">✕</button></div>
+      <div class="mb" id="fullbody"></div>
+    </div></div>`;
+  $("#fullbody").innerHTML = state.step===1?renderV1():state.step===2?renderV2():renderV3();
+}
+function closeSettings(){$("#overlay").innerHTML="";}
+
+/* ===== interactions ===== */
+function genScript(){
+  state.modelOpen=false;state.projectName="画册往事";
+  state.genMask=true;state.genChars=0;state.genSecs=0;render();
+  const tm=setInterval(()=>{state.genChars+=Math.floor(Math.random()*40)+20;state.genSecs++;render();},600);
+  setTimeout(()=>{clearInterval(tm);state.genMask=false;render();},2600);
+}
+function stopGen(){state.genMask=false;render();}
+function pickModel(m){state.model=m;state.modelOpen=false;render();}
+function pick(field,i,val){state.shots[i][field]=val;state._drop=null;render();}
+function toggleAsset(k){state.selAssets.has(k)?state.selAssets.delete(k):state.selAssets.add(k);render();}
+function openAsset(k){state.editingAsset=k;state.assetMenu=null;render();}
+function addAsset(cat){state.assets.push({name:"新"+(cat==='character'?'角色':cat==='scene'?'场景':'道具'),cat,has:false,loading:false,loadingGen:false,desc:"",prompt:"",imageUrl:"",videoStatus:""});render();}
+function delAsset(k){state.assets.splice(k,1);state.editingAsset=null;render();}
+function genAsset(k){const x=state.assets[k];x.loadingGen=true;render();
+  setTimeout(()=>{x.loadingGen=false;x.has=true;x.imageUrl="";x.videoStatus="";render();},900);}
+function upOne(name){const a=state.assets.find(a=>a.name===name);if(a)a.videoStatus="uploaded";render();}
+function retryUp(name){const a=state.assets.find(a=>a.name===name);if(a)a.videoStatus="uploaded";render();}
+function batchGen(){const ids=state.selAssets.size?[...state.selAssets]:state.assets.map((_,i)=>i);
+  ids.forEach(i=>{state.assets[i].loadingGen=true;});render();
+  setTimeout(()=>{ids.forEach(i=>{state.assets[i].loadingGen=false;state.assets[i].has=true;});render();},900);}
+function uploadAllVideo(){state.assets.forEach(a=>{if(a.has)a.videoStatus="uploaded";});render();alert('全部已出图资产已上传视频网关');}
+function genShot(i){const s=state.shots.find(x=>x.index==i);if(!s)return;s.loading=true;render();
+  setTimeout(()=>{s.loading=false;s.prompt=`镜${i} 画面：低饱和电影感，主体居中，`+state.style;s.videoPrompt=`【时长 ${s.dur}】镜头缓慢推进，`+state.style;render();},1000);}
+function connect(i,t){const s=state.shots.find(x=>x.index==i);if(!s)return;t==='image'?s.connImg=!s.connImg:s.connVid=!s.connVid;render();}
+function addDlg(i,kind){state.shots[i].dialogue.push({kind,role:kind==='台词'?'': '',text:""});render();}
+function delDlg(i,k){state.shots[i].dialogue.splice(k,1);render();}
+function toggleDlg(i,k){const d=state.shots[i].dialogue[k];d.kind=d.kind==='台词'?'旁白':'台词';if(d.kind==='旁白')d.role='';render();}
+function setDlg(i,k,field,val){state.shots[i].dialogue[k][field]=val;render();}
+function connectShots(t){
+  const ids=state.view3==='single'?[state.shots[state.cur].index]:[...state.selShots];
+  if(!ids.length){alert('请先勾选镜头');return;}
+  ids.forEach(idx=>{const s=state.shots.find(x=>x.index==idx);if(s)t==='image'?s.connImg=true:s.connVid=true;});
+  render();
+}
+function batchPrompt(){
+  const ids=[...state.selShots];
+  const list=ids.length?ids:state.shots.map(s=>s.index);
+  list.forEach(idx=>{const s=state.shots.find(x=>x.index==idx);if(s)s.loading=true;});
+  render();
+  setTimeout(()=>{list.forEach(idx=>{const s=state.shots.find(x=>x.index==idx);if(s){s.loading=false;s.prompt=`镜${idx} 画面：`+state.style;s.videoPrompt=`【时长 ${s.dur}】`+state.style;}});render();},900);
+}
+function addShot(){
+  const n=state.shots.length+1;
+  state.shots.push({index:n,dur:"3s",desc:"新增镜头描述，可输入 @ 引用资产。",shotType:"中景",lighting:"自然光",dialogue:[],sound:"",motion:"固定",grid:0,prompt:"",videoPrompt:"",connImg:false,connVid:false,loading:false});
+  render();
+}
+
+/* ===== root ===== */
+function render(){
+  if(!$("#steps")||!$("#view")) return;
+  renderSteps();
+  if(state.step===1) $("#view").innerHTML=renderV1();
+  else if(state.step===2) $("#view").innerHTML=renderV2();
+  else $("#view").innerHTML=renderV3();
+}
+render();
+</script>
+</body>
+</html>
