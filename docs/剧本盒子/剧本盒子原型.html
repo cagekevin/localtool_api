@@ -914,7 +914,7 @@ function renderV3(){
   }
 }
 
-/* ===== 设置弹窗（单页5区块，符合截图） ===== */
+/* ===== 设置弹窗（画面比例 + 生图/生视频约束 + 剧本/分镜提示词 + 角色/场景/道具三参考模板，与官方一致） ===== */
 function openSettings(){
   $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeSettings()">
     <div class="modal" style="width:min(920px,94vw);height:88vh">
@@ -934,8 +934,12 @@ function openSettings(){
           <textarea oninput="state.customScriptPrompt=this.value">${esc(state.customScriptPrompt)}</textarea></div>
         <div class="prow"><div class="hl"><div class="pl">分镜/视频提示词生成</div><a class="dflt" onclick="state.customShotPrompt=SHOT_DIRECTOR_SYSTEM;openSettings()">填入默认</a></div>
           <textarea oninput="state.customShotPrompt=this.value">${esc(state.customShotPrompt)}</textarea></div>
-        <div class="prow"><div class="hl"><div class="pl">角色参考模板</div><a class="dflt" onclick="state.customAssetTemplates.character=ASSET_TEMPLATES.character;openSettings()">填入默认</a></div>
-          <textarea oninput="state.customAssetTemplates.character=this.value">${esc(state.customAssetTemplates.character)}</textarea></div>
+        <div class="prow"><div class="hl"><div class="pl">角色参考图模板</div><a class="dflt" onclick="state.customAssetTemplates.character=ASSET_TEMPLATES.character;openSettings()">填入默认</a></div>
+          <textarea placeholder="${esc(ASSET_TEMPLATES.character.slice(0,40))}…" oninput="state.customAssetTemplates.character=this.value">${esc(state.customAssetTemplates.character||ASSET_TEMPLATES.character)}</textarea></div>
+        <div class="prow"><div class="hl"><div class="pl">场景参考图模板</div><a class="dflt" onclick="state.customAssetTemplates.scene=ASSET_TEMPLATES.scene;openSettings()">填入默认</a></div>
+          <textarea placeholder="${esc(ASSET_TEMPLATES.scene.slice(0,40))}…" oninput="state.customAssetTemplates.scene=this.value">${esc(state.customAssetTemplates.scene||ASSET_TEMPLATES.scene)}</textarea></div>
+        <div class="prow"><div class="hl"><div class="pl">道具参考图模板</div><a class="dflt" onclick="state.customAssetTemplates.prop=ASSET_TEMPLATES.prop;openSettings()">填入默认</a></div>
+          <textarea placeholder="${esc(ASSET_TEMPLATES.prop.slice(0,40))}…" oninput="state.customAssetTemplates.prop=this.value">${esc(state.customAssetTemplates.prop||ASSET_TEMPLATES.prop)}</textarea></div>
       </div>
       <div class="foot"><button class="ghost" onclick="closeSettings()">取消</button><button class="save" onclick="closeSettings()">完成</button></div>
     </div></div>`;
