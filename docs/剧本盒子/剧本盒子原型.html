@@ -272,7 +272,7 @@
   <div class="node">
     <div class="hd">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8h8v8H8z"/></svg>
-      <span class="title">脚本盒子</span>
+      <span class="title">剧本盒子</span>
       <span class="spacer"></span>
       <span class="genbadge" id="genbadge" style="display:none"><span class="spin"></span>生成中 <span id="gbSecs">0</span>s</span>
       <button class="hdbtn" title="总体提示词设置" onclick="openSettings()">
@@ -943,7 +943,7 @@ function openSettings(){
 function toggleFull(){
   $("#overlay").innerHTML=`<div class="mask" onclick="if(event.target===this)closeSettings()">
     <div class="modal" style="width:92vw;height:88vh">
-      <div class="mh"><span class="t">脚本盒子 · 全屏</span><button class="x" onclick="closeSettings()">✕</button></div>
+      <div class="mh"><span class="t">剧本盒子 · 全屏</span><button class="x" onclick="closeSettings()">✕</button></div>
       <div class="mb" id="fullbody"></div>
     </div></div>`;
   $("#fullbody").innerHTML = state.step===1?renderV1():state.step===2?renderV2():renderV3();
