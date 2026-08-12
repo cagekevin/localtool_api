@@ -188,5 +188,49 @@
       "localTool/src/routes/resources.ts": 4
     },
     "total": 15
+  },
+  "scriptbox_node_type": {
+    "desc": "剧本盒子节点类型 scriptBoxNode（引擎拆分时该字符串是 UI 挂载关键，不可变）",
+    "severity": "critical",
+    "scopes": [
+      "src/bundle"
+    ],
+    "hits": {
+      "src/bundle/httpClient-BknZwXjG_components/As.jsx": 1,
+      "src/bundle/httpClient-BknZwXjG_components/bo.jsx": 2,
+      "src/bundle/httpClient-BknZwXjG_components/H_.jsx": 22,
+      "src/bundle/httpClient-BknZwXjG_components/shared.js": 3
+    },
+    "total": 28
+  },
+  "scriptbox_callbacks": {
+    "desc": "剧本盒子 9 个引擎回调名（挂到 node.data.onXxx，组件只调不实现；改名必须组件/引擎/注入三方同步）",
+    "severity": "critical",
+    "scopes": [
+      "src/bundle"
+    ],
+    "hits": {
+      "src/bundle/httpClient-BknZwXjG_components/c_.jsx": 12,
+      "src/bundle/httpClient-BknZwXjG_components/H_.jsx": 65
+    },
+    "total": 77
+  },
+  "scriptbox_downstream": {
+    "desc": "剧本盒子连线下游节点类型 promptNode/discountVideoNode（scriptbox 只连这两种）",
+    "severity": "high",
+    "scopes": [
+      "src/bundle"
+    ],
+    "hits": {
+      "src/bundle/App-BX6o9fW5_components/shared.js": 10,
+      "src/bundle/httpClient-BknZwXjG_components/bo.jsx": 2,
+      "src/bundle/httpClient-BknZwXjG_components/Co.jsx": 2,
+      "src/bundle/httpClient-BknZwXjG_components/c_.jsx": 2,
+      "src/bundle/httpClient-BknZwXjG_components/es.jsx": 2,
+      "src/bundle/httpClient-BknZwXjG_components/H_.jsx": 78,
+      "src/bundle/httpClient-BknZwXjG_components/shared.js": 3,
+      "src/bundle/httpClient-BknZwXjG_components/Zo.jsx": 2
+    },
+    "total": 101
   }
 }

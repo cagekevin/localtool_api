@@ -115,6 +115,39 @@
       "patterns": [
         { "type": "fixed", "value": "local-tool" }
       ]
+    },
+    "scriptbox_node_type": {
+      "desc": "剧本盒子节点类型 scriptBoxNode（引擎拆分时该字符串是 UI 挂载关键，不可变）",
+      "severity": "critical",
+      "scopes": ["src/bundle"],
+      "patterns": [
+        { "type": "fixed", "value": "scriptBoxNode" }
+      ]
+    },
+    "scriptbox_callbacks": {
+      "desc": "剧本盒子 9 个引擎回调名（挂到 node.data.onXxx，组件只调不实现；改名必须组件/引擎/注入三方同步）",
+      "severity": "critical",
+      "scopes": ["src/bundle"],
+      "patterns": [
+        { "type": "fixed", "value": "onGenerateScript" },
+        { "type": "fixed", "value": "onGenerateAssetImage" },
+        { "type": "fixed", "value": "onGenerateAllAssetImages" },
+        { "type": "fixed", "value": "onGenerateShotPrompts" },
+        { "type": "fixed", "value": "onStopScriptItem" },
+        { "type": "fixed", "value": "onRetryVideoAssetUpload" },
+        { "type": "fixed", "value": "onUploadAllVideoAssets" },
+        { "type": "fixed", "value": "onConnectShot" },
+        { "type": "fixed", "value": "onConnectShots" }
+      ]
+    },
+    "scriptbox_downstream": {
+      "desc": "剧本盒子连线下游节点类型 promptNode/discountVideoNode（scriptbox 只连这两种）",
+      "severity": "high",
+      "scopes": ["src/bundle"],
+      "patterns": [
+        { "type": "fixed", "value": "promptNode" },
+        { "type": "fixed", "value": "discountVideoNode" }
+      ]
     }
   }
 }

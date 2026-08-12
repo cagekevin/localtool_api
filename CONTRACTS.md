@@ -17,6 +17,9 @@
 | `kv_transit_resources` | medium | 24 | src/bundle/App-BX6o9fW5_components/Vr.jsx(7) · src/bundle/httpClient-BknZwXjG_components/Co.jsx(1) · src/bundle/httpClient-BknZwXjG_components/c_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(6) · src/bundle/httpClient-BknZwXjG_components/shared.js(1) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(2) · src/bundle/httpClient-BknZwXjG_components/Zo.jsx(1) · src/bundle/httpClient-BknZwXjG_components/_Component118.jsx(2) · src/bundle/ShareAppPage-C4RerI9i.js(2) |
 | `kv_api_configs` | medium | 4 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/httpClient-BknZwXjG_components/shared.js(1) |
 | `local_tool_label` | low | 15 | src/bundle/App-BX6o9fW5_components/Vr.jsx(3) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/shared.js(2) · src/bundle/httpClient-BknZwXjG_components/Un.jsx(4) · localTool/src/routes/resources.ts(4) |
+| `scriptbox_node_type` | critical | 28 | src/bundle/httpClient-BknZwXjG_components/As.jsx(1) · src/bundle/httpClient-BknZwXjG_components/bo.jsx(2) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(22) · src/bundle/httpClient-BknZwXjG_components/shared.js(3) |
+| `scriptbox_callbacks` | critical | 77 | src/bundle/httpClient-BknZwXjG_components/c_.jsx(12) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(65) |
+| `scriptbox_downstream` | high | 101 | src/bundle/App-BX6o9fW5_components/shared.js(10) · src/bundle/httpClient-BknZwXjG_components/bo.jsx(2) · src/bundle/httpClient-BknZwXjG_components/Co.jsx(2) · src/bundle/httpClient-BknZwXjG_components/c_.jsx(2) · src/bundle/httpClient-BknZwXjG_components/es.jsx(2) · src/bundle/httpClient-BknZwXjG_components/H_.jsx(78) · src/bundle/httpClient-BknZwXjG_components/shared.js(3) · src/bundle/httpClient-BknZwXjG_components/Zo.jsx(2) |
 
 ## 各契约 scope 与含义
 
@@ -56,3 +59,12 @@
 - **local_tool_label**：模式标签 local-tool（与 proxyMode 关联，但区分独立字符串）
   - scope: src/bundle, localTool/src
   - 模式: "local-tool"
+- **scriptbox_node_type**：剧本盒子节点类型 scriptBoxNode（引擎拆分时该字符串是 UI 挂载关键，不可变）
+  - scope: src/bundle
+  - 模式: "scriptBoxNode"
+- **scriptbox_callbacks**：剧本盒子 9 个引擎回调名（挂到 node.data.onXxx，组件只调不实现；改名必须组件/引擎/注入三方同步）
+  - scope: src/bundle
+  - 模式: "onGenerateScript" | "onGenerateAssetImage" | "onGenerateAllAssetImages" | "onGenerateShotPrompts" | "onStopScriptItem" | "onRetryVideoAssetUpload" | "onUploadAllVideoAssets" | "onConnectShot" | "onConnectShots"
+- **scriptbox_downstream**：剧本盒子连线下游节点类型 promptNode/discountVideoNode（scriptbox 只连这两种）
+  - scope: src/bundle
+  - 模式: "promptNode" | "discountVideoNode"
