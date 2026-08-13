@@ -14,6 +14,7 @@ import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy, Zap } from 'lucid
 import CanvasToolbar from './components/base/CanvasToolbar.jsx'
 import ArrangeConfirm from './components/base/ArrangeConfirm.jsx'
 import { useArrangeCanvas } from './components/base/useArrangeCanvas.js'
+import { useAssetDropPaste, useGlobalPaste } from './components/base/useAssetDropPaste.js'
 import TextNode from './components/TextNode.jsx'
 import ImageNode from './components/ImageNode.jsx'
 import PromptNode from './components/PromptNode.jsx'
@@ -366,6 +367,17 @@ function Canvas() {
   const zoomOutStep = useCallback(() => zoomOut({ duration: 300 }), [zoomOut])
 
   /* ====================================================================
+   * 素材拖入 / 粘贴（复刻 H_.jsx:10201-10350 onDragOver ki / onDrop Ai + handlePaste）
+   * 统一收敛到 useAssetDropPaste hook：App 只挂事件，具体建节点逻辑在 hook 里。
+   * ==================================================================== */
+  const { onDragOver, onDrop, onPaste } = useAssetDropPaste({
+    addNode: (type, pos, data) => addNode(type, pos, data),
+    screenToFlowPosition
+  })
+  // 全局粘贴监听（文档级）
+  useGlobalPaste(onPaste)
+
+  /* ====================================================================
    * 【区 4】菜单配置区
    * canvas（空白）/ node（单选节点）/ selection（多选）三套右键菜单项
    * ==================================================================== */
@@ -658,6 +670,8 @@ function Canvas() {
           onSelectionContextMenu={menu.onSelectionContextMenu}
           onSelectionEnd={menu.onSelectionEnd}
           onPaneClick={menu.onPaneClick}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
           proOptions={proOptions}
           minZoom={0.05}
           maxZoom={4}

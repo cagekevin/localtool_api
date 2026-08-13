@@ -106,8 +106,13 @@ export default function TextNode({ id, data, selected }) {
         }}
       >
         {/* 文本内容区 */}
+        {/* 【高度根因修复（抉择）】textarea 曾用 h-full（height:100%），但父容器是 flex-1
+            （flex 计算高度，非显式 height），百分比高度解析为 auto → textarea 塌缩成默认行高
+            （约 46px），多行文本只显示第一句。官方节点用固定 height 故 h-full 有效；原型 NodeShell
+            用 minHeight，故改用 flex 撑满：父容器已是 flex，textarea 用 flex-1 替代 h-full，
+            由 flex 分配高度 → 完整显示多行，超出内容靠 textarea 自身 overflow:auto 滚动查看。 */}
         <div
-          className={`flex-1 min-h-0 p-3 overflow-hidden bg-[#1a1a1a] relative rounded-xl ${editingText ? 'nopan nowheel nodrag' : 'drag-handle cursor-move'}`}
+          className={`flex flex-col flex-1 min-h-0 p-3 overflow-hidden bg-[#1a1a1a] relative rounded-xl ${editingText ? 'nopan nowheel nodrag' : 'drag-handle cursor-move'}`}
           onWheel={(e) => e.stopPropagation()}
           onDoubleClick={() => {
             if (!editingText) {
@@ -137,7 +142,7 @@ export default function TextNode({ id, data, selected }) {
               )}
               <textarea
                 ref={textAreaRef}
-                className={`w-full h-full bg-transparent outline-none font-sans leading-relaxed custom-scrollbar nowheel resize-none ${editingText ? 'nodrag nopan' : 'pointer-events-none'}`}
+                className={`w-full flex-1 min-h-0 bg-transparent outline-none font-sans leading-relaxed custom-scrollbar nowheel resize-none ${editingText ? 'nodrag nopan' : ''}`}
                 style={{ fontSize: '14px', color: '#a1a1aa' }}
                 placeholder=""
                 value={text}

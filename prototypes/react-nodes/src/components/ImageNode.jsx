@@ -1,45 +1,71 @@
 import React, { useState, useRef, useCallback } from 'react'
 import {
-  Image as ImageIcon, Video, Music, FileText, Plus, ZoomIn, Crop,
+  Image as ImageIcon, Video, Music, FileText, Plus, Crop,
   Pencil, Send, Download, Play
 } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
 import NodeShell from './base/NodeShell.jsx'
 import HoverToolbar from './base/HoverToolbar.jsx'
-import { useNodeResize } from './base/hooks.js'
-import { useLod } from './base/useLod.js'
+import FullscreenModal from './base/FullscreenModal.jsx'
+import ImageEditor from './base/ImageEditor.jsx'
+import { detectMediaType } from './base/mediaType.js'
+import { useMediaDegrade } from './base/useMediaDegrade.js'
+import { useFitNodeRatio } from './base/useFitNodeRatio.js'
+import { useVideoPoster } from './base/useVideoPoster.js'
 
 /**
  * 图片节点（复刻原 xi.jsx / imageNode）
- * 支持 image / video / audio / text / empty 五种内容态。
+ * 支持 image / video / audio / text / empty 五种内容态（类型用 detectMediaType 统一判断）。
  * 已迁移到 NodeShell 基座（外壳 + 端口 + 尺寸管理统一）。
+ *
+ * hover 工具栏「裁剪」「编辑(标记)」→ 打开全屏 ImageEditor：
+ *  - 裁剪 = initialTool='crop'
+ *  - 编辑 = initialTool='pencil'
+ * 保存后把 canvas dataURL 写回 data.imageUrl（useReactFlow setNodes 不可变更新）。
+ *
+ * 通用能力抽到 base/：useMediaDegrade（性能降级）、useFitNodeRatio（宽高比自适应）、
+ * useVideoPoster（视频首帧封面）、detectMediaType（类型判断）。
  */
 export default function ImageNode({ id, data, selected }) {
   const fileRef = useRef(null)
+  const videoRef = useRef(null) // 播放视频元素（大播放按钮手势触发的 play() 用）
   const url = data.imageUrl || data.url || ''
-  const { getNodes } = useReactFlow()
-  const { onMainBoxResize } = useNodeResize(id)
+  const { setNodes } = useReactFlow()
 
-  // 性能模式 LOD 媒体降级（复刻官方横幅"图片视频已隐藏"）：
-  //   lodLevel 由性能模式开关 + 视口缩放共同决定（见 LodListener）：
-  //   - lodLevel>=2（缩到 ≤0.3）→ 隐藏图片内容
-  //   - lodLevel>=3（缩到 ≤0.2）→ 连视频/音频也隐藏
-  // 抉择：用字符串 hideMedia 区分「藏哪些媒体」，而非布尔——因为图片和视频阈值不同，
-  //       需分别控制。true 时不渲染 <img>/<video>/<audio>，替换为轻量占位。
-  // 接真系统：官方是「用缩略图替换原图」而非完全隐藏（xi.jsx 用 useThumbnail 换 /files/_resize 图）。
-  //       若后续接入 localTool 的资源缩略图服务，可把「隐藏」改为「换 thumbnailUrl」，
-  //       这里 hideMedia 判断保留，只把占位改成 <img src={thumbnail}> 即可。
-  const { lodLevel = 0 } = useLod()
-  const hideMedia = lodLevel >= 3 ? 'image video audio' : lodLevel >= 2 ? 'image' : ''
+  // 编辑器开合（复刻官方：同一编辑器，initialTool 决定入口工具）。null=关闭。
+  const [editor, setEditor] = useState(null) // { tool: 'crop' | 'pencil' }
 
-  // 判断内容类型
-  let type = 'empty'
-  if (url) {
-    if (url.startsWith('data:video/') || /\.(mp4|webm|mov|mkv|avi|m4v)($|\?)/i.test(url)) type = 'video'
-    else if (url.startsWith('data:audio/') || /\.(mp3|wav|ogg|m4a|flac|aac)($|\?)/i.test(url)) type = 'audio'
-    else if (url.startsWith('data:text/') || /\.(txt|md|json|csv)($|\?)/i.test(url)) type = 'text'
-    else type = 'image'
-  }
+  // 视频播放态（复刻官方 xi.jsx `s`）：false=显示海报+播放按钮，true=渲染 <video controls autoPlay>
+  const [playing, setPlaying] = useState(false)
+
+  // 查看大图弹窗（复刻官方 xi.jsx onDoubleClick → onZoom 看大图）。图片双击打开全屏查看。
+  const [zoomView, setZoomView] = useState(false)
+
+  // 内容类型（统一走 detectMediaType）
+  const type = detectMediaType(url)
+
+  // 性能模式媒体降级（hideMedia：'image' / 'image video audio' / ''，见 useMediaDegrade）
+  const { hideMedia } = useMediaDegrade()
+
+  // 节点按媒体宽高比自适应（图片 img / 视频 video 共用）
+  const { fitFromImage, fitFromVideo } = useFitNodeRatio(id)
+
+  // 视频首帧封面（未播放时显示首帧，避免视频 URL 当 img 破图）
+  const posterUrl = useVideoPoster(url, type === 'video' && !playing)
+
+  // 编辑器保存 → 写回节点图片（接真系统：在此改走上传 localTool /files/ + 写回 imageUrl）
+  const handleEditorSave = useCallback(
+    ({ dataUrl }) => {
+      if (!dataUrl) return
+      setNodes((ns) =>
+        ns.map((n) =>
+          n.id === id ? { ...n, data: { ...n.data, imageUrl: dataUrl, url: dataUrl } } : n
+        )
+      )
+      setEditor(null)
+    },
+    [id, setNodes]
+  )
 
   const DEMO_IMAGE = data.demoImage || 'https://picsum.photos/seed/imagenode/400/260'
   const defaultTitle = type === 'video' ? '视频' : type === 'audio' ? '音频' : type === 'text' ? '文本文件' : '图片'
@@ -54,34 +80,26 @@ export default function ImageNode({ id, data, selected }) {
       title: '上传/替换',
       onClick: () => fileRef.current?.click()
     },
-    { key: 'zoom', icon: <ZoomIn size={14} />, title: '放大' },
-    { key: 'crop', icon: <Crop size={14} />, title: '裁剪' },
-    { key: 'edit', icon: <Pencil size={14} />, title: '编辑' },
+    {
+      key: 'crop',
+      icon: <Crop size={14} />,
+      title: '裁剪',
+      onClick: () => url && setEditor({ tool: 'crop' }),
+      show: type === 'image', // 裁剪只对图片（视频/音频不适用，官方同此）
+    },
+    {
+      key: 'edit',
+      icon: <Pencil size={14} />,
+      title: '标记',
+      onClick: () => url && setEditor({ tool: 'pencil' }),
+      show: type === 'image', // 标记只对图片
+    },
     { key: 'send', icon: <Send size={14} />, title: '发送到左侧网站', hoverClass: 'hover:text-blue-400' },
     { key: 'download', icon: <Download size={14} />, title: '下载' }
   ]
 
-  // 图片加载后按「实际比例」调整节点形状：宽度保持当前值，高度 = 宽度 / (naturalWidth/naturalHeight)。
-  // 这样节点容器贴合图片比例，不按实际像素放大缩小（那会撑爆/缩没，不实用）。
-  const fitToImageRatio = useCallback(
-    (e) => {
-      const img = e.currentTarget
-      if (!img || !img.naturalWidth || !img.naturalHeight) return
-      const ratio = img.naturalWidth / img.naturalHeight
-      if (!isFinite(ratio) || ratio <= 0) return
-      // 当前宽度：优先取 ReactFlow 节点实际 width，兜底用固定值
-      const curNode = getNodes().find((n) => n.id === id)
-      const curW = curNode?.width ?? curNode?.style?.width ?? 260
-      // 高度 = 宽度 / 比例；限制在 [80, 900] 内，避免极端比例把节点压扁/拉爆
-      const h = Math.round(curW / ratio)
-      const clamped = Math.min(900, Math.max(80, h))
-      if (Math.abs(clamped - (curNode?.height ?? curNode?.style?.height ?? 0)) < 4) return
-      onMainBoxResize(Math.round(curW), clamped)
-    },
-    [id, getNodes, onMainBoxResize]
-  )
-
   return (
+    <>
     <NodeShell
       id={id}
       label={data.label}
@@ -118,23 +136,62 @@ export default function ImageNode({ id, data, selected }) {
               </div>
             </div>
           )}
-          {/* 图片（onLoad 按实际比例自适应节点形状） */}
+          {/* 图片（onLoad 按实际比例自适应节点形状；双击查看大图，复刻官方 onDoubleClick→onZoom） */}
           {type === 'image' && !hideMedia.includes('image') && displayUrl && (
             <img src={displayUrl} alt="Content" loading="lazy" decoding="async"
-              onLoad={fitToImageRatio}
+              onLoad={fitFromImage}
+              onDoubleClick={(e) => { e.stopPropagation(); setZoomView(true) }}
               className="w-full h-full object-contain cursor-pointer" draggable={false} />
           )}
-          {/* 视频 */}
+          {/* 视频（复刻官方 xi.jsx：未播放显示海报+播放按钮，点击播放 → <video controls autoPlay>）
+              无论是否播放都渲染一个 <video preload="metadata"> 读真实宽高 → onLoadedMetadata 调
+              fitFromVideo 按视频宽高自适应节点形状（useFitNodeRatio）。
+              未播放时该 video 隐藏（仅读元数据），海报用 <img> 显示；播放时显示 controls。 */}
           {type === 'video' && !hideMedia.includes('video') && (
-            <>
-              <img src={displayUrl || url} alt="video poster" loading="lazy" decoding="async"
-                draggable={false} className="w-full h-full object-contain cursor-pointer" />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-black/70 transition-all nodrag pointer-events-auto" title="播放视频">
-                  <Play className="text-white w-6 h-6" fill="currentColor" />
-                </div>
-              </div>
-            </>
+            <div className="w-full h-full relative">
+              {/* 元数据读取器 / 播放器：始终存在（未播放时隐藏），loadedmetadata 触发节点比例自适应。
+                  播放由大播放按钮手势触发 video.play()（避免 autoplay 政策拦截带声音视频） */}
+              <video
+                ref={videoRef}
+                src={url}
+                preload="metadata"
+                className={playing ? 'max-w-full w-full h-full object-contain block' : 'hidden'}
+                controls={playing}
+                onLoadedMetadata={fitFromVideo}
+                onClick={(e) => e.stopPropagation()}
+              />
+              {/* 未播放：首帧封面 + 播放按钮。封面用抓取的 posterUrl（首帧 dataURL），
+                  避免用视频 URL 当 <img> src 导致破图（官方用 localTool _frame1.jpg）。
+                  点击大播放按钮：setPlaying(true) 显示 controls，并在同一用户手势里调 play()，
+                  这样不用再点视频左下角的小播放按钮（autoplay 政策拦的是无手势的自动播放，
+                  用户点击触发 play() 是允许的）。 */}
+              {!playing && (
+                <>
+                  {posterUrl ? (
+                    <img src={posterUrl} alt="video poster" loading="lazy" decoding="async"
+                      draggable={false} className="w-full h-full object-contain cursor-pointer" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#151515]">
+                      <Video size={32} className="text-gray-700" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div
+                      className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-black/70 transition-all nodrag pointer-events-auto cursor-pointer"
+                      title="播放视频"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPlaying(true)
+                        // 同一用户手势里显式 play()，绕开 autoplay 政策（带声音视频不被自动播放拦截）
+                        try { videoRef.current?.play?.() } catch {}
+                      }}
+                    >
+                      <Play className="text-white w-6 h-6" fill="currentColor" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {/* 音频 */}
           {type === 'audio' && !hideMedia.includes('audio') && (
@@ -164,5 +221,23 @@ export default function ImageNode({ id, data, selected }) {
         </div>
       </div>
     </NodeShell>
+
+    {/* 全屏图片编辑器（裁剪/标记入口）：用当前显示图作为编辑源 */}
+    {editor && url && (
+      <ImageEditor
+        imageUrl={url}
+        initialTool={editor.tool}
+        onSave={handleEditorSave}
+        onClose={() => setEditor(null)}
+      />
+    )}
+
+    {/* 查看大图（复刻官方 onDoubleClick → onZoom 全屏看大图） */}
+    <FullscreenModal open={zoomView} title="查看大图" onClose={() => setZoomView(false)}>
+      <div className="w-full h-full flex items-center justify-center bg-[#0d0c0c]">
+        <img src={displayUrl} alt="大图" className="max-w-full max-h-full object-contain" draggable={false} />
+      </div>
+    </FullscreenModal>
+    </>
   )
 }
