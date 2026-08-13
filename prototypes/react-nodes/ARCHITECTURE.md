@@ -61,7 +61,7 @@ prototypes/react-nodes/src/
 | 层 | 职责 | 承载原则 |
 |---|---|---|
 | ① App.jsx | ReactFlow 装配 + 画布状态 + 通用操作 + 历史/快捷键 + nodeTypes 注册 + 演示节点数据 | 原则1 |
-| ② base/ | 节点外壳/端口/公共 hooks/面板/菜单/节点目录 | 原则1 |
+| ② base/ | 节点外壳/端口/公共 hooks/面板/菜单/节点目录 + 画布级工具栏工具（CanvasToolbar/ArrangeConfirm/useArrangeCanvas，见 §二.5） | 原则1 |
 | ③ components/*.jsx | 每个节点的 UI + 交互 + 数据 | 原则2、3 |
 | ④ scriptbox/ | 剧本盒子三步子组件 | 原则2、3、4 |
 
@@ -71,6 +71,51 @@ App.jsx ──注册──▶ NodePalette/nodeTypes（只登记目录，不调�
 节点 ──用 useReactFlow()──▶ 拿 setNodes/addNodes/坐标（不依赖 App 传参）
 节点之间 ──通过 node.data 契约 / @软连接──▶ 解耦（不互相 import）
 ```
+
+---
+
+## 二.5、画布级工具（左下角工具栏 / 小地图 / 整理 / 性能模式）
+
+> 复刻官方 `H_.jsx` 左下角工具栏（12013-12094）的通用画布能力。这些是**画布壳**的事（原则 1），不归属任何节点，全部落在 `base/`。
+
+### 组件清单（新增，`src/components/base/`）
+
+| 文件 | 职责 | 复刻源 |
+|---|---|---|
+| `CanvasToolbar.jsx` | 左下角工具栏容器（运行/整理/小地图/清理/适合视图/性能模式/缩放±%） | `H_.jsx:12013-12094` |
+| `ArrangeConfirm.jsx` | 整理后「是否保留整理结果？」确认弹窗（还原/保留） | `H_.jsx:11993-12012` |
+| `useArrangeCanvas.js` | dagre 自动布局 hook（含 group 父子、连通分量分组换列） | `H_.jsx:10985` `Ui` / `Ctrl+L` |
+
+**依赖**：`dagre`（新增 npm 依赖，有向图分层布局引擎）。
+
+### 各功能的行为约定
+
+1. **小地图（MiniMap）**：`App.jsx` 用 `minimapOn` state（默认开）控制 `<MiniMap>` 显隐。样式复刻官方：`#222` 底 + `#333` 描边 + `maskColor #0d0c0c80` + `nodeColor #444`，定位在左下角工具栏上方（`absolute left-4 bottom-16`），仅节点数 `<100` 时显示（官方 `De.length < 100`）。
+2. **整理画布（dagre 自动排版）**：`useArrangeCanvas` 复刻官方 `Ui`——
+   - dagre 配置 `rankdir:'LR' / nodesep:300 / ranksep:300 / align:'UL'`，compound graph 支持 group 父子；
+   - 布局后按**连通分量**分组（BFS），逐分量摆位，超宽 2500 换列（列距 +400），分量内间距 +300；
+   - 写回新位置 + 全部 `data.expanded=false` + `fitView`；
+   - `App.jsx` 在排列前存快照 → `ArrangeConfirm` 弹「是否保留」→ 还原=写回快照 / 保留=关闭。`Ctrl+L` 也触发。
+3. **性能模式（enablePerformanceMode）**：`App.jsx` `performanceMode` state（默认开，官方默认 `true`）。
+   - 传给 `LodListener enablePerformanceMode` → 控制 LOD 分级（zoom≤0.5→1, ≤0.3→2, ≤0.2→3，给 `.react-flow` 加 `lod-1/2/3` class）；
+   - **节点媒体降级**：节点用 `useLod()` 读 `lodLevel`，缩小时隐藏图片/视频/音频——
+     - `ImageNode`：lodLevel≥2 隐藏图片，≥3 连视频/音频也隐藏；
+     - `PromptNode`（生图结果）：lodLevel≥2 隐藏结果图；
+     - `DiscountVideoNode`：lodLevel≥3 隐藏视频。
+     隐藏 = 内容区替换为「性能模式已隐藏」占位（保留节点标题与端口）。
+   - **顶部横幅**：`performanceMode && lodLevel>=2` 时弹黄色横幅——lodLevel≥3 显「已进入全局性能模式 (图片视频已隐藏)」，否则「低缩放性能模式 (图片已隐藏)」（复刻 `H_.jsx:11966-11971`）。
+4. **缩放 / 适合视图**：`fitView / zoomIn / zoomOut`（`useReactFlow()`），缩放%由 `onViewportChange` 实时更新。
+
+### 新增节点时如何响应性能模式
+
+想让某节点在缩小时也降级（隐藏重型媒体），只需：
+```jsx
+import { useLod } from './base/useLod.js'
+const { lodLevel = 0 } = useLod()
+// lodLevel: 0=正常, 1=≤0.5, 2=≤0.3, 3=≤0.2
+const hideMedia = lodLevel >= 2 // 按需调阈值
+```
+然后渲染时 `!hideMedia && <img/video/...>`，替换为轻量占位即可。**阈值选择对齐横幅语义**：≥2 藏图片，≥3 藏视频。
 
 ---
 

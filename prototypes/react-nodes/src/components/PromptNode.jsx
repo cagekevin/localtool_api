@@ -13,6 +13,7 @@ import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
+import { useLod } from './base/useLod.js'
 
 /**
  * 生图节点（复刻原 bo.jsx / promptNode）
@@ -20,6 +21,10 @@ import { useConnectedInputs } from './base/useConnectedInputs.js'
  * 保留差异化：主图片框、素材缩略图区、画质/比例/渲染质量菜单、请求格式、批量 xN。
  */
 export default function PromptNode({ id, data, selected }) {
+  // 性能模式 LOD：lodLevel>=2（缩到 0.3 以下）隐藏生图结果（复刻官方"图片已隐藏"）
+  const { lodLevel = 0 } = useLod()
+  const hideResult = lodLevel >= 2
+
   // 通用连线数据传递：读取直接上游节点的产出（图片/文本）作为参考输入
   const connected = useConnectedInputs(id)
   const [expanded, setExpanded] = useState(data.expanded === undefined ? true : data.expanded)
@@ -125,7 +130,14 @@ export default function PromptNode({ id, data, selected }) {
         onClick={() => setExpanded((v) => !v)}
       >
         <div className={`flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${hasImage ? '' : 'bg-[#0d0c0c]'}`}>
-          {hasImage && (
+          {/* 性能模式媒体降级：缩小时隐藏生图结果（复刻官方"图片已隐藏"） */}
+          {hasImage && !loading && !error && hideResult && (
+            <div className="flex flex-col items-center justify-center gap-1 absolute inset-0 bg-[#151515]">
+              <ImageIcon size={24} className="text-gray-700" />
+              <span className="text-[10px] text-gray-500">性能模式已隐藏</span>
+            </div>
+          )}
+          {hasImage && !hideResult && (
             <img
               src={imageUrl}
               alt="Generated Content"

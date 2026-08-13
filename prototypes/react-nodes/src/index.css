@@ -35,6 +35,37 @@ body,
   outline: none !important;
 }
 
+/* ===== 整理结果确认弹窗入场动画（复刻 H_.jsx:11993 animate-slide-up） ===== */
+@keyframes animate-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-slide-up {
+  animation: animate-slide-up 0.18s ease-out;
+}
+
+/* ===== 小地图样式（复刻 H_.jsx:12096-12097 _shared.P MiniMap） ===== */
+.react-flow__minimap {
+  background: #222 !important;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.react-flow__minimap-mask {
+  fill: #0d0c0c80;
+}
+.react-flow__minimap-node {
+  fill: #444 !important;
+}
+
+
 /* ===== 节点标题（_Component8 同款） ===== */
 .drag-handle {
   cursor: move;

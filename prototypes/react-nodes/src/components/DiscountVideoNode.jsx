@@ -12,6 +12,7 @@ import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
+import { useLod } from './base/useLod.js'
 
 /**
  * 特惠视频节点（复刻原 As.jsx / discountVideoNode）
@@ -19,6 +20,10 @@ import { useConnectedInputs } from './base/useConnectedInputs.js'
  * 保留差异化：主显示区、比例/分辨率/时长菜单、素材区、提示词输入。
  */
 export default function DiscountVideoNode({ id, data, selected }) {
+  // 性能模式 LOD：lodLevel>=3（缩到 0.2 以下）隐藏视频（复刻官方"图片视频已隐藏"）
+  const { lodLevel = 0 } = useLod()
+  const hideVideo = lodLevel >= 3
+
   // 通用连线数据传递：读取直接上游节点的图片/文本作为参考素材
   const connected = useConnectedInputs(id)
   const [prompt, setPrompt] = useState(data.prompt || '')
@@ -108,7 +113,14 @@ export default function DiscountVideoNode({ id, data, selected }) {
         onClick={() => setExpanded((v) => !v)}
       >
         <div className={`flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${videoUrl ? '' : 'bg-[#121212]'}`}>
-          {videoUrl && (
+          {/* 性能模式媒体降级：缩小时隐藏视频（复刻官方"图片视频已隐藏"） */}
+          {videoUrl && !loading && !error && hideVideo && (
+            <div className="flex flex-col items-center justify-center gap-1 absolute inset-0 bg-[#151515]">
+              <Clapperboard size={24} className="text-gray-700" />
+              <span className="text-[10px] text-gray-500">性能模式已隐藏</span>
+            </div>
+          )}
+          {videoUrl && !hideVideo && (
             <>
               <video
                 src={videoUrl}

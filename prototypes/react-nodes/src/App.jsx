@@ -3,13 +3,17 @@ import {
   ReactFlow,
   Background,
   BackgroundVariant,
-  Controls,
+  MiniMap,
+  Panel,
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
   useReactFlow
 } from '@xyflow/react'
-import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy } from 'lucide-react'
+import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy, Zap } from 'lucide-react'
+import CanvasToolbar from './components/base/CanvasToolbar.jsx'
+import ArrangeConfirm from './components/base/ArrangeConfirm.jsx'
+import { useArrangeCanvas } from './components/base/useArrangeCanvas.js'
 import TextNode from './components/TextNode.jsx'
 import ImageNode from './components/ImageNode.jsx'
 import PromptNode from './components/PromptNode.jsx'
@@ -179,8 +183,26 @@ function Canvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-  // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）
-  const { screenToFlowPosition } = useReactFlow()
+  // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；缩放/适配用 fitView/zoomIn/zoomOut
+  const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
+
+  // 小地图开关（复刻 H_.jsx:474 un/dn，默认开）
+  const [minimapOn, setMinimapOn] = React.useState(true)
+
+  // 缩放性能模式开关（复刻 H_.jsx:79 ge，官方默认 true：性能模式默认开启）
+  const [performanceMode, setPerformanceMode] = React.useState(true)
+
+  // 整理后「是否保留」快照（复刻 H_.jsx:134 tt/nt，null = 无弹窗）
+  const [arrangeSnapshot, setArrangeSnapshot] = React.useState(null)
+
+  // 自动排版（复刻 H_.jsx:10985 Ui / Ctrl+L）
+  const { arrange } = useArrangeCanvas()
+
+  // 当前缩放百分比（监听 viewport 变化，驱动左下角 zoom% 显示）
+  const [zoomPercent, setZoomPercent] = React.useState(100)
+  const onViewportChange = React.useCallback((v) => {
+    setZoomPercent(Math.round((v?.zoom || 1) * 100))
+  }, [])
 
   // 始终指向最新 nodes/edges（撤销/重做取快照用）
   const nodesRef = React.useRef(nodes)
@@ -284,6 +306,48 @@ function Canvas() {
     setNodes(nextNodes)
     history.record({ nodes: nextNodes, edges: edgesRef.current })
   }, [setNodes, history])
+
+  // 整理画布（复刻 H_.jsx:10985 Ui / Ctrl+L）：
+  // 先存排列前快照 → dagre 布局写回 → 弹「是否保留整理结果」确认。
+  const arrangeCanvas = useCallback(() => {
+    const before = { nodes: nodesRef.current, edges: edgesRef.current }
+    const result = arrange({
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+      onArrange: ({ nodes: ns, edges: es }) => {
+        setNodes(ns)
+        setEdges(es)
+      },
+      onComplete: () => {
+        setTimeout(() => {
+          fitView({ padding: 0.2, duration: 800, maxZoom: 1 })
+        }, 100)
+      },
+    })
+    // 弹确认：存排列前快照，还原时写回
+    setArrangeSnapshot(before)
+    history.record({ nodes: result.nodes, edges: result.edges })
+  }, [arrange, setNodes, setEdges, fitView, history])
+
+  // 还原整理：写回排列前快照 + 关闭弹窗 + fitView（复刻 H_.jsx:11996-12006）
+  const revertArrange = useCallback(() => {
+    if (!arrangeSnapshot) return
+    setNodes(arrangeSnapshot.nodes)
+    setEdges(arrangeSnapshot.edges)
+    setArrangeSnapshot(null)
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 800, maxZoom: 1 })
+    }, 100)
+  }, [arrangeSnapshot, setNodes, setEdges, fitView])
+
+  // 保留整理：仅关闭弹窗（复刻 H_.jsx:12008-12010）
+  const keepArrange = useCallback(() => {
+    setArrangeSnapshot(null)
+  }, [])
+
+  // 缩放控制（复刻 H_.jsx:12051-12067）
+  const zoomInStep = useCallback(() => zoomIn({ duration: 300 }), [zoomIn])
+  const zoomOutStep = useCallback(() => zoomOut({ duration: 300 }), [zoomOut])
 
   /* ====================================================================
    * 【区 4】菜单配置区
@@ -395,6 +459,7 @@ function Canvas() {
     onRedo: history.redo,
     onSelectAll: selectAll,
     onDuplicate: duplicateSelected,
+    onArrange: arrangeCanvas,
     onAdd: (type) => {
       // 若处于「拖线」菜单态（复用 canvas 菜单但 state 带 connection）：建下游并自动连线
       const conn = menu.state?.connection
@@ -582,6 +647,7 @@ function Canvas() {
           maxZoom={4}
           fitView
           fitViewOptions={{ padding: 0.2, maxZoom: 1, minZoom: 0.05 }}
+          onViewportChange={onViewportChange}
         >
           {/* 点阵网格：gap=20 / size=1 / color=#333（复刻 H_.jsx:12100） */}
           <Background
@@ -591,10 +657,53 @@ function Canvas() {
             color="#333"
             bgColor="#0d0c0c"
           />
-          <Controls position="bottom-left" />
-          {/* LOD 视口缩放监听（基座 LodListener） */}
-          <LodListener onLodChange={setLodLevel} />
+          {/* 小地图（复刻 H_.jsx:12095-12098，仅当开启且节点数 <100 时显示） */}
+          {minimapOn && nodes.length < 100 && (
+            <div className="absolute left-4 bottom-16 z-[990] flex flex-col items-start gap-2 pointer-events-none">
+              <MiniMap
+                pannable
+                zoomable
+                maskColor="#0d0c0c80"
+                nodeColor="#444"
+                className="!bg-[#222] !m-0 !relative !bottom-0 !left-0 shadow-2xl rounded overflow-hidden border border-[#333] pointer-events-auto"
+              />
+            </div>
+          )}
+          {/* 性能模式横幅（复刻 H_.jsx:11966-11971：ge 开 且 lodLevel>=2 时顶部黄条） */}
+          {performanceMode && lodLevel >= 2 && (
+            <Panel position="top-center" className="mt-4 pointer-events-none">
+              <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm flex items-center gap-2 animate-pulse">
+                <Zap size={14} className="text-yellow-400" />
+                {lodLevel === 3 ? '已进入全局性能模式 (图片视频已隐藏)' : '低缩放性能模式 (图片已隐藏)'}
+              </div>
+            </Panel>
+          )}
+          {/* LOD 视口缩放监听（基座 LodListener；enablePerformanceMode 由性能模式开关控制） */}
+          <LodListener onLodChange={setLodLevel} enablePerformanceMode={performanceMode} />
         </ReactFlow>
+
+        {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
+        <div className="absolute left-3 bottom-3 z-[900] pointer-events-auto">
+          <div className="relative">
+            {/* 整理后「是否保留」确认弹窗（复刻 H_.jsx:11993） */}
+            <ArrangeConfirm
+              snapshot={arrangeSnapshot}
+              onRevert={revertArrange}
+              onKeep={keepArrange}
+            />
+            <CanvasToolbar
+              minimapOn={minimapOn}
+              onToggleMinimap={() => setMinimapOn((v) => !v)}
+              onArrange={arrangeCanvas}
+              onFitView={() => fitView({ padding: 0.2, duration: 800 })}
+              onZoomIn={zoomInStep}
+              onZoomOut={zoomOutStep}
+              zoomPercent={zoomPercent}
+              performanceMode={performanceMode}
+              onTogglePerformance={() => setPerformanceMode((v) => !v)}
+            />
+          </div>
+        </div>
 
         {/* 右键菜单（基座 ContextMenu，挂载于画布外层） */}
         <ContextMenu state={menu.state} items={menuItems} onClose={menu.close} containerRef={menu.containerRef} />

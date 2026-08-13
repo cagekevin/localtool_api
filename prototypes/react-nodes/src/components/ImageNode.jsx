@@ -7,6 +7,7 @@ import { useReactFlow } from '@xyflow/react'
 import NodeShell from './base/NodeShell.jsx'
 import HoverToolbar from './base/HoverToolbar.jsx'
 import { useNodeResize } from './base/hooks.js'
+import { useLod } from './base/useLod.js'
 
 /**
  * 图片节点（复刻原 xi.jsx / imageNode）
@@ -18,6 +19,10 @@ export default function ImageNode({ id, data, selected }) {
   const url = data.imageUrl || data.url || ''
   const { getNodes } = useReactFlow()
   const { onMainBoxResize } = useNodeResize(id)
+
+  // 性能模式 LOD：lodLevel>=2（缩到 0.3 以下）隐藏图片；>=3（0.2 以下）连视频也隐藏（复刻官方横幅"图片视频已隐藏"）
+  const { lodLevel = 0 } = useLod()
+  const hideMedia = lodLevel >= 3 ? 'image video audio' : lodLevel >= 2 ? 'image' : ''
 
   // 判断内容类型
   let type = 'empty'
@@ -96,14 +101,23 @@ export default function ImageNode({ id, data, selected }) {
           className="flex-1 p-0 bg-[#121212] flex items-center justify-center relative overflow-hidden"
           style={{ minHeight: 160 }}
         >
+          {/* 性能模式媒体降级：缩小时隐藏图片/视频/音频（复刻官方"图片视频已隐藏"） */}
+          {hideMedia && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#121212]">
+              <div className="flex flex-col items-center gap-1 opacity-60">
+                <ImageIcon size={18} className="text-gray-600" />
+                <span className="text-[9px] text-gray-500">性能模式已隐藏</span>
+              </div>
+            </div>
+          )}
           {/* 图片（onLoad 按实际比例自适应节点形状） */}
-          {type === 'image' && displayUrl && (
+          {type === 'image' && !hideMedia.includes('image') && displayUrl && (
             <img src={displayUrl} alt="Content" loading="lazy" decoding="async"
               onLoad={fitToImageRatio}
               className="w-full h-full object-contain cursor-pointer" draggable={false} />
           )}
           {/* 视频 */}
-          {type === 'video' && (
+          {type === 'video' && !hideMedia.includes('video') && (
             <>
               <img src={displayUrl || url} alt="video poster" loading="lazy" decoding="async"
                 draggable={false} className="w-full h-full object-contain cursor-pointer" />
@@ -115,7 +129,7 @@ export default function ImageNode({ id, data, selected }) {
             </>
           )}
           {/* 音频 */}
-          {type === 'audio' && (
+          {type === 'audio' && !hideMedia.includes('audio') && (
             <div className="w-full h-full flex flex-col items-center justify-center bg-[#1a1a1a] p-2 gap-2">
               <Music size={24} className="text-blue-500 mb-2" />
               <audio src={url} controls className="w-full max-w-[200px] h-8" />

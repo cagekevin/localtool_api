@@ -12,11 +12,12 @@ import { isEditableTarget } from './hooks.js'
  *  - onUndo / onRedo          Ctrl+Z / Ctrl+Shift+Z 或 Ctrl+Y
  *  - onSelectAll              Ctrl+A
  *  - onDuplicate              Ctrl+D
+ *  - onArrange                Ctrl+L 自动排版（dagre，复刻 H_.jsx Ui）
  *  - onAdd(type)              Q / W / E 快速添加文本/图片/视频
  *  - getPosition()            快速添加节点时的坐标（默认基于当前鼠标不可得时返回 0,0）
  */
 export function useCanvasShortcuts(handlers = {}) {
-  const { onUndo, onRedo, onSelectAll, onDuplicate, onAdd } = handlers
+  const { onUndo, onRedo, onSelectAll, onDuplicate, onArrange, onAdd } = handlers
 
   // 有选中文本（复刻 H_.jsx:11427-11434 n）
   const hasSelectionText = useCallback(() => {
@@ -57,9 +58,11 @@ export function useCanvasShortcuts(handlers = {}) {
 
       if (key === 'a') { e.preventDefault(); onSelectAll?.() }
       else if (key === 'd') { e.preventDefault(); onDuplicate?.() }
+      // 自动排版（复刻 H_.jsx:10985 Ctrl+L → Ui）
+      else if (key === 'l') { e.preventDefault(); onArrange?.() }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [hasSelectionText, onUndo, onRedo, onSelectAll, onDuplicate, onAdd])
+  }, [hasSelectionText, onUndo, onRedo, onSelectAll, onDuplicate, onArrange, onAdd])
 }
