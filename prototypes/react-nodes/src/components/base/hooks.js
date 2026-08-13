@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useReactFlow, useUpdateNodeInternals } from 'reactflow'
+import { useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
 
 /**
  * 判断事件目标是否在可编辑元素内（INPUT / TEXTAREA / contenteditable）。

@@ -53,7 +53,7 @@ export const paletteNodes = [
 
   // --- 其他工具 ---
   { type: 'group', label: '编组', icon: FolderTree, cat: 'other', builtin: true },
-  { type: 'scriptBoxNode', label: '剧本盒子', icon: Clapperboard, cat: 'other', builtin: true, data: { step: 1, story: '', style: '电影感', shots: [], assets: [] } },
+  { type: 'scriptBoxNode', label: '剧本盒子', icon: Clapperboard, cat: 'other', builtin: true, data: { step: 1, story: '', globalStyle: '', shots: [], assets: [] } },
   { type: 'customNode', label: '万能节点', icon: Puzzle, cat: 'other' },
   { type: 'stickyNoteNode', label: '便签', icon: StickyNote, cat: 'other', data: { text: '', fontSize: 24, bgColor: 'rgba(180,160,60,0.25)', textColor: 'rgba(255,255,255,0.92)' } },
   { type: 'fileToUrlNode', label: '文件转链接', icon: FileUp, cat: 'other' }

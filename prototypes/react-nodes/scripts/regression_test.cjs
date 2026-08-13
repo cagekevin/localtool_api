@@ -15,7 +15,7 @@ const SRC = ROOT.replace(/\\/g, '/');
 const entry = `
 import React from 'react'
 import { renderToString } from 'react-dom/server'
-import { ReactFlowProvider } from 'reactflow'
+import { ReactFlowProvider } from '@xyflow/react'
 import ImageNode from '${SRC}/src/components/ImageNode.jsx'
 import TextNode from '${SRC}/src/components/TextNode.jsx'
 import PromptNode from '${SRC}/src/components/PromptNode.jsx'

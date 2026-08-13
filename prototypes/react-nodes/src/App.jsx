@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
-import ReactFlow, {
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import {
+  ReactFlow,
   Background,
   BackgroundVariant,
   Controls,
   ReactFlowProvider,
   useNodesState,
-  useEdgesState
-} from 'reactflow'
+  useEdgesState,
+  useReactFlow
+} from '@xyflow/react'
 import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy } from 'lucide-react'
 import TextNode from './components/TextNode.jsx'
 import ImageNode from './components/ImageNode.jsx'
@@ -14,6 +16,7 @@ import PromptNode from './components/PromptNode.jsx'
 import DiscountVideoNode from './components/DiscountVideoNode.jsx'
 import GroupNode from './components/GroupNode.jsx'
 import ScriptBoxNode from './components/ScriptBoxNode.jsx'
+import GhostTargetNode from './components/GhostTargetNode.jsx'
 import CustomEdge from './components/CustomEdge.jsx'
 import ConnectionLine from './components/ConnectionLine.jsx'
 import ContextMenu from './components/base/ContextMenu.jsx'
@@ -36,7 +39,8 @@ const nodeTypes = {
   promptNode: PromptNode,
   discountVideoNode: DiscountVideoNode,
   group: GroupNode,
-  scriptBoxNode: ScriptBoxNode
+  scriptBoxNode: ScriptBoxNode,
+  ghostTarget: GhostTargetNode
 }
 
 // 边类型注册表
@@ -112,22 +116,39 @@ const initialNodes = [
     data: {
       label: '剧本盒子',
       step: 1,
-      title: '剧本盒子',
       story: '小马想要找到一片更好的草地，老牛和松鼠决定陪它一起出发。',
-      style: '电影感',
+      // 统一风格字段名遵循职责铁律：globalStyle（不是 style）
+      globalStyle: '电影感',
       styleChips: ['电影感', '水墨风', '皮克斯3D', '赛博朋克'],
       shotCount: 'auto',
       customCount: '',
-      model: 'lovart-chat',
       shots: [],
       assets: [],
-      assetModel: 'gpt-image-2-low',
+      // 配置字段（设置弹窗读写）
       aspectRatio: '16:9',
+      customAspectRatio: '',
       imageGlobalConstraint: '',
       videoGlobalConstraint: '',
+      customGlobalConstraint: '',
       customScriptPrompt: '',
       customShotPrompt: '',
-      customAssetTemplates: ['', '', '']
+      // 资产参考图模板必须是对象 {character, scene, prop}（不是数组）
+      customAssetTemplates: { character: '', scene: '', prop: '' },
+      // 资产生图模型设置
+      assetModelSettings: { globalModel: 'gpt-image-2-low', globalAspectRatio: '16:9', globalSize: '1K' },
+      // 全局约束数组（Ir 引擎读取）
+      globalConstraints: [],
+      // 模型（官方注入字段）
+      selectedModel: 'gpt-4o-mini',
+      textModel: 'gpt-4o-mini',
+      drawingModelForScript: 'gpt-image-2-low',
+      // 视频上传状态
+      videoUploadedAssets: {},
+      videoAssetUploadStatus: {},
+      videoAssetUploadErrors: {},
+      // 生成遮罩计时
+      genMask: false,
+      genSecs: 0
     }
   }
 ]
@@ -158,6 +179,9 @@ function Canvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
+  // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）
+  const { screenToFlowPosition } = useReactFlow()
+
   // 始终指向最新 nodes/edges（撤销/重做取快照用）
   const nodesRef = React.useRef(nodes)
   const edgesRef = React.useRef(edges)
@@ -184,21 +208,48 @@ function Canvas() {
    * 画布操作：addNode / deleteNode / selectAll / duplicateSelected
    * ==================================================================== */
 
-  // 新增节点（复刻源码 di(type, position, data)）
+  // 新增节点（复刻源码 di(type, position, data, connection)）
+  // connection?: { source, sourceHandle, dropPosition } —— 从端口拖出到空白时，
+  // 在 dropPosition 建节点并自动创建 source→新节点 的边；scriptBox 的 shot- 端口预填宽高比/时长。
   const addNode = useCallback(
-    (type, position, data = {}) => {
+    (type, position, data = {}, connection) => {
       const id = `${type}-${Date.now()}`
-      const newNode = { id, type, position: { ...position }, data: { label: '', ...data } }
+      const nodeData = { label: '', ...data }
+
+      // scriptBoxNode 的 shot- 端口 → promptNode/discountVideoNode 时预填（复刻 di:8667-8687）
+      if (connection) {
+        const src = nodesRef.current.find((n) => n.id === connection.source)
+        const shotId = connection.sourceHandle?.startsWith('shot-') ? connection.sourceHandle.slice(5) : null
+        const shot = shotId && src?.type === 'scriptBoxNode' ? (src.data?.shots || []).find((s) => s.id === shotId) : null
+        if (shot) {
+          const ar = String(src.data?.aspectRatio || '16:9')
+          const o = ar === 'custom' ? String(src.data?.customAspectRatio || '16:9') : ar
+          if (type === 'promptNode') {
+            nodeData.aspectRatio = o === '4:4' ? '1:1' : o
+          } else if (type === 'discountVideoNode') {
+            nodeData.size = o === '4:4' ? '1:1' : o
+            nodeData.selectedSeconds = String(Math.max(1, Number.parseInt(shot.duration || '5', 10) || 5))
+            nodeData.durationFromScript = true
+          }
+        }
+      }
+
+      const newNode = { id, type, position: { ...position }, data: nodeData }
       if (type === 'promptNode') {
         // 生图节点默认 420×420，避免端口跑偏
         Object.assign(newNode, { width: 420, height: 420, style: { width: 420, height: 420 } })
       }
       const nextNodes = [...nodesRef.current, newNode]
+      // 若带 connection：自动创建 source→新节点 的边
+      const nextEdges = connection
+        ? [...edgesRef.current, { id: `e-${connection.source}-${id}`, source: connection.source, sourceHandle: connection.sourceHandle || null, target: id, type: 'default', animated: false }]
+        : edgesRef.current
       setNodes(nextNodes)
-      history.record({ nodes: nextNodes, edges: edgesRef.current })
+      if (connection) setEdges(nextEdges)
+      history.record({ nodes: nextNodes, edges: nextEdges })
       return id
     },
-    [setNodes, history]
+    [setNodes, setEdges, history]
   )
 
   // 删除节点及其相连边
@@ -254,16 +305,16 @@ function Canvas() {
             icon: n.icon,
             label: n.label,
             badge: n.badge,
-            onClick: () => addNode(n.type, { x: state.x, y: state.y }, defaultNodeData(n.type))
+            onClick: () => addNodeFromMenu(n.type)
           }))
         }
       })
       .filter(Boolean)
 
     return [
-      { key: 'text', icon: <Type size={16} className="text-green-500" />, label: '文本', shortcut: 'Q', onClick: () => addNode('textNode', { x: state.x, y: state.y }, defaultNodeData('textNode')) },
-      { key: 'image', icon: <ImageIcon size={16} className="text-blue-400" />, label: '图片', shortcut: 'W', onClick: () => addNode('promptNode', { x: state.x, y: state.y }, defaultNodeData('promptNode')) },
-      { key: 'video', icon: <Clapperboard size={16} className="text-yellow-500" />, label: '视频', shortcut: 'E', onClick: () => addNode('discountVideoNode', { x: state.x, y: state.y }, defaultNodeData('discountVideoNode')) },
+      { key: 'text', icon: <Type size={16} className="text-green-500" />, label: '文本', shortcut: 'Q', onClick: () => addNodeFromMenu('textNode') },
+      { key: 'image', icon: <ImageIcon size={16} className="text-blue-400" />, label: '图片', shortcut: 'W', onClick: () => addNodeFromMenu('promptNode') },
+      { key: 'video', icon: <Clapperboard size={16} className="text-yellow-500" />, label: '视频', shortcut: 'E', onClick: () => addNodeFromMenu('discountVideoNode') },
       { type: 'divider' },
       ...toolsSubmenu
     ]
@@ -279,6 +330,34 @@ function Canvas() {
       { key: 'delete', icon: <Trash2 size={16} className="text-red-400" />, label: '删除', danger: true, onClick: () => deleteNode(node.id) }
     ]
   }
+
+  // 从「连接」状态建下游节点：在 dropPosition 建节点 + 自动连线，并清掉 ghost（复刻官方 di + a()）
+  const buildFromConnection = useCallback(
+    (type, conn) => {
+      if (!conn) return
+      addNode(type, { x: conn.dropPosition.x, y: conn.dropPosition.y }, defaultNodeData(type), conn)
+      setNodes((ns) => ns.filter((n) => n.id !== 'ghost-target'))
+      setEdges((es) => es.filter((e) => e.id !== 'ghost-edge'))
+      menu.close()
+    },
+    [addNode, setNodes, setEdges, menu.close]
+  )
+
+  // 统一建节点入口（单一数据源）：
+  //   - 从端口拖出到空白（state.connection 存在）→ 复用同一份 canvas 菜单项，但建节点时自动连线 + 清 ghost；
+  //   - 空白处右键（无 connection）→ 普通建节点。
+  const addNodeFromMenu = useCallback(
+    (type) => {
+      const conn = menu.state?.connection
+      if (conn) {
+        buildFromConnection(type, conn)
+        return
+      }
+      const s = menu.state || { x: 0, y: 0 }
+      addNode(type, { x: s.x, y: s.y }, defaultNodeData(type))
+    },
+    [menu.state, buildFromConnection, addNode]
+  )
 
   // 多选菜单：删除
   const selectionMenuItems = () => [
@@ -298,7 +377,7 @@ function Canvas() {
     }
   ]
 
-  // 根据菜单类型分发到对应配置
+  // 根据菜单类型分发到对应配置（单一数据源：拖线复用 canvas 菜单，故无独立 connection 分支）
   const menuItems = (state) => {
     if (state.type === 'node') return nodeMenuItems(state)
     if (state.type === 'selection') return selectionMenuItems(state)
@@ -317,13 +396,19 @@ function Canvas() {
     onSelectAll: selectAll,
     onDuplicate: duplicateSelected,
     onAdd: (type) => {
-      // 快速添加节点到固定位置（复刻 Q/W/E）
-      const center = { x: 200, y: 200 }
+      // 若处于「拖线」菜单态（复用 canvas 菜单但 state 带 connection）：建下游并自动连线
+      const conn = menu.state?.connection
+      if (conn) {
+        buildFromConnection(type, conn)
+        return
+      }
+      // 否则快速添加节点到视窗中心（复刻 Q/W/E）
+      const center = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
       addNode(type, center, defaultNodeData(type))
     }
   })
 
-  // 连线
+  // 连线：连到真实节点时建边（isValid 连接）
   const onConnect = useCallback(
     (params) => {
       const nextEdges = [...edgesRef.current, { ...params, type: 'default', animated: false }]
@@ -333,18 +418,93 @@ function Canvas() {
     [setEdges, history]
   )
 
-  // 删除连线（CustomEdge 的删除按钮通过 window 事件触发）
-  useEffect(() => {
-    const handler = (e) => {
-      const { id } = e.detail || {}
+  // 从端口拖出到空白：建 ghost-target + ghost-edge + 弹「连接」菜单（复刻官方 onConnectEnd Oi:H_.jsx:10143）
+  // ReactFlow 的 onConnectEnd 第二参数是 connectionState（含 isValid/fromNode/fromHandle）。
+  const onConnectEnd = useCallback(
+    (event, connectionState) => {
+      const t = connectionState || {}
+      // 仅当「连接无效（拖到空白）+ 有源节点和源端口」时弹菜单（官方判断）
+      if (t.isValid || !t.fromNode || !t.fromHandle) return
+      const { clientX, clientY } = event?.changedTouches?.[0] || event || {}
+      if (clientX == null) return
+
+      const rect = menu.containerRef.current?.getBoundingClientRect()
+      const pos = screenToFlowPosition({ x: clientX, y: clientY })
+      // 建 ghost-target（不可见占位节点）
+      setNodes((ns) =>
+        ns
+          .filter((n) => n.id !== 'ghost-target')
+          .concat({
+            id: 'ghost-target',
+            type: 'ghostTarget',
+            position: pos,
+            style: { opacity: 0, pointerEvents: 'none', width: 1, height: 1 },
+            data: { label: '' },
+            selectable: false,
+            draggable: false
+          })
+      )
+      // 建 ghost-edge（fromNode → ghost-target）
+      setEdges((es) =>
+        es
+          .filter((e) => e.id !== 'ghost-edge')
+          .concat({
+            id: 'ghost-edge',
+            source: t.fromNode.id,
+            sourceHandle: t.fromHandle.id || null,
+            target: 'ghost-target',
+            type: 'default'
+          })
+      )
+      // 弹「连接」菜单（官方 setTimeout 50ms，确保 ghost 渲染完成）
+      setTimeout(() => {
+        menu.openConnection(
+          { source: t.fromNode.id, sourceHandle: t.fromHandle.id || null, dropPosition: pos },
+          (clientX - (rect?.left || 0)),
+          (clientY - (rect?.top || 0))
+        )
+      }, 50)
+    },
+    [setNodes, setEdges, screenToFlowPosition, menu.openConnection]
+  )
+
+  // 删除连线（统一入口：CustomEdge 的 ✕ 按钮、连线双击删除 都走这里）
+  const removeEdge = useCallback(
+    (id) => {
       if (!id) return
       const nextEdges = edgesRef.current.filter((ed) => ed.id !== id)
       setEdges(nextEdges)
       history.record({ nodes: nodesRef.current, edges: nextEdges })
+    },
+    [setEdges, history]
+  )
+
+  // CustomEdge 的 ✕ 按钮通过 window 事件触发（edge 组件无法直接拿 App 函数）
+  useEffect(() => {
+    const handler = (e) => {
+      removeEdge(e.detail?.id)
     }
     window.addEventListener('yimao:remove-edge', handler)
     return () => window.removeEventListener('yimao:remove-edge', handler)
-  }, [setEdges, history])
+  }, [removeEdge])
+
+  // 双击连线删除
+  const onEdgeDoubleClick = useCallback(
+    (event, edge) => {
+      removeEdge(edge.id)
+    },
+    [removeEdge]
+  )
+
+  // deleteElements（CustomEdge 的 ✕ 按钮用）删除连线后，记录 undo 历史
+  const onEdgesDelete = useCallback(
+    (deleted) => {
+      if (!deleted || !deleted.length) return
+      const nextEdges = edgesRef.current.filter((ed) => !deleted.some((d) => d.id === ed.id))
+      history.record({ nodes: nodesRef.current, edges: nextEdges })
+    },
+    [history]
+  )
 
   // 选中节点联动：与选中节点相连的边 → data.relatedToSelected = true（触发 comet + 加亮）
   // 每次节点 change 后，基于当前全部选中节点重算每条边的关联态（支持多选）
@@ -404,6 +564,9 @@ function Canvas() {
           onNodesChange={onNodesChangeForEdges}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onConnectEnd={onConnectEnd}
+          onEdgeDoubleClick={onEdgeDoubleClick}
+          onEdgesDelete={onEdgesDelete}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionLineComponent={ConnectionLine}

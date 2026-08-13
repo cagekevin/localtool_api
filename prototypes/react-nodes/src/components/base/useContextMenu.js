@@ -41,6 +41,17 @@ export function useContextMenu() {
     [toContainerPos]
   )
 
+  // 打开「连接」菜单：从端口拖出到空白，弹菜单选下游节点类型（复刻官方 onConnectEnd Oi）
+  // 单一数据源：直接复用空白处（canvas）同一套菜单，不另起 connection 菜单。
+  // 仅把这次拖拽的源信息（connection）挂进 state，菜单项据此决定是否自动连线。
+  const openConnection = useCallback(
+    (connection, clientX, clientY) => {
+      const { x, y } = toContainerPos(clientX, clientY)
+      setState({ x, y, type: 'canvas', connection })
+    },
+    [toContainerPos]
+  )
+
   // 空白处右键
   const onPaneContextMenu = useCallback((e) => open('canvas', null, e), [open])
   // 节点右键
@@ -71,6 +82,7 @@ export function useContextMenu() {
     onSelectionContextMenu,
     onSelectionEnd,
     onPaneClick,
+    openConnection,
     close
   }
 }

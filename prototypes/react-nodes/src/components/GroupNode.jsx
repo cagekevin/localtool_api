@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Handle, Position, useReactFlow } from 'reactflow'
+import { Handle, Position, useReactFlow } from '@xyflow/react'
 import { FoldVertical, ChevronsUpDown, Folder } from 'lucide-react'
 
 /**

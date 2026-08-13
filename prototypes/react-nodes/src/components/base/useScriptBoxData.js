@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useReactFlow } from 'reactflow'
+import { useReactFlow } from '@xyflow/react'
 
 /**
  * 剧本盒子 —— 数据读写 hook（对应真实系统的 updateNodeData K/r 通道）。

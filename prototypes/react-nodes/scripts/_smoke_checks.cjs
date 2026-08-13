@@ -38,22 +38,24 @@ const read = (p) => {
   }
 };
 
-// 从 reactflow 包（@reactflow/core + @reactflow/node-resizer）的 export 行提取导出的 API 名集合
+// 从 @xyflow/react（v12，主包已内置 NodeResizer 等）的 export 行提取导出的 API 名集合
 function getReactFlowExports(ROOT) {
   const sources = [
-    path.join(ROOT, 'node_modules/@reactflow/core/dist/esm/index.js'),
-    path.join(ROOT, 'node_modules/@reactflow/node-resizer/dist/esm/index.js'),
+    path.join(ROOT, 'node_modules/@xyflow/react/dist/esm/index.js'),
   ];
   const set = new Set();
   for (const src of sources) {
     const content = read(src);
-    const m = content.match(/export\s*\{([\s\S]*?)\};/);
-    if (!m) continue;
-    for (const s of m[1].split(',')) {
-      const t = s.trim();
-      if (!t) continue;
-      const as = t.match(/\sas\s+(\w+)$/);
-      set.add(as ? as[1] : t.replace(/[^A-Za-z0-9_$]/g, ''));
+    // 收集所有 export { ... }; 块（v12 的 index.js 有多处，分别来自 system 与主包）
+    const re = /export\s*\{([\s\S]*?)\};/g;
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      for (const s of m[1].split(',')) {
+        const t = s.trim();
+        if (!t) continue;
+        const as = t.match(/\sas\s+(\w+)$/);
+        set.add(as ? as[1] : t.replace(/[^A-Za-z0-9_$]/g, ''));
+      }
     }
   }
   return set;
@@ -138,7 +140,7 @@ function checkReactFlowApis(ROOT) {
   // 从 'reactflow' 具名导入的 API 必须存在
   for (const f of files) {
     const content = read(f);
-    const impRe = /import\s*\{([^}]+)\}\s*from\s*['"]reactflow['"]/g;
+    const impRe = /import\s*\{([^}]+)\}\s*from\s*['"]@xyflow\/react['"]/g;
     let m;
     while ((m = impRe.exec(content)) !== null) {
       for (const name of m[1].split(',')) {
@@ -189,10 +191,10 @@ function checkNodeTypes(ROOT) {
   return { name: 'nodeTypes 注册', pass, details };
 }
 
-/** 检查 4：关键依赖存在（reactflow / lucide-react） */
+/** 检查 4：关键依赖存在（@xyflow/react / lucide-react） */
 function checkDeps(ROOT) {
   const pkg = JSON.parse(read(path.join(ROOT, 'package.json')) || '{}');
-  const needed = ['reactflow', 'lucide-react'];
+  const needed = ['@xyflow/react', 'lucide-react'];
   const pass = needed.every((d) => (pkg.dependencies || {})[d] || (pkg.devDependencies || {})[d]);
   const details = needed.map((d) => `  ${(pkg.dependencies || {})[d] || (pkg.devDependencies || {})[d] ? '✔' : '✖'} ${d}`);
   return { name: '关键依赖', pass, details };

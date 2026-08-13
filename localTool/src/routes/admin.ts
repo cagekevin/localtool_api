@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getDb, getUploadDir, saveDb, queryAll, queryOne, run, LOCAL_FILE_BASE } from '../db/database.js';
 import { json, parseJsonBody, sendError } from '../utils/helpers.js';
+import { runOrphanGc } from '../utils/orphanGc.js';
 
 // ── GET /api/admin/stats ──
 export async function handleAdminStats(_req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -97,28 +98,19 @@ export async function handleAdminCleanup(_req: IncomingMessage, res: ServerRespo
     if (t.thumbnail_url) refUrls.add(t.thumbnail_url);
   }
 
-  const LOCAL_BASE = LOCAL_FILE_BASE;
-  let scanned = 0;
-  let deleted = 0;
+  // 方案②配套（docs/41 §2.7①）：KV 表里被外置成 /files/ URL 的图片引用
+  // 也要纳入"被引用集合"，否则节点删除后磁盘文件会成为孤儿无限累积。
+  const kvValues = queryAll(db, 'SELECT value FROM kv') as Array<{ value: string }>;
+  const kvValueStrings = kvValues.map((r) => r.value).filter((v): v is string => typeof v === 'string');
 
-  try {
-    const entries = fs.readdirSync(uploadDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
-      const subDir = path.join(uploadDir, entry.name);
-      const files = walkFiles(subDir);
-      for (const filePath of files) {
-        scanned++;
-        const relative = path.relative(uploadDir, filePath).replace(/\\/g, '/');
-        const url = `${LOCAL_BASE}${relative}`;
-        if (!refUrls.has(url)) {
-          try { fs.unlinkSync(filePath); deleted++; } catch { /* ignore */ }
-        }
-      }
-    }
-  } catch { /* ignore */ }
+  const gc = runOrphanGc(kvValueStrings, uploadDir, refUrls, false);
 
-  return json(res, { scanned, deleted });
+  return json(res, {
+    scanned: gc.scanned,
+    deleted: gc.deleted,
+    referenced: gc.referenced,
+    deletedFiles: gc.deletedFiles,
+  });
 }
 
 // ── GET /api/admin/export ──

@@ -1,5 +1,5 @@
 import React from 'react'
-import { getBezierPath, EdgeLabelRenderer, Position } from 'reactflow'
+import { getBezierPath, EdgeLabelRenderer, Position, useReactFlow } from '@xyflow/react'
 import Comet from './Comet.jsx'
 
 /**
@@ -28,10 +28,11 @@ export default function CustomEdge({
     targetPosition: Position.Left
   })
 
+  const { deleteElements } = useReactFlow()
   const removeEdge = (evt) => {
     evt.stopPropagation()
-    // 原型：删除连线通过自定义事件交给 App 处理
-    window.dispatchEvent(new CustomEvent('yimao:remove-edge', { detail: { id } }))
+    // 用 ReactFlow 官方 deleteElements 删边（比自定义事件更可靠）
+    deleteElements({ edges: [{ id }] })
   }
 
   const active = !!selected || !!relatedToSelected // 触发特效（comet + 加亮）
@@ -71,12 +72,16 @@ export default function CustomEdge({
               fontSize: 12,
               pointerEvents: 'all',
               opacity: 1,
+              zIndex: 1000,
               transition: 'opacity 0.2s'
             }}
             className="nodrag nopan group/edge hover:opacity-100"
+            onPointerDown={(e) => e.stopPropagation()} // 阻止画布拖拽/选中接管，确保点击可靠
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <button
-              className="bg-white hover:bg-gray-100 text-gray-600 hover:text-red-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-gray-300 cursor-pointer transition-colors"
+              type="button"
+              className="bg-white hover:bg-gray-100 text-gray-600 rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-gray-300 cursor-pointer transition-colors"
               onClick={removeEdge}
               title="删除连线"
             >

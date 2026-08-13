@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { useStore } from 'reactflow'
+import { useStore } from '@xyflow/react'
 
 /**
  * LOD 视口缩放监听器（复刻 _Component122.jsx）。

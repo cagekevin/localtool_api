@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { NodeResizer, useStore } from 'reactflow'
+import { NodeResizer, useStore } from '@xyflow/react'
 import NodeTitle from '../NodeTitle.jsx'
 import CustomHandle from '../CustomHandle.jsx'
 import { useSizeSync } from './hooks.js'

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Handle } from 'reactflow'
+import { Handle } from '@xyflow/react'
 
 /**
  * 自定义连接端口（复刻原 _Component12.jsx）

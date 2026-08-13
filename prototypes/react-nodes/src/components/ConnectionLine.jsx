@@ -1,5 +1,5 @@
 import React from 'react'
-import { getBezierPath, Position } from 'reactflow'
+import { getBezierPath, Position } from '@xyflow/react'
 import CometParticles from './base/CometParticles.jsx'
 import { useLod } from './base/useLod.js'
 
