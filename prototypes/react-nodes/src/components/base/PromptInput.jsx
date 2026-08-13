@@ -1,30 +1,52 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, forwardRef } from 'react'
 import { X, Link as LinkIcon } from 'lucide-react'
 
 /**
  * 提示词输入区（复刻各节点 contentEditable 提示词 + @素材弹层）。
  *
- * 注意：用 textarea 模拟，支持输入 @ 触发素材引用弹层（演示按钮触发）。
+ * 用 textarea 模拟，支持输入 @ 触发素材引用弹层。
+ *
+ * 尺寸管理（复刻 Co.jsx:407-412 官方 inputWidth/inputHeight 机制）：
+ *  - textarea 的 width/height 由 props `inputWidth`/`inputHeight` 驱动（来自 node data）
+ *  - 拖拽手柄 onResizeEnd(w,h) → 父节点写回 node.data.inputWidth/inputHeight → 重新传入
+ *  - 未拖过时 height 默认 80px（与官方一致）
+ *
+ * ref 透传（用 callback ref，避免 React.StrictMode 下 useImperativeHandle 时序陷阱）：
+ * 父级传入的 ref.current 直接指向 textarea DOM，供面板右下角手柄做 targetRef 拖拽。
  *
  * @param props
- *  - value      提示词
- *  - onChange   提示词变化
+ *  - value           提示词
+ *  - onChange        提示词变化
  *  - placeholder
- *  - refImages  参考图片素材 [{ id, url, label }]
- *  - refTexts   参考文本素材 [{ id, label, text }]
- *  - onInsert   插入素材引用（回调：name => void）
+ *  - refImages       参考图片素材 [{ id, url, label }]
+ *  - refTexts        参考文本素材 [{ id, label, text }]
+ *  - onInsert        插入素材引用（回调：name => void）
+ *  - inputWidth      输入框宽度（来自 node.data.inputWidth，可选）
+ *  - inputHeight     输入框高度（来自 node.data.inputHeight，可选）
  */
-export default function PromptInput({
-  value,
-  onChange,
-  placeholder = '',
-  refImages = [],
-  refTexts = [],
-  onInsert
-}) {
+const PromptInput = forwardRef(function PromptInput(
+  {
+    value,
+    onChange,
+    placeholder = '',
+    refImages = [],
+    refTexts = [],
+    onInsert,
+    inputWidth,
+    inputHeight
+  },
+  ref
+) {
   const [showMention, setShowMention] = useState(false)
   const inputRef = useRef(null)
   const mentionRef = useRef(null)
+
+  // callback ref：实时同步 textarea DOM 给父级（StrictMode 安全）
+  const setTextareaRef = (el) => {
+    inputRef.current = el
+    if (typeof ref === 'function') ref(el)
+    else if (ref) ref.current = el
+  }
 
   useEffect(() => {
     const close = (e) => {
@@ -46,11 +68,17 @@ export default function PromptInput({
 
   return (
     <div className="flex items-start gap-2">
-      <div className="flex-1 nodrag relative shrink-0" style={{ minHeight: '80px', height: '80px' }}>
+      <div ref={mentionRef} className="flex-1 relative shrink-0">
         <textarea
-          ref={inputRef}
-          className="w-full h-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nodrag nowheel nopan resize-none"
-          style={{ minHeight: '80px', height: '80px', overflow: 'auto', lineHeight: 1.625 }}
+          ref={setTextareaRef}
+          className="w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nodrag nowheel nopan resize-none"
+          style={{
+            width: inputWidth ? `${inputWidth}px` : undefined,
+            height: inputHeight ? `${inputHeight}px` : '80px',
+            minHeight: '80px',
+            overflow: 'auto',
+            lineHeight: 1.625
+          }}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
@@ -59,7 +87,6 @@ export default function PromptInput({
 
         {showMention && (
           <div
-            ref={mentionRef}
             className="absolute bottom-[calc(100%+4px)] left-0 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[999999] flex flex-col overflow-hidden h-[300px] nopan"
             onClick={(e) => e.stopPropagation()}
           >
@@ -104,4 +131,6 @@ export default function PromptInput({
       </div>
     </div>
   )
-}
+})
+
+export default PromptInput

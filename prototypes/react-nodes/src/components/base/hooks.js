@@ -2,6 +2,22 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useReactFlow, useUpdateNodeInternals } from 'reactflow'
 
 /**
+ * 判断事件目标是否在可编辑元素内（INPUT / TEXTAREA / contenteditable）。
+ * 右键菜单与快捷键都要「在输入框内跳过」，共用此判定（复刻 H_.jsx:1316-1323 Xn）。
+ */
+export function isEditableTarget(e) {
+  const t = e?.target
+  if (!t) return false
+  const tag = t.tagName
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    !!t.isContentEditable ||
+    (!!t.closest && !!t.closest('input, textarea, [contenteditable="true"]'))
+  )
+}
+
+/**
  * 展开/收起控制 hook。
  * 所有带「下方输入面板」的节点共用同一套展开语义：
  *  - 点击主显示框切换
@@ -77,6 +93,45 @@ export function parseAspect(aspectRatio) {
   if (!aspectRatio || aspectRatio === 'Auto') return null
   const m = aspectRatio.match(/^(\d+(?:\.\d+)?)\s*[:：]\s*(\d+(?:\.\d+)?)$/)
   return m ? parseFloat(m[1]) / parseFloat(m[2]) : null
+}
+
+/**
+ * 右下角手柄（ResizeFullscreenHandle）的尺寸写回 hook。
+ * 统一「手柄拖拽 → 尺寸写回 ReactFlow」这一公共机制，供所有节点复用一个入口：
+ *
+ *  - onMainBoxResize(w, h)：主框手柄 → 写回 node.width/height + updateNodeInternals，
+ *    让 ReactFlow wrapper 跟随（端口基于 wrapper 中点不错位）。
+ *  - onInputResize(w, h)：输入框手柄 → 写回 node.data.inputWidth/inputHeight，
+ *    输入框尺寸跟随（复刻官方 inputWidth/inputHeight 机制）。
+ *
+ * @param id 节点 id
+ */
+export function useNodeResize(id) {
+  const { setNodes } = useReactFlow()
+  const updateNodeInternals = useUpdateNodeInternals()
+
+  const onMainBoxResize = useCallback(
+    (w, h) => {
+      setNodes((ns) =>
+        ns.map((n) =>
+          n.id === id ? { ...n, width: w, height: h, style: { ...n.style, width: w, height: h } } : n
+        )
+      )
+      updateNodeInternals(id)
+    },
+    [id, setNodes, updateNodeInternals]
+  )
+
+  const onInputResize = useCallback(
+    (w, h) => {
+      setNodes((ns) =>
+        ns.map((n) => (n.id === id ? { ...n, data: { ...n.data, inputWidth: w, inputHeight: h } } : n))
+      )
+    },
+    [id, setNodes]
+  )
+
+  return { onMainBoxResize, onInputResize }
 }
 
 /**

@@ -9,7 +9,9 @@ import ExpandablePanel from './base/ExpandablePanel.jsx'
 import GenerateButton from './base/GenerateButton.jsx'
 import ModelSelect from './base/ModelSelect.jsx'
 import PromptInput from './base/PromptInput.jsx'
-import { useGenerate } from './base/hooks.js'
+import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
+import FullscreenModal from './base/FullscreenModal.jsx'
+import { useGenerate, useNodeResize } from './base/hooks.js'
 
 /**
  * 文本节点（复刻原 Co.jsx / textNode）
@@ -27,6 +29,16 @@ export default function TextNode({ id, data, selected }) {
   const [images, setImages] = useState(data.images || [])
   const textAreaRef = useRef(null)
   const fileRef = useRef(null)
+  const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
+  const wrapperRef = useRef(null) // NodeShell 根 div ref（主框手柄拖拽改整体尺寸）
+  // 全屏编辑状态（复刻 Co.jsx:33,35 的 m/y → 主框/输入框全屏）
+  const [fullscreenText, setFullscreenText] = useState(false)
+  const [fullscreenPrompt, setFullscreenPrompt] = useState(false)
+
+  // 尺寸写回（基座 useNodeResize）：
+  //  - onMainBoxResize：主框手柄 → node.width/height + updateNodeInternals（wrapper 跟随，端口不错位）
+  //  - onInputResize：输入框手柄 → node.data.inputWidth/inputHeight（复刻官方）
+  const { onMainBoxResize, onInputResize } = useNodeResize(id)
 
   // 生成模拟（useGenerate 基座 hook）
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
@@ -68,7 +80,7 @@ export default function TextNode({ id, data, selected }) {
       handleVariant="small"
       aspectRatio={null}
       defaultHeight={240}
-      className="transition-all"
+      wrapperRef={wrapperRef}
     >
       {/* hover 操作栏 */}
       <HoverToolbar buttons={toolbarButtons} loading={loading} loadingIcon={loadingIcon} />
@@ -130,9 +142,23 @@ export default function TextNode({ id, data, selected }) {
             </>
           )}
         </div>
+
+        {/* 右下角手柄：双击全屏编辑文本内容（复刻 Co.jsx:314 _Component23）。
+            targetRef=NodeShell 根 div（wrapper），拖拽改其 DOM 实时预览，
+            onResizeEnd 写回 ReactFlow node.width/height + updateNodeInternals，
+            让 ReactFlow wrapper 跟随 → 端口基于 wrapper 中点不错位 */}
+        <ResizeFullscreenHandle
+          targetRef={wrapperRef}
+          minWidth={320}
+          minHeight={180}
+          onRequestFullscreen={() => setFullscreenText(true)}
+          onResizeEnd={onMainBoxResize}
+        />
       </div>
 
-      {/* 展开的提示词面板（复刻 Co.jsx:666 过渡） */}
+      {/* 展开的提示词面板（复刻 Co.jsx:666 过渡）。
+          手柄不在 ExpandablePanel 内统一渲染，由本节点在面板 children 里渲染，
+          targetRef=textarea, onResizeEnd 写回 node.data.inputWidth/inputHeight。 */}
       <ExpandablePanel expanded={expanded} minWidth={420}>
         <div className="space-y-3">
           {/* 素材缩略图区 */}
@@ -149,12 +175,15 @@ export default function TextNode({ id, data, selected }) {
 
           {/* 提示词输入（基座 PromptInput） */}
           <PromptInput
+            ref={promptInputRef}
             value={prompt}
             onChange={setPrompt}
             placeholder="输入提示词 (输入 @ 调出素材)..."
             refImages={refImages}
             refTexts={refTexts}
             onInsert={(name) => setPrompt((p) => (p ? `${p} @${name} ` : `@${name} `))}
+            inputWidth={data.inputWidth}
+            inputHeight={data.inputHeight}
           />
 
           {/* 底部：自动拆分 + 模型 + 预设 + 生成 */}
@@ -190,7 +219,42 @@ export default function TextNode({ id, data, selected }) {
             <GenerateButton loading={loading} onGenerate={onGenerate} onStop={onStop} showCost={false} />
           </div>
         </div>
+
+        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 Co.jsx:672 _Component23） */}
+        <ResizeFullscreenHandle
+          targetRef={promptInputRef}
+          minWidth={200}
+          maxWidth={900}
+          minHeight={60}
+          maxHeight={400}
+          onRequestFullscreen={() => setFullscreenPrompt(true)}
+          onResizeEnd={onInputResize}
+        />
       </ExpandablePanel>
+
+      {/* 全屏弹层（复刻 Ai.jsx）：主框全屏编辑文本内容 */}
+      <FullscreenModal open={fullscreenText} title="编辑文本内容" onClose={() => setFullscreenText(false)}>
+        <textarea
+          autoFocus
+          className="flex-1 w-full min-h-0 bg-[#0d0c0c] text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded"
+          style={{ fontSize: '14px', lineHeight: 1.8, color: '#e5e7eb' }}
+          placeholder="输入文本内容..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+      </FullscreenModal>
+
+      {/* 全屏弹层（复刻 Ai.jsx）：输入框全屏编辑提示词 */}
+      <FullscreenModal open={fullscreenPrompt} title="编辑提示词 - 文本" onClose={() => setFullscreenPrompt(false)}>
+        <textarea
+          autoFocus
+          className="flex-1 w-full min-h-0 bg-[#0d0c0c] text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded"
+          style={{ fontSize: '14px', lineHeight: 1.8, color: '#e5e7eb' }}
+          placeholder="输入提示词..."
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
+      </FullscreenModal>
     </NodeShell>
   )
 }

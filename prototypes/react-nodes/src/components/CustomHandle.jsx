@@ -6,13 +6,14 @@ import { Handle } from 'reactflow'
  * 大号（48px）用于特惠视频节点，小号（32px）用于文本/图片节点。
  * position: 'left' | 'right'
  */
-export default function CustomHandle({ className = '', variant = 'large', position, style = {} }) {
+export default function CustomHandle({ className = '', variant = 'large', position }) {
   const isLeft = position === 'left'
   const isRight = position === 'right'
   const size = variant === 'large' ? 48 : 32
   const half = size / 2
   const ref = useRef(null)
-  const outerOffset = typeof style?.top === 'string' || typeof style?.top === 'number' ? 16 : 16
+  // 端口向节点外侧偏移量（复刻 _Component12.jsx：让大端口中心对准节点边缘）
+  const outerOffset = 16
 
   // 复刻 mousemove 追踪（--cust-shift-x/y）
   useEffect(() => {
@@ -47,7 +48,8 @@ export default function CustomHandle({ className = '', variant = 'large', positi
     width: size,
     height: size,
     ...(isLeft ? { left: -outerOffset } : isRight ? { right: -outerOffset } : {}),
-    '--cust-anchor-x': isLeft ? '50%' : isRight ? '50%' : '50%'
+    // 锚点固定居中（偏移已由 left/right:-outerOffset 处理）
+    '--cust-anchor-x': '50%'
   }
 
   return (

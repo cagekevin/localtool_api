@@ -60,9 +60,10 @@ function renderIcon(icon, size = 16, className = '') {
 
 // 渲染菜单项（支持 divider / submenu）
 function renderItems(items, onClose) {
-  return (items || []).map((item) => {
+  return (items || []).map((item, index) => {
     if (item.type === 'divider') {
-      return <div key={`div-${Math.random()}`} className="h-[1px] bg-white/[0.04] my-2 mx-1" />
+      // key 用索引保证稳定（divider 没有业务 key）
+      return <div key={`div-${index}`} className="h-[1px] bg-white/[0.04] my-2 mx-1" />
     }
     if (item.submenu && item.submenu.length) {
       return (

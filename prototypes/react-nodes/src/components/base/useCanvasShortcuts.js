@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react'
+import { isEditableTarget } from './hooks.js'
 
 /**
  * 全局键盘快捷键 hook（复刻 H_.jsx:11427-11586 的 keydown/paste 监听）。
@@ -16,19 +17,6 @@ import { useEffect, useCallback } from 'react'
  */
 export function useCanvasShortcuts(handlers = {}) {
   const { onUndo, onRedo, onSelectAll, onDuplicate, onAdd } = handlers
-
-  // 输入框内跳过（复刻 H_.jsx:1316-1323 Xn）
-  const isEditableTarget = useCallback((e) => {
-    const t = e.target
-    if (!t) return false
-    const tag = t.tagName
-    return (
-      tag === 'INPUT' ||
-      tag === 'TEXTAREA' ||
-      !!t.isContentEditable ||
-      (!!t.closest && !!t.closest('input, textarea, [contenteditable="true"]'))
-    )
-  }, [])
 
   // 有选中文本（复刻 H_.jsx:11427-11434 n）
   const hasSelectionText = useCallback(() => {
@@ -73,5 +61,5 @@ export function useCanvasShortcuts(handlers = {}) {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [isEditableTarget, hasSelectionText, onUndo, onRedo, onSelectAll, onDuplicate, onAdd])
+  }, [hasSelectionText, onUndo, onRedo, onSelectAll, onDuplicate, onAdd])
 }

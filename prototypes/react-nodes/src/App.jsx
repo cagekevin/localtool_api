@@ -58,7 +58,7 @@ const initialNodes = [
   {
     id: 'prompt-1',
     type: 'promptNode',
-    position: { x: 140, y: 420 },
+    position: { x: 680, y: 60 },
     data: {
       label: '生图节点',
       prompt: '赛博朋克风格的城市夜景',
@@ -78,7 +78,7 @@ const initialNodes = [
   {
     id: 'discount-1',
     type: 'discountVideoNode',
-    position: { x: 100, y: 800 },
+    position: { x: 680, y: 640 },
     data: {
       label: '特惠视频',
       prompt: '一只小猫在花园里追逐蝴蝶',

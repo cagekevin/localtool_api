@@ -34,8 +34,8 @@ export default function LodListener({ onLodChange, enablePerformanceMode = true 
       return
     }
 
-    // 计算 lodLevel（复刻 H_.jsx:11548）
-    const level = zoom <= 0.2 ? 3 : zoom <= 0.3 ? 2 : +zoom <= 0.5
+    // 计算 lodLevel（复刻 H_.jsx:11548）：zoom<=0.2→3，<=0.3→2，<=0.5→1，否则 0
+    const level = zoom <= 0.2 ? 3 : zoom <= 0.3 ? 2 : zoom <= 0.5 ? 1 : 0
     if (level === lastRef.current) return
 
     cancelAnimationFrame(rafRef.current)

@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Zap, Sparkles, Coins } from 'lucide-react'
 
 /**
+ * 模型 badge 元信息：根据 badge 类型返回文案与样式类。
+ * 'scheduled' → 调度（蓝）｜'third' → 三方（灰）｜'builtin' → 内置（白）
+ */
+function badgeMeta(badge) {
+  if (badge === 'scheduled') return { label: '调度', className: 'border-blue-400 text-blue-300' }
+  if (badge === 'third') return { label: '三方', className: 'border-gray-500 text-gray-300' }
+  return { label: '内置', className: 'border-white/30 text-white/90' }
+}
+
+/**
  * 模型选择下拉（复刻各节点「内置模型」选择）。
  *
  * @param props
@@ -33,12 +43,8 @@ export default function ModelSelect({
     const item = models.find((m) => m.id === id)
     return item?.badge || 'builtin'
   }
-  const badgeClass =
-    badge(value) === 'scheduled'
-      ? 'border-blue-400 text-blue-300'
-      : badge(value) === 'third'
-        ? 'border-gray-500 text-gray-300'
-        : 'border-white/30 text-white/90'
+  // 当前选中模型的 badge 样式（外层按钮用）
+  const selectedBadge = badgeMeta(badge(value))
 
   return (
     <div className="relative nodrag flex items-center" ref={ref}>
@@ -49,8 +55,8 @@ export default function ModelSelect({
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
         title={value ? `${value}（内置）` : '选择模型'}
       >
-        <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${badgeClass}`}>
-          {badge(value) === 'scheduled' ? '调度' : badge(value) === 'third' ? '三方' : '内置'}
+        <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${selectedBadge.className}`}>
+          {selectedBadge.label}
         </span>
         <span className="whitespace-nowrap">{value || placeholder}</span>
       </button>
@@ -70,13 +76,7 @@ export default function ModelSelect({
           </div>
           {models.map((m) => {
             const selected = value === m.id
-            const itemBadge = m.badge || 'builtin'
-            const itemBadgeClass =
-              itemBadge === 'scheduled'
-                ? 'border-blue-400 text-blue-300'
-                : itemBadge === 'third'
-                  ? 'border-gray-500 text-gray-300'
-                  : 'border-white/30 text-white/90'
+            const itemBadge = badgeMeta(m.badge || 'builtin')
             const cost = costMap[m.id]
             return (
               <div
@@ -85,8 +85,8 @@ export default function ModelSelect({
                 className={`flex items-center gap-1.5 mb-1 last:mb-0 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors cursor-pointer ${selected ? 'bg-[#333] text-white' : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`}
                 onClick={() => { onChange(m.id); setOpen(false) }}
               >
-                <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${itemBadgeClass}`}>
-                  {itemBadge === 'scheduled' ? '调度' : itemBadge === 'third' ? '三方' : '内置'}
+                <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${itemBadge.className}`}>
+                  {itemBadge.label}
                 </span>
                 <span className="flex-1 whitespace-nowrap">{m.label || m.id}</span>
                 {cost != null && (

@@ -8,8 +8,9 @@ import HoverToolbar from './base/HoverToolbar.jsx'
 import ExpandablePanel from './base/ExpandablePanel.jsx'
 import GenerateButton from './base/GenerateButton.jsx'
 import ModelSelect from './base/ModelSelect.jsx'
+import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
-import { useGenerate } from './base/hooks.js'
+import { useGenerate, useNodeResize } from './base/hooks.js'
 
 /**
  * 特惠视频节点（复刻原 As.jsx / discountVideoNode）
@@ -26,7 +27,10 @@ export default function DiscountVideoNode({ id, data, selected }) {
   const [videoUrl, setVideoUrl] = useState(data.videoUrl || '')
   const [showRatioMenu, setShowRatioMenu] = useState(false)
   const fileRef = useRef(null)
-  const inputRef = useRef(null)
+  const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
+
+  // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
+  const { onInputResize } = useNodeResize(id)
 
   const ratioOptions = [
     { value: '16:9', label: '16:9' },
@@ -137,7 +141,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* 展开的提示词面板 */}
+      {/* 展开的提示词面板。手柄由节点在 children 里渲染（targetRef=textarea，写回 data.inputWidth/inputHeight）。 */}
       <ExpandablePanel expanded={expanded} minWidth={500}>
         <div className="space-y-3">
           {/* 素材缩略图 */}
@@ -154,11 +158,17 @@ export default function DiscountVideoNode({ id, data, selected }) {
 
           {/* 提示词输入 */}
           <div className="flex items-start gap-2">
-            <div className="flex-1 nodrag relative shrink-0" style={{ minHeight: '80px', height: '80px' }}>
+            {/* 外层不设固定 height，让 textarea 撑开 → 手柄拖拽纵向能正确拉高（生图 PromptInput 同款） */}
+            <div className="flex-1 nodrag relative shrink-0">
               <textarea
-                ref={inputRef}
+                ref={promptInputRef}
                 className="w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nowheel nopan nodrag resize-none"
-                style={{ minHeight: '80px', height: '80px', overflow: 'auto' }}
+                style={{
+                  width: data.inputWidth ? `${data.inputWidth}px` : undefined,
+                  height: data.inputHeight ? `${data.inputHeight}px` : '80px',
+                  minHeight: '80px',
+                  overflow: 'auto'
+                }}
                 placeholder="描述你想要的视频内容 (输入 @ 调出素材)..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -237,6 +247,16 @@ export default function DiscountVideoNode({ id, data, selected }) {
             />
           </div>
         </div>
+
+        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 As.jsx:2055 _Component23） */}
+        <ResizeFullscreenHandle
+          targetRef={promptInputRef}
+          minWidth={200}
+          maxWidth={900}
+          minHeight={60}
+          maxHeight={400}
+          onResizeEnd={onInputResize}
+        />
       </ExpandablePanel>
     </NodeShell>
   )

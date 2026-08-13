@@ -168,7 +168,7 @@ var require_react_production_min = __commonJS({
     var U = { current: null };
     var V = { transition: null };
     var W = { ReactCurrentDispatcher: U, ReactCurrentBatchConfig: V, ReactCurrentOwner: K };
-    function X3() {
+    function X4() {
       throw Error("act(...) is not supported in production builds of React.");
     }
     exports2.Children = { map: S, forEach: function(a, b, e) {
@@ -196,7 +196,7 @@ var require_react_production_min = __commonJS({
     exports2.StrictMode = q;
     exports2.Suspense = w;
     exports2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = W;
-    exports2.act = X3;
+    exports2.act = X4;
     exports2.cloneElement = function(a, b, e) {
       if (null === a || void 0 === a) throw Error("React.cloneElement(...): The argument must be a React element, but you passed " + a + ".");
       var d = C({}, a.props), c = a.key, k = a.ref, h = a._owner;
@@ -248,7 +248,7 @@ var require_react_production_min = __commonJS({
         V.transition = b;
       }
     };
-    exports2.unstable_act = X3;
+    exports2.unstable_act = X4;
     exports2.useCallback = function(a, b) {
       return U.current.useCallback(a, b);
     };
@@ -1243,7 +1243,7 @@ var require_react_development = __commonJS({
           }
           return lazyType;
         }
-        function forwardRef2(render) {
+        function forwardRef3(render) {
           {
             if (render != null && render.$$typeof === REACT_MEMO_TYPE) {
               error("forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...)).");
@@ -1356,7 +1356,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState10(initialState2) {
+        function useState12(initialState2) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState2);
         }
@@ -1364,11 +1364,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init2);
         }
-        function useRef11(initialValue) {
+        function useRef12(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect8(create2, deps) {
+        function useEffect9(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -1380,11 +1380,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create2, deps);
         }
-        function useCallback3(callback, deps) {
+        function useCallback5(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
-        function useMemo2(create2, deps) {
+        function useMemo3(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useMemo(create2, deps);
         }
@@ -2141,25 +2141,25 @@ var require_react_development = __commonJS({
         exports2.createElement = createElement$1;
         exports2.createFactory = createFactory;
         exports2.createRef = createRef;
-        exports2.forwardRef = forwardRef2;
+        exports2.forwardRef = forwardRef3;
         exports2.isValidElement = isValidElement;
         exports2.lazy = lazy;
         exports2.memo = memo3;
         exports2.startTransition = startTransition;
         exports2.unstable_act = act;
-        exports2.useCallback = useCallback3;
+        exports2.useCallback = useCallback5;
         exports2.useContext = useContext2;
         exports2.useDebugValue = useDebugValue2;
         exports2.useDeferredValue = useDeferredValue;
-        exports2.useEffect = useEffect8;
+        exports2.useEffect = useEffect9;
         exports2.useId = useId;
         exports2.useImperativeHandle = useImperativeHandle;
         exports2.useInsertionEffect = useInsertionEffect;
         exports2.useLayoutEffect = useLayoutEffect;
-        exports2.useMemo = useMemo2;
+        exports2.useMemo = useMemo3;
         exports2.useReducer = useReducer;
-        exports2.useRef = useRef11;
-        exports2.useState = useState10;
+        exports2.useRef = useRef12;
+        exports2.useState = useState12;
         exports2.useSyncExternalStore = useSyncExternalStore;
         exports2.useTransition = useTransition;
         exports2.version = ReactVersion;
@@ -3257,7 +3257,7 @@ var require_react_dom_server_legacy_node_production_min = __commonJS({
               b.blockedBoundary = h;
               b.blockedSegment = m;
               try {
-                if (Jb(a, b, d), a.responseState.generateStaticMarkup || m.lastPushedText && m.textEmbedded && m.chunks.push("<!-- -->"), m.status = 1, X3(h, m), 0 === h.pendingTasks) break a;
+                if (Jb(a, b, d), a.responseState.generateStaticMarkup || m.lastPushedText && m.textEmbedded && m.chunks.push("<!-- -->"), m.status = 1, X4(h, m), 0 === h.pendingTasks) break a;
               } catch (l) {
                 m.status = 4, h.forceClientRender = true, h.errorDigest = U(a, l);
               } finally {
@@ -3402,12 +3402,12 @@ var require_react_dom_server_legacy_node_production_min = __commonJS({
         return Nb(a2, b, c);
       }), d.fallbackAbortableTasks.clear(), b.allPendingTasks--, 0 === b.allPendingTasks && (a = b.onAllReady, a()));
     }
-    function X3(a, b) {
+    function X4(a, b) {
       if (0 === b.chunks.length && 1 === b.children.length && null === b.children[0].boundary) {
         var c = b.children[0];
         c.id = b.id;
         c.parentFlushed = true;
-        1 === c.status && X3(a, c);
+        1 === c.status && X4(a, c);
       } else a.completedSegments.push(b);
     }
     function Mb(a, b, c) {
@@ -3418,7 +3418,7 @@ var require_react_dom_server_legacy_node_production_min = __commonJS({
         }
         a.pendingRootTasks--;
         0 === a.pendingRootTasks && (a.onShellError = S, b = a.onShellReady, b());
-      } else b.pendingTasks--, b.forceClientRender || (0 === b.pendingTasks ? (c.parentFlushed && 1 === c.status && X3(b, c), b.parentFlushed && a.completedBoundaries.push(b), b.fallbackAbortableTasks.forEach(Lb, a), b.fallbackAbortableTasks.clear()) : c.parentFlushed && 1 === c.status && (X3(b, c), 1 === b.completedSegments.length && b.parentFlushed && a.partialBoundaries.push(b)));
+      } else b.pendingTasks--, b.forceClientRender || (0 === b.pendingTasks ? (c.parentFlushed && 1 === c.status && X4(b, c), b.parentFlushed && a.completedBoundaries.push(b), b.fallbackAbortableTasks.forEach(Lb, a), b.fallbackAbortableTasks.clear()) : c.parentFlushed && 1 === c.status && (X4(b, c), 1 === b.completedSegments.length && b.parentFlushed && a.partialBoundaries.push(b)));
       a.allPendingTasks--;
       0 === a.allPendingTasks && (a = a.onAllReady, a());
     }
@@ -4770,7 +4770,7 @@ var require_react_dom_server_node_production_min = __commonJS({
       console.error(a);
       return null;
     }
-    function X3() {
+    function X4() {
     }
     function Pc(a, b) {
       var c = a.pingedTasks;
@@ -5083,7 +5083,7 @@ var require_react_dom_server_node_production_min = __commonJS({
           a.completedRootSegment = c;
         }
         a.pendingRootTasks--;
-        0 === a.pendingRootTasks && (a.onShellError = X3, b = a.onShellReady, b());
+        0 === a.pendingRootTasks && (a.onShellError = X4, b = a.onShellReady, b());
       } else b.pendingTasks--, b.forceClientRender || (0 === b.pendingTasks ? (c.parentFlushed && 1 === c.status && Zc(b, c), b.parentFlushed && a.completedBoundaries.push(b), b.fallbackAbortableTasks.forEach(ad, a), b.fallbackAbortableTasks.clear()) : c.parentFlushed && 1 === c.status && (Zc(b, c), 1 === b.completedSegments.length && b.parentFlushed && a.partialBoundaries.push(b)));
       a.allPendingTasks--;
       0 === a.allPendingTasks && (a = a.onAllReady, a());
@@ -5389,10 +5389,10 @@ var require_react_dom_server_node_production_min = __commonJS({
         completedBoundaries: [],
         partialBoundaries: [],
         onError: void 0 === d ? Oc : d,
-        onAllReady: void 0 === h ? X3 : h,
-        onShellReady: void 0 === m ? X3 : m,
-        onShellError: void 0 === n ? X3 : n,
-        onFatalError: X3
+        onAllReady: void 0 === h ? X4 : h,
+        onShellReady: void 0 === m ? X4 : m,
+        onShellError: void 0 === n ? X4 : n,
+        onFatalError: X4
       };
       e = Sc(g, 0, null, e, false, false);
       e.parentFlushed = true;
@@ -5426,10 +5426,10 @@ var require_react_dom_server_legacy_node_development = __commonJS({
     if (process.env.NODE_ENV !== "production") {
       (function() {
         "use strict";
-        var React18 = require_react();
+        var React20 = require_react();
         var stream = require("stream");
         var ReactVersion = "18.3.1";
-        var ReactSharedInternals = React18.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React20.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function warn(format) {
           {
             {
@@ -7324,7 +7324,7 @@ var require_react_dom_server_legacy_node_development = __commonJS({
         }
         function flattenOptionChildren(children2) {
           var content = "";
-          React18.Children.forEach(children2, function(child) {
+          React20.Children.forEach(children2, function(child) {
             if (child == null) {
               return;
             }
@@ -9317,7 +9317,7 @@ var require_react_dom_server_legacy_node_development = __commonJS({
         function basicStateReducer(state, action) {
           return typeof action === "function" ? action(state) : action;
         }
-        function useState10(initialState2) {
+        function useState12(initialState2) {
           {
             currentHookNameInDev = "useState";
           }
@@ -9382,7 +9382,7 @@ var require_react_dom_server_legacy_node_development = __commonJS({
             return [workInProgressHook.memoizedState, _dispatch];
           }
         }
-        function useMemo2(nextCreate, deps) {
+        function useMemo3(nextCreate, deps) {
           currentlyRenderingComponent = resolveCurrentlyRenderingComponent();
           workInProgressHook = createWorkInProgressHook();
           var nextDeps = deps === void 0 ? null : deps;
@@ -9407,7 +9407,7 @@ var require_react_dom_server_legacy_node_development = __commonJS({
           workInProgressHook.memoizedState = [nextValue, nextDeps];
           return nextValue;
         }
-        function useRef11(initialValue) {
+        function useRef12(initialValue) {
           currentlyRenderingComponent = resolveCurrentlyRenderingComponent();
           workInProgressHook = createWorkInProgressHook();
           var previousRef = workInProgressHook.memoizedState;
@@ -9455,8 +9455,8 @@ var require_react_dom_server_legacy_node_development = __commonJS({
             }
           }
         }
-        function useCallback3(callback, deps) {
-          return useMemo2(function() {
+        function useCallback5(callback, deps) {
+          return useMemo3(function() {
             return callback;
           }, deps);
         }
@@ -9496,13 +9496,13 @@ var require_react_dom_server_legacy_node_development = __commonJS({
         var Dispatcher = {
           readContext: readContext$1,
           useContext: useContext2,
-          useMemo: useMemo2,
+          useMemo: useMemo3,
           useReducer,
-          useRef: useRef11,
-          useState: useState10,
+          useRef: useRef12,
+          useState: useState12,
           useInsertionEffect: noop3,
           useLayoutEffect,
-          useCallback: useCallback3,
+          useCallback: useCallback5,
           // useImperativeHandle is not run in the server environment
           useImperativeHandle: noop3,
           // Effects are not run in the server environment.
@@ -10830,10 +10830,10 @@ var require_react_dom_server_node_development = __commonJS({
     if (process.env.NODE_ENV !== "production") {
       (function() {
         "use strict";
-        var React18 = require_react();
+        var React20 = require_react();
         var util = require("util");
         var ReactVersion = "18.3.1";
-        var ReactSharedInternals = React18.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React20.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function warn(format) {
           {
             {
@@ -12825,7 +12825,7 @@ var require_react_dom_server_node_development = __commonJS({
         }
         function flattenOptionChildren(children2) {
           var content = "";
-          React18.Children.forEach(children2, function(child) {
+          React20.Children.forEach(children2, function(child) {
             if (child == null) {
               return;
             }
@@ -14754,7 +14754,7 @@ var require_react_dom_server_node_development = __commonJS({
         function basicStateReducer(state, action) {
           return typeof action === "function" ? action(state) : action;
         }
-        function useState10(initialState2) {
+        function useState12(initialState2) {
           {
             currentHookNameInDev = "useState";
           }
@@ -14819,7 +14819,7 @@ var require_react_dom_server_node_development = __commonJS({
             return [workInProgressHook.memoizedState, _dispatch];
           }
         }
-        function useMemo2(nextCreate, deps) {
+        function useMemo3(nextCreate, deps) {
           currentlyRenderingComponent = resolveCurrentlyRenderingComponent();
           workInProgressHook = createWorkInProgressHook();
           var nextDeps = deps === void 0 ? null : deps;
@@ -14844,7 +14844,7 @@ var require_react_dom_server_node_development = __commonJS({
           workInProgressHook.memoizedState = [nextValue, nextDeps];
           return nextValue;
         }
-        function useRef11(initialValue) {
+        function useRef12(initialValue) {
           currentlyRenderingComponent = resolveCurrentlyRenderingComponent();
           workInProgressHook = createWorkInProgressHook();
           var previousRef = workInProgressHook.memoizedState;
@@ -14892,8 +14892,8 @@ var require_react_dom_server_node_development = __commonJS({
             }
           }
         }
-        function useCallback3(callback, deps) {
-          return useMemo2(function() {
+        function useCallback5(callback, deps) {
+          return useMemo3(function() {
             return callback;
           }, deps);
         }
@@ -14933,13 +14933,13 @@ var require_react_dom_server_node_development = __commonJS({
         var Dispatcher = {
           readContext: readContext$1,
           useContext: useContext2,
-          useMemo: useMemo2,
+          useMemo: useMemo3,
           useReducer,
-          useRef: useRef11,
-          useState: useState10,
+          useRef: useRef12,
+          useState: useState12,
           useInsertionEffect: noop3,
           useLayoutEffect,
-          useCallback: useCallback3,
+          useCallback: useCallback5,
           // useImperativeHandle is not run in the server environment
           useImperativeHandle: noop3,
           // Effects are not run in the server environment.
@@ -16237,17 +16237,17 @@ var require_server_node = __commonJS({
 var require_use_sync_external_store_shim_production = __commonJS({
   "node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.production.js"(exports2) {
     "use strict";
-    var React18 = require_react();
+    var React20 = require_react();
     function is(x, y) {
       return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
     }
     var objectIs = "function" === typeof Object.is ? Object.is : is;
-    var useState10 = React18.useState;
-    var useEffect8 = React18.useEffect;
-    var useLayoutEffect = React18.useLayoutEffect;
-    var useDebugValue2 = React18.useDebugValue;
+    var useState12 = React20.useState;
+    var useEffect9 = React20.useEffect;
+    var useLayoutEffect = React20.useLayoutEffect;
+    var useDebugValue2 = React20.useDebugValue;
     function useSyncExternalStore$2(subscribe, getSnapshot) {
-      var value = getSnapshot(), _useState = useState10({ inst: { value, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
+      var value = getSnapshot(), _useState = useState12({ inst: { value, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
       useLayoutEffect(
         function() {
           inst.value = value;
@@ -16256,7 +16256,7 @@ var require_use_sync_external_store_shim_production = __commonJS({
         },
         [subscribe, value, getSnapshot]
       );
-      useEffect8(
+      useEffect9(
         function() {
           checkIfSnapshotChanged(inst) && forceUpdate({ inst });
           return subscribe(function() {
@@ -16282,7 +16282,7 @@ var require_use_sync_external_store_shim_production = __commonJS({
       return getSnapshot();
     }
     var shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
-    exports2.useSyncExternalStore = void 0 !== React18.useSyncExternalStore ? React18.useSyncExternalStore : shim;
+    exports2.useSyncExternalStore = void 0 !== React20.useSyncExternalStore ? React20.useSyncExternalStore : shim;
   }
 });
 
@@ -16295,7 +16295,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       function useSyncExternalStore$2(subscribe, getSnapshot) {
-        didWarnOld18Alpha || void 0 === React18.startTransition || (didWarnOld18Alpha = true, console.error(
+        didWarnOld18Alpha || void 0 === React20.startTransition || (didWarnOld18Alpha = true, console.error(
           "You are using an outdated, pre-release alpha of React 18 that does not support useSyncExternalStore. The use-sync-external-store shim will not work correctly. Upgrade to a newer pre-release."
         ));
         var value = getSnapshot();
@@ -16305,7 +16305,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
             "The result of getSnapshot should be cached to avoid an infinite loop"
           ), didWarnUncachedGetSnapshot = true);
         }
-        cachedValue = useState10({
+        cachedValue = useState12({
           inst: { value, getSnapshot }
         });
         var inst = cachedValue[0].inst, forceUpdate = cachedValue[1];
@@ -16317,7 +16317,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
           },
           [subscribe, value, getSnapshot]
         );
-        useEffect8(
+        useEffect9(
           function() {
             checkIfSnapshotChanged(inst) && forceUpdate({ inst });
             return subscribe(function() {
@@ -16343,8 +16343,8 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React18 = require_react(), objectIs = "function" === typeof Object.is ? Object.is : is, useState10 = React18.useState, useEffect8 = React18.useEffect, useLayoutEffect = React18.useLayoutEffect, useDebugValue2 = React18.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
-      exports2.useSyncExternalStore = void 0 !== React18.useSyncExternalStore ? React18.useSyncExternalStore : shim;
+      var React20 = require_react(), objectIs = "function" === typeof Object.is ? Object.is : is, useState12 = React20.useState, useEffect9 = React20.useEffect, useLayoutEffect = React20.useLayoutEffect, useDebugValue2 = React20.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      exports2.useSyncExternalStore = void 0 !== React20.useSyncExternalStore ? React20.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     }();
   }
@@ -16366,24 +16366,24 @@ var require_shim = __commonJS({
 var require_with_selector_production = __commonJS({
   "node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js"(exports2) {
     "use strict";
-    var React18 = require_react();
+    var React20 = require_react();
     var shim = require_shim();
     function is(x, y) {
       return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
     }
     var objectIs = "function" === typeof Object.is ? Object.is : is;
     var useSyncExternalStore = shim.useSyncExternalStore;
-    var useRef11 = React18.useRef;
-    var useEffect8 = React18.useEffect;
-    var useMemo2 = React18.useMemo;
-    var useDebugValue2 = React18.useDebugValue;
+    var useRef12 = React20.useRef;
+    var useEffect9 = React20.useEffect;
+    var useMemo3 = React20.useMemo;
+    var useDebugValue2 = React20.useDebugValue;
     exports2.useSyncExternalStoreWithSelector = function(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {
-      var instRef = useRef11(null);
+      var instRef = useRef12(null);
       if (null === instRef.current) {
         var inst = { hasValue: false, value: null };
         instRef.current = inst;
       } else inst = instRef.current;
-      instRef = useMemo2(
+      instRef = useMemo3(
         function() {
           function memoizedSelector(nextSnapshot) {
             if (!hasMemo) {
@@ -16418,7 +16418,7 @@ var require_with_selector_production = __commonJS({
         [getSnapshot, getServerSnapshot, selector, isEqual]
       );
       var value = useSyncExternalStore(subscribe, instRef[0], instRef[1]);
-      useEffect8(
+      useEffect9(
         function() {
           inst.hasValue = true;
           inst.value = value;
@@ -16440,14 +16440,14 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React18 = require_react(), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef11 = React18.useRef, useEffect8 = React18.useEffect, useMemo2 = React18.useMemo, useDebugValue2 = React18.useDebugValue;
+      var React20 = require_react(), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef12 = React20.useRef, useEffect9 = React20.useEffect, useMemo3 = React20.useMemo, useDebugValue2 = React20.useDebugValue;
       exports2.useSyncExternalStoreWithSelector = function(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {
-        var instRef = useRef11(null);
+        var instRef = useRef12(null);
         if (null === instRef.current) {
           var inst = { hasValue: false, value: null };
           instRef.current = inst;
         } else inst = instRef.current;
-        instRef = useMemo2(
+        instRef = useMemo3(
           function() {
             function memoizedSelector(nextSnapshot) {
               if (!hasMemo) {
@@ -16483,7 +16483,7 @@ var require_with_selector_development = __commonJS({
           [getSnapshot, getServerSnapshot, selector, isEqual]
         );
         var value = useSyncExternalStore(subscribe, instRef[0], instRef[1]);
-        useEffect8(
+        useEffect9(
           function() {
             inst.hasValue = true;
             inst.value = value;
@@ -21868,7 +21868,7 @@ var require_react_dom_production_min = __commonJS({
       if (5 === d || 6 === d) a = a.stateNode, b ? c.insertBefore(a, b) : c.appendChild(a);
       else if (4 !== d && (a = a.child, null !== a)) for (Wj(a, b, c), a = a.sibling; null !== a; ) Wj(a, b, c), a = a.sibling;
     }
-    var X3 = null;
+    var X4 = null;
     var Xj = false;
     function Yj(a, b, c) {
       for (c = c.child; null !== c; ) Zj(a, b, c), c = c.sibling;
@@ -21882,23 +21882,23 @@ var require_react_dom_production_min = __commonJS({
         case 5:
           U || Lj(c, b);
         case 6:
-          var d = X3, e = Xj;
-          X3 = null;
+          var d = X4, e = Xj;
+          X4 = null;
           Yj(a, b, c);
-          X3 = d;
+          X4 = d;
           Xj = e;
-          null !== X3 && (Xj ? (a = X3, c = c.stateNode, 8 === a.nodeType ? a.parentNode.removeChild(c) : a.removeChild(c)) : X3.removeChild(c.stateNode));
+          null !== X4 && (Xj ? (a = X4, c = c.stateNode, 8 === a.nodeType ? a.parentNode.removeChild(c) : a.removeChild(c)) : X4.removeChild(c.stateNode));
           break;
         case 18:
-          null !== X3 && (Xj ? (a = X3, c = c.stateNode, 8 === a.nodeType ? Kf(a.parentNode, c) : 1 === a.nodeType && Kf(a, c), bd(a)) : Kf(X3, c.stateNode));
+          null !== X4 && (Xj ? (a = X4, c = c.stateNode, 8 === a.nodeType ? Kf(a.parentNode, c) : 1 === a.nodeType && Kf(a, c), bd(a)) : Kf(X4, c.stateNode));
           break;
         case 4:
-          d = X3;
+          d = X4;
           e = Xj;
-          X3 = c.stateNode.containerInfo;
+          X4 = c.stateNode.containerInfo;
           Xj = true;
           Yj(a, b, c);
-          X3 = d;
+          X4 = d;
           Xj = e;
           break;
         case 0:
@@ -21955,23 +21955,23 @@ var require_react_dom_production_min = __commonJS({
           a: for (; null !== h; ) {
             switch (h.tag) {
               case 5:
-                X3 = h.stateNode;
+                X4 = h.stateNode;
                 Xj = false;
                 break a;
               case 3:
-                X3 = h.stateNode.containerInfo;
+                X4 = h.stateNode.containerInfo;
                 Xj = true;
                 break a;
               case 4:
-                X3 = h.stateNode.containerInfo;
+                X4 = h.stateNode.containerInfo;
                 Xj = true;
                 break a;
             }
             h = h.return;
           }
-          if (null === X3) throw Error(p(160));
+          if (null === X4) throw Error(p(160));
           Zj(f, g, e);
-          X3 = null;
+          X4 = null;
           Xj = false;
           var k = e.alternate;
           null !== k && (k.return = null);
@@ -23845,9 +23845,9 @@ var require_react_dom_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var React18 = require_react();
+        var React20 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React18.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React20.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -25452,7 +25452,7 @@ var require_react_dom_development = __commonJS({
           {
             if (props.value == null) {
               if (typeof props.children === "object" && props.children !== null) {
-                React18.Children.forEach(props.children, function(child) {
+                React20.Children.forEach(props.children, function(child) {
                   if (child == null) {
                     return;
                   }
@@ -44013,7 +44013,7 @@ var require_react_dom_development = __commonJS({
           return root3;
         }
         var ReactVersion = "18.3.1";
-        function createPortal2(children2, containerInfo, implementation) {
+        function createPortal3(children2, containerInfo, implementation) {
           var key = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : null;
           {
             checkKeyStringCoercion(key);
@@ -44870,7 +44870,7 @@ var require_react_dom_development = __commonJS({
           if (!isValidContainer(container)) {
             throw new Error("Target container is not a DOM element.");
           }
-          return createPortal2(children2, container, null, key);
+          return createPortal3(children2, container, null, key);
         }
         function renderSubtreeIntoContainer(parentComponent, element, containerNode, callback) {
           return unstable_renderSubtreeIntoContainer(parentComponent, element, containerNode, callback);
@@ -53602,7 +53602,7 @@ var require_lucide_react = __commonJS({
       ],
       ["path", { d: "m15 5 4 4", key: "1mk7zo" }]
     ]);
-    var Pencil3 = createLucideIcon("Pencil", [
+    var Pencil4 = createLucideIcon("Pencil", [
       [
         "path",
         {
@@ -57595,7 +57595,7 @@ var require_lucide_react = __commonJS({
         }
       ]
     ]);
-    var X3 = createLucideIcon("X", [
+    var X4 = createLucideIcon("X", [
       ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
       ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
     ]);
@@ -58681,7 +58681,7 @@ var require_lucide_react = __commonJS({
       PenLine,
       PenOff,
       PenTool,
-      Pencil: Pencil3,
+      Pencil: Pencil4,
       PencilLine,
       PencilOff,
       PencilRuler,
@@ -59170,7 +59170,7 @@ var require_lucide_react = __commonJS({
       Worm,
       WrapText,
       Wrench,
-      X: X3,
+      X: X4,
       Youtube,
       Zap: Zap3,
       ZapOff,
@@ -62280,7 +62280,7 @@ var require_lucide_react = __commonJS({
     exports2.LucidePenOff = PenOff;
     exports2.LucidePenSquare = SquarePen;
     exports2.LucidePenTool = PenTool;
-    exports2.LucidePencil = Pencil3;
+    exports2.LucidePencil = Pencil4;
     exports2.LucidePencilLine = PencilLine;
     exports2.LucidePencilOff = PencilOff;
     exports2.LucidePencilRuler = PencilRuler;
@@ -62827,7 +62827,7 @@ var require_lucide_react = __commonJS({
     exports2.LucideWorm = Worm;
     exports2.LucideWrapText = WrapText;
     exports2.LucideWrench = Wrench;
-    exports2.LucideX = X3;
+    exports2.LucideX = X4;
     exports2.LucideXCircle = CircleX;
     exports2.LucideXOctagon = OctagonX;
     exports2.LucideXSquare = SquareX;
@@ -63256,8 +63256,8 @@ var require_lucide_react = __commonJS({
     exports2.PenSquareIcon = SquarePen;
     exports2.PenTool = PenTool;
     exports2.PenToolIcon = PenTool;
-    exports2.Pencil = Pencil3;
-    exports2.PencilIcon = Pencil3;
+    exports2.Pencil = Pencil4;
+    exports2.PencilIcon = Pencil4;
     exports2.PencilLine = PencilLine;
     exports2.PencilLineIcon = PencilLine;
     exports2.PencilOff = PencilOff;
@@ -64350,10 +64350,10 @@ var require_lucide_react = __commonJS({
     exports2.WrapTextIcon = WrapText;
     exports2.Wrench = Wrench;
     exports2.WrenchIcon = Wrench;
-    exports2.X = X3;
+    exports2.X = X4;
     exports2.XCircle = CircleX;
     exports2.XCircleIcon = CircleX;
-    exports2.XIcon = X3;
+    exports2.XIcon = X4;
     exports2.XOctagon = OctagonX;
     exports2.XOctagonIcon = OctagonX;
     exports2.XSquare = SquareX;
@@ -64405,7 +64405,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (process.env.NODE_ENV !== "production") {
       (function() {
         "use strict";
-        var React18 = require_react();
+        var React20 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -64431,7 +64431,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React18.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React20.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -65281,11 +65281,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx15 = jsxWithValidationDynamic;
-        var jsxs12 = jsxWithValidationStatic;
+        var jsx17 = jsxWithValidationDynamic;
+        var jsxs14 = jsxWithValidationStatic;
         exports2.Fragment = REACT_FRAGMENT_TYPE;
-        exports2.jsx = jsx15;
-        exports2.jsxs = jsxs12;
+        exports2.jsx = jsx17;
+        exports2.jsxs = jsxs14;
       })();
     }
   }
@@ -65304,7 +65304,7 @@ var require_jsx_runtime = __commonJS({
 });
 
 // <stdin>
-var import_react19 = __toESM(require_react());
+var import_react21 = __toESM(require_react());
 var import_server = __toESM(require_server_node());
 
 // node_modules/@reactflow/core/dist/esm/index.mjs
@@ -72365,7 +72365,7 @@ var import_react7 = __toESM(require_react(), 1);
 // src/components/NodeTitle.jsx
 var import_react4 = __toESM(require_react(), 1);
 var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-function NodeTitle({ id: id2, label, defaultTitle, icon, className = "", floating = false }) {
+function NodeTitle({ label, defaultTitle, icon, className = "", floating = false }) {
   const [val, setVal] = (0, import_react4.useState)(label || defaultTitle);
   const [editing, setEditing] = (0, import_react4.useState)(false);
   (0, import_react4.useEffect)(() => {
@@ -72426,13 +72426,13 @@ function NodeTitle({ id: id2, label, defaultTitle, icon, className = "", floatin
 // src/components/CustomHandle.jsx
 var import_react5 = __toESM(require_react(), 1);
 var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-function CustomHandle({ className = "", variant = "large", position, style: style2 = {} }) {
+function CustomHandle({ className = "", variant = "large", position }) {
   const isLeft = position === "left";
   const isRight = position === "right";
   const size = variant === "large" ? 48 : 32;
   const half = size / 2;
   const ref = (0, import_react5.useRef)(null);
-  const outerOffset = typeof style2?.top === "string" || typeof style2?.top === "number" ? 16 : 16;
+  const outerOffset = 16;
   (0, import_react5.useEffect)(() => {
     const el = ref.current;
     if (!el) return;
@@ -72464,7 +72464,8 @@ function CustomHandle({ className = "", variant = "large", position, style: styl
     width: size,
     height: size,
     ...isLeft ? { left: -outerOffset } : isRight ? { right: -outerOffset } : {},
-    "--cust-anchor-x": isLeft ? "50%" : isRight ? "50%" : "50%"
+    // 锚点固定居中（偏移已由 left/right:-outerOffset 处理）
+    "--cust-anchor-x": "50%"
   };
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
     "div",
@@ -72549,6 +72550,30 @@ function parseAspect(aspectRatio) {
   const m = aspectRatio.match(/^(\d+(?:\.\d+)?)\s*[:：]\s*(\d+(?:\.\d+)?)$/);
   return m ? parseFloat(m[1]) / parseFloat(m[2]) : null;
 }
+function useNodeResize(id2) {
+  const { setNodes } = useReactFlow();
+  const updateNodeInternals = useUpdateNodeInternals();
+  const onMainBoxResize = (0, import_react6.useCallback)(
+    (w, h) => {
+      setNodes(
+        (ns) => ns.map(
+          (n) => n.id === id2 ? { ...n, width: w, height: h, style: { ...n.style, width: w, height: h } } : n
+        )
+      );
+      updateNodeInternals(id2);
+    },
+    [id2, setNodes, updateNodeInternals]
+  );
+  const onInputResize = (0, import_react6.useCallback)(
+    (w, h) => {
+      setNodes(
+        (ns) => ns.map((n) => n.id === id2 ? { ...n, data: { ...n.data, inputWidth: w, inputHeight: h } } : n)
+      );
+    },
+    [id2, setNodes]
+  );
+  return { onMainBoxResize, onInputResize };
+}
 function useGenerate({ onDone, delay = 2e3 } = {}) {
   const [loading, setLoading] = (0, import_react6.useState)(false);
   const [error, setError] = (0, import_react6.useState)("");
@@ -72576,6 +72601,17 @@ function useGenerate({ onDone, delay = 2e3 } = {}) {
 
 // src/components/base/NodeShell.jsx
 var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+function useNodeSize(id2) {
+  return useStore((s) => {
+    const lookup = s?.nodeLookup;
+    if (!lookup || !id2) return { width: void 0, height: void 0 };
+    const n = lookup.get(id2);
+    if (!n) return { width: void 0, height: void 0 };
+    const w = n.width ?? n.style?.width;
+    const h = n.height ?? n.style?.height;
+    return { width: w, height: h };
+  });
+}
 function NodeShell({
   id: id2,
   label,
@@ -72592,6 +72628,7 @@ function NodeShell({
   baseSize = 380,
   handleVariant = "large",
   className = "",
+  wrapperRef,
   children: children2
 }) {
   const ratio = useSizeSync(id2, aspectRatio, {
@@ -72600,12 +72637,18 @@ function NodeShell({
     baseSize
   });
   const effectiveKeepAspect = keepAspect || !!ratio;
+  const { width, height } = useNodeSize(id2);
+  const fallbackW = (0, import_react7.useMemo)(() => sizeMode === "width-fixed" ? 420 : baseSize, [sizeMode, baseSize]);
+  const inlineW = width ?? fallbackW;
+  const inlineH = height ?? defaultHeight;
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
     "div",
     {
-      className: `relative flex flex-col items-center group/node w-full h-full min-w-[160px] min-h-[160px] ${selected ? "z-50" : "z-10"} ${className}`,
+      ref: wrapperRef,
+      className: `relative flex flex-col items-center group/node min-w-[160px] min-h-[160px] ${selected ? "z-50" : "z-10"} ${className}`,
+      style: { width: typeof inlineW === "number" ? `${inlineW}px` : inlineW, height: typeof inlineH === "number" ? `${inlineH}px` : inlineH },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(NodeTitle, { id: id2, label, defaultTitle, icon }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(NodeTitle, { label, defaultTitle, icon }),
         resizable && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           NodeResizer,
           {
@@ -72779,8 +72822,8 @@ function ImageNode({ id: id2, data, selected }) {
 }
 
 // src/components/TextNode.jsx
-var import_react15 = __toESM(require_react(), 1);
-var import_lucide_react5 = __toESM(require_lucide_react(), 1);
+var import_react17 = __toESM(require_react(), 1);
+var import_lucide_react6 = __toESM(require_lucide_react(), 1);
 
 // src/components/base/ExpandablePanel.jsx
 var import_react11 = __toESM(require_react(), 1);
@@ -72794,9 +72837,10 @@ function ExpandablePanel({
   return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
     "div",
     {
-      className: `absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[#1c1c1c] rounded-2xl border border-[#333] shadow-2xl min-w-[${minWidth}px] w-max max-w-[920px] transition-all duration-300 origin-top z-40
+      className: `absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[#1c1c1c] rounded-2xl border border-[#333] shadow-2xl w-max max-w-[920px] transition-all duration-300 origin-top z-40
         ${expanded ? "opacity-100 scale-100 p-4 overflow-visible" : "opacity-0 scale-95 pointer-events-none h-0 p-0 border-0 overflow-hidden"}
       `,
+      style: { minWidth: `${minWidth}px` },
       onClick: onClickStop ? (e) => e.stopPropagation() : void 0,
       children: expanded && children2
     }
@@ -72877,6 +72921,11 @@ function GenerateButton({
 var import_react13 = __toESM(require_react(), 1);
 var import_lucide_react3 = __toESM(require_lucide_react(), 1);
 var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+function badgeMeta(badge) {
+  if (badge === "scheduled") return { label: "\u8C03\u5EA6", className: "border-blue-400 text-blue-300" };
+  if (badge === "third") return { label: "\u4E09\u65B9", className: "border-gray-500 text-gray-300" };
+  return { label: "\u5185\u7F6E", className: "border-white/30 text-white/90" };
+}
 function ModelSelect({
   value,
   onChange,
@@ -72897,7 +72946,7 @@ function ModelSelect({
     const item = models.find((m) => m.id === id2);
     return item?.badge || "builtin";
   };
-  const badgeClass = badge(value) === "scheduled" ? "border-blue-400 text-blue-300" : badge(value) === "third" ? "border-gray-500 text-gray-300" : "border-white/30 text-white/90";
+  const selectedBadge = badgeMeta(badge(value));
   return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "relative nodrag flex items-center", ref, children: [
     /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" }),
     /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
@@ -72911,7 +72960,7 @@ function ModelSelect({
         },
         title: value ? `${value}\uFF08\u5185\u7F6E\uFF09` : "\u9009\u62E9\u6A21\u578B",
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: `shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${badgeClass}`, children: badge(value) === "scheduled" ? "\u8C03\u5EA6" : badge(value) === "third" ? "\u4E09\u65B9" : "\u5185\u7F6E" }),
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: `shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${selectedBadge.className}`, children: selectedBadge.label }),
           /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "whitespace-nowrap", children: value || placeholder })
         ]
       }
@@ -72936,8 +72985,7 @@ function ModelSelect({
           ] }),
           models.map((m) => {
             const selected = value === m.id;
-            const itemBadge = m.badge || "builtin";
-            const itemBadgeClass = itemBadge === "scheduled" ? "border-blue-400 text-blue-300" : itemBadge === "third" ? "border-gray-500 text-gray-300" : "border-white/30 text-white/90";
+            const itemBadge = badgeMeta(m.badge || "builtin");
             const cost = costMap[m.id];
             return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
               "div",
@@ -72949,7 +72997,7 @@ function ModelSelect({
                   setOpen(false);
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: `shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${itemBadgeClass}`, children: itemBadge === "scheduled" ? "\u8C03\u5EA6" : itemBadge === "third" ? "\u4E09\u65B9" : "\u5185\u7F6E" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: `shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${itemBadge.className}`, children: itemBadge.label }),
                   /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "flex-1 whitespace-nowrap", children: m.label || m.id }),
                   cost != null && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { className: "shrink-0 inline-flex items-center gap-0.5 text-[10px] text-orange-400 tabular-nums", children: [
                     /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_lucide_react3.Coins, { className: "w-2.5 h-2.5", strokeWidth: 2.5 }),
@@ -72970,17 +73018,24 @@ function ModelSelect({
 var import_react14 = __toESM(require_react(), 1);
 var import_lucide_react4 = __toESM(require_lucide_react(), 1);
 var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
-function PromptInput({
+var PromptInput = (0, import_react14.forwardRef)(function PromptInput2({
   value,
   onChange,
   placeholder = "",
   refImages = [],
   refTexts = [],
-  onInsert
-}) {
+  onInsert,
+  inputWidth,
+  inputHeight
+}, ref) {
   const [showMention, setShowMention] = (0, import_react14.useState)(false);
   const inputRef = (0, import_react14.useRef)(null);
   const mentionRef = (0, import_react14.useRef)(null);
+  const setTextareaRef = (el) => {
+    inputRef.current = el;
+    if (typeof ref === "function") ref(el);
+    else if (ref) ref.current = el;
+  };
   (0, import_react14.useEffect)(() => {
     const close = (e) => {
       if (mentionRef.current && !mentionRef.current.contains(e.target)) setShowMention(false);
@@ -72996,13 +73051,19 @@ function PromptInput({
     onInsert?.(name);
     setShowMention(false);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "flex items-start gap-2", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex-1 nodrag relative shrink-0", style: { minHeight: "80px", height: "80px" }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "flex items-start gap-2", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { ref: mentionRef, className: "flex-1 relative shrink-0", children: [
     /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
       "textarea",
       {
-        ref: inputRef,
-        className: "w-full h-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nodrag nowheel nopan resize-none",
-        style: { minHeight: "80px", height: "80px", overflow: "auto", lineHeight: 1.625 },
+        ref: setTextareaRef,
+        className: "w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nodrag nowheel nopan resize-none",
+        style: {
+          width: inputWidth ? `${inputWidth}px` : void 0,
+          height: inputHeight ? `${inputHeight}px` : "80px",
+          minHeight: "80px",
+          overflow: "auto",
+          lineHeight: 1.625
+        },
         placeholder,
         value,
         onChange: (e) => onChange?.(e.target.value),
@@ -73012,7 +73073,6 @@ function PromptInput({
     showMention && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
       "div",
       {
-        ref: mentionRef,
         className: "absolute bottom-[calc(100%+4px)] left-0 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[999999] flex flex-col overflow-hidden h-[300px] nopan",
         onClick: (e) => e.stopPropagation(),
         children: [
@@ -73042,21 +73102,192 @@ function PromptInput({
       }
     )
   ] }) });
+});
+var PromptInput_default = PromptInput;
+
+// src/components/base/ResizeFullscreenHandle.jsx
+var import_react15 = __toESM(require_react(), 1);
+var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
+function ResizeFullscreenHandle({
+  targetRef,
+  onRequestFullscreen,
+  onResizeEnd,
+  minWidth = 360,
+  maxWidth = 900,
+  minHeight = 60,
+  maxHeight = 9999,
+  className = ""
+}) {
+  const [hovered, setHovered] = (0, import_react15.useState)(false);
+  const onMouseDown = (0, import_react15.useCallback)(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const el = targetRef?.current;
+      if (!el) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const rect = el.getBoundingClientRect();
+      const baseW = el.offsetWidth;
+      const baseH = el.offsetHeight;
+      const scaleX = baseW ? rect.width / baseW : 1;
+      const scaleY = baseH ? rect.height / baseH : 1;
+      const move = (ev) => {
+        const dw = (ev.clientX - startX) / (scaleX || 1);
+        const dh = (ev.clientY - startY) / (scaleY || 1);
+        el.style.width = `${Math.max(minWidth, Math.min(maxWidth, baseW + dw))}px`;
+        el.style.height = `${Math.max(minHeight, Math.min(maxHeight, baseH + dh))}px`;
+      };
+      const up = () => {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+        onResizeEnd?.(el.offsetWidth, el.offsetHeight);
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    },
+    [targetRef, minWidth, maxWidth, minHeight, maxHeight, onResizeEnd]
+  );
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+    "div",
+    {
+      className: `absolute right-1.5 bottom-1.5 w-5 h-5 flex items-end justify-end cursor-nwse-resize select-none nodrag nopan nowheel z-30 ${className}`,
+      title: "\u62D6\u52A8\u8C03\u6574\u5927\u5C0F\uFF0C\u53CC\u51FB\u5168\u5C4F\u7F16\u8F91",
+      onMouseEnter: () => setHovered(true),
+      onMouseLeave: () => setHovered(false),
+      onMouseDown,
+      onDoubleClick: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onRequestFullscreen?.();
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("svg", { viewBox: "0 0 16 16", width: "16", height: "16", className: "block text-gray-400 hover:text-blue-400 transition-colors pointer-events-none", "aria-hidden": "true", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("line", { x1: "14", y1: "6", x2: "6", y2: "14", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("line", { x1: "14", y1: "9.5", x2: "9.5", y2: "14", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("line", { x1: "14", y1: "13", x2: "13", y2: "14", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" })
+        ] }),
+        hovered && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "absolute top-full right-0 mt-1 whitespace-nowrap px-2 py-1 rounded bg-black/85 text-white text-[10px] leading-none shadow-lg pointer-events-none z-40", children: "\u62D6\u52A8\u6539\u5C3A\u5BF8 \xB7 \u53CC\u51FB\u5168\u5C4F" })
+      ]
+    }
+  );
+}
+
+// src/components/base/FullscreenModal.jsx
+var import_react16 = __toESM(require_react(), 1);
+var import_react_dom2 = __toESM(require_react_dom(), 1);
+var import_lucide_react5 = __toESM(require_lucide_react(), 1);
+var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+function FullscreenModal({ open, title = "\u7F16\u8F91\u8F93\u5165", onClose, children: children2 }) {
+  const [size, setSize] = (0, import_react16.useState)(() => {
+    if (typeof window === "undefined") return { w: 1e3, h: 700 };
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = Math.max(480, Math.round(vw * 0.8));
+    const h = Math.max(320, Math.round(vh * 0.8));
+    return { w, h };
+  });
+  const panelRef = (0, import_react16.useRef)(null);
+  (0, import_react16.useEffect)(() => {
+    if (!open) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+  const onPanelResize = (0, import_react16.useCallback)(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const baseW = panelRef.current?.offsetWidth ?? size.w;
+      const baseH = panelRef.current?.offsetHeight ?? size.h;
+      const move = (ev) => {
+        setSize({
+          w: Math.max(480, Math.min(window.innerWidth - 40, baseW + (ev.clientX - startX))),
+          h: Math.max(320, Math.min(window.innerHeight - 40, baseH + (ev.clientY - startY)))
+        });
+      };
+      const up = () => {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    },
+    [size.w, size.h]
+  );
+  if (!open) return null;
+  return (0, import_react_dom2.createPortal)(
+    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+      "div",
+      {
+        className: "fixed inset-0 z-[2147483646] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6 input-panel-fullscreen-root",
+        onMouseDown: (e) => e.stopPropagation(),
+        onWheel: (e) => e.stopPropagation(),
+        onClick: (e) => {
+          if (e.target === e.currentTarget) onClose();
+        },
+        children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+          "div",
+          {
+            ref: panelRef,
+            className: "relative bg-[#1c1c1c] border border-[#333] rounded-xl shadow-2xl flex flex-col overflow-visible",
+            style: { width: size.w, height: size.h, maxWidth: "95vw", maxHeight: "95vh" },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "flex items-center justify-between px-4 py-2.5 border-b border-[#2a2a2a] bg-[#222] flex-shrink-0", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "flex items-center gap-2 text-sm text-gray-200", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(import_lucide_react5.Pencil, { size: 14, className: "text-blue-400" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { children: title })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "text-[11px] text-gray-500", children: "Esc \u5173\u95ED \xB7 \u70B9\u51FB\u7A7A\u767D\u5904\u5173\u95ED" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { className: "p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors", onClick: onClose, title: "\u5173\u95ED\u5168\u5C4F", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(import_lucide_react5.X, { size: 16 }) })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "flex-1 min-h-0 p-5 overflow-hidden custom-scrollbar flex flex-col", children: children2 }),
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+                "div",
+                {
+                  className: "absolute right-1 bottom-1 w-5 h-5 flex items-end justify-end cursor-nwse-resize select-none z-10",
+                  title: "\u62D6\u52A8\u8C03\u6574\u7A97\u53E3\u5927\u5C0F",
+                  onMouseDown: onPanelResize,
+                  children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("svg", { viewBox: "0 0 16 16", width: "16", height: "16", className: "block text-gray-500 hover:text-blue-400 transition-colors pointer-events-none", "aria-hidden": "true", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("line", { x1: "14", y1: "6", x2: "6", y2: "14", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("line", { x1: "14", y1: "9.5", x2: "9.5", y2: "14", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("line", { x1: "14", y1: "13", x2: "13", y2: "14", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" })
+                  ] })
+                }
+              )
+            ]
+          }
+        )
+      }
+    ),
+    document.body
+  );
 }
 
 // src/components/TextNode.jsx
-var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 function TextNode({ id: id2, data, selected }) {
-  const [prompt, setPrompt] = (0, import_react15.useState)(data.prompt || "");
-  const [text, setText] = (0, import_react15.useState)(data.text || "");
-  const [autoSplit, setAutoSplit] = (0, import_react15.useState)(data.autoSplit || false);
-  const [expanded, setExpanded] = (0, import_react15.useState)(data.expanded === void 0 ? true : data.expanded);
-  const [editingText, setEditingText] = (0, import_react15.useState)(false);
-  const [showPresetMenu, setShowPresetMenu] = (0, import_react15.useState)(false);
-  const [selectedModel, setSelectedModel] = (0, import_react15.useState)(data.selectedModel || "gpt-4o-mini");
-  const [images, setImages] = (0, import_react15.useState)(data.images || []);
-  const textAreaRef = (0, import_react15.useRef)(null);
-  const fileRef = (0, import_react15.useRef)(null);
+  const [prompt, setPrompt] = (0, import_react17.useState)(data.prompt || "");
+  const [text, setText] = (0, import_react17.useState)(data.text || "");
+  const [autoSplit, setAutoSplit] = (0, import_react17.useState)(data.autoSplit || false);
+  const [expanded, setExpanded] = (0, import_react17.useState)(data.expanded === void 0 ? true : data.expanded);
+  const [editingText, setEditingText] = (0, import_react17.useState)(false);
+  const [showPresetMenu, setShowPresetMenu] = (0, import_react17.useState)(false);
+  const [selectedModel, setSelectedModel] = (0, import_react17.useState)(data.selectedModel || "gpt-4o-mini");
+  const [images, setImages] = (0, import_react17.useState)(data.images || []);
+  const textAreaRef = (0, import_react17.useRef)(null);
+  const fileRef = (0, import_react17.useRef)(null);
+  const promptInputRef = (0, import_react17.useRef)(null);
+  const wrapperRef = (0, import_react17.useRef)(null);
+  const [fullscreenText, setFullscreenText] = (0, import_react17.useState)(false);
+  const [fullscreenPrompt, setFullscreenPrompt] = (0, import_react17.useState)(false);
+  const { onMainBoxResize, onInputResize } = useNodeResize(id2);
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
     onDone: () => setText("\u8FD9\u662F\u4E00\u6BB5\u7531 AI \u751F\u6210\u7684\u6587\u672C\u5185\u5BB9\uFF0C\u7528\u4E8E\u6F14\u793A\u6587\u672C\u8282\u70B9\u7684\u8F93\u51FA\u6548\u679C\u3002"),
     delay: 1800
@@ -73066,7 +73297,7 @@ function TextNode({ id: id2, data, selected }) {
     if (f) setImages((prev) => [...prev, URL.createObjectURL(f)]);
     e.target.value = "";
   };
-  const loadingIcon = /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.Loader2, { size: 12, className: "animate-spin flex-shrink-0", style: { color: "rgb(210,2,7)" } });
+  const loadingIcon = /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Loader2, { size: 12, className: "animate-spin flex-shrink-0", style: { color: "rgb(210,2,7)" } });
   const models = [
     { id: "gpt-4o-mini", label: "gpt-4o-mini", badge: "builtin" },
     { id: "gpt-4o", label: "gpt-4o", badge: "builtin" },
@@ -73076,160 +73307,213 @@ function TextNode({ id: id2, data, selected }) {
   const refImages = images.map((u, i) => ({ id: `img-${i}`, url: u, label: `\u56FE\u7247${i + 1}` }));
   const refTexts = [{ id: "ref-t1", label: "\u53C2\u8003\u6587\u672C", text: "\u53C2\u8003\u6587\u672C" }];
   const toolbarButtons = [
-    ...images.length === 0 ? [{ key: "upload", icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.Plus, { size: 12 }), title: "\u4E0A\u4F20\u56FE\u7247", onClick: () => fileRef.current?.click() }] : [],
-    { key: "copy", icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.Copy, { size: 12 }), title: "\u590D\u5236\u6587\u672C", onClick: () => navigator.clipboard?.writeText(text) },
-    { key: "toggle", icon: expanded ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.ChevronUp, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.ChevronDown, { size: 12 }), title: expanded ? "\u6536\u8D77\u8F93\u5165" : "\u5C55\u5F00\u8F93\u5165", onClick: () => setExpanded((v) => !v) }
+    ...images.length === 0 ? [{ key: "upload", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Plus, { size: 12 }), title: "\u4E0A\u4F20\u56FE\u7247", onClick: () => fileRef.current?.click() }] : [],
+    { key: "copy", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Copy, { size: 12 }), title: "\u590D\u5236\u6587\u672C", onClick: () => navigator.clipboard?.writeText(text) },
+    { key: "toggle", icon: expanded ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.ChevronUp, { size: 12 }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.ChevronDown, { size: 12 }), title: expanded ? "\u6536\u8D77\u8F93\u5165" : "\u5C55\u5F00\u8F93\u5165", onClick: () => setExpanded((v) => !v) }
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
     NodeShell,
     {
       id: id2,
       label: data.label,
       defaultTitle: "\u6587\u672C\u751F\u6210",
-      icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.FileText, { size: 11, className: "text-gray-500" }),
+      icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.FileText, { size: 11, className: "text-gray-500" }),
       selected,
       handleVariant: "small",
       aspectRatio: null,
-      className: "transition-all",
+      defaultHeight: 240,
+      wrapperRef,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(HoverToolbar, { buttons: toolbarButtons, loading, loadingIcon }),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("input", { type: "file", ref: fileRef, style: { display: "none" }, accept: "image/*", onChange: uploadImage }),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(HoverToolbar, { buttons: toolbarButtons, loading, loadingIcon }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("input", { type: "file", ref: fileRef, style: { display: "none" }, accept: "image/*", onChange: uploadImage }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
           "div",
           {
-            className: `relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-[border-color] duration-200 flex flex-col ${selected ? "border-[#555]" : "border-[#333] hover:border-[#444]"}`,
-            style: { width: "420px", height: "240px" },
+            className: `relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-[border-color] duration-200 flex flex-col w-full flex-1 min-h-0 ${selected ? "border-[#555]" : "border-[#333] hover:border-[#444]"}`,
             onClick: (e) => {
               if (!editingText && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
                 setExpanded((v) => !v);
               }
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-              "div",
-              {
-                className: `flex-1 min-h-0 p-3 overflow-hidden bg-[#1a1a1a] relative rounded-xl ${editingText ? "nopan nowheel nodrag" : "drag-handle cursor-move"}`,
-                onWheel: (e) => e.stopPropagation(),
-                onDoubleClick: () => {
-                  if (!editingText) {
-                    setEditingText(true);
-                    setTimeout(() => textAreaRef.current?.focus(), 0);
-                  }
-                },
-                children: [
-                  loading && /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "absolute inset-0 flex items-center justify-center bg-[#1a1a1a]/70 z-10", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.Loader2, { size: 20, className: "animate-spin", style: { color: "rgb(210,2,7)" } }),
-                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "ml-2 text-xs text-gray-400", children: "\u751F\u6210\u4E2D..." })
-                  ] }),
-                  error ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "text-red-400 text-xs p-2 border border-red-500/30 rounded bg-red-500/10 flex items-start gap-2", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.AlertCircle, { size: 14, className: "mt-0.5 flex-shrink-0" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "break-all", children: error })
-                  ] }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
-                    !text && !loading && !editingText && /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none", children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.FileText, { size: 72, className: "text-gray-700", strokeWidth: 1.2 }),
-                      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "text-xs text-gray-600", children: "\u53CC\u51FB\u7F16\u8F91\u5185\u5BB9\u6216AI\u751F\u6210" })
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                "div",
+                {
+                  className: `flex-1 min-h-0 p-3 overflow-hidden bg-[#1a1a1a] relative rounded-xl ${editingText ? "nopan nowheel nodrag" : "drag-handle cursor-move"}`,
+                  onWheel: (e) => e.stopPropagation(),
+                  onDoubleClick: () => {
+                    if (!editingText) {
+                      setEditingText(true);
+                      setTimeout(() => textAreaRef.current?.focus(), 0);
+                    }
+                  },
+                  children: [
+                    loading && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute inset-0 flex items-center justify-center bg-[#1a1a1a]/70 z-10", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Loader2, { size: 20, className: "animate-spin", style: { color: "rgb(210,2,7)" } }),
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "ml-2 text-xs text-gray-400", children: "\u751F\u6210\u4E2D..." })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
-                      "textarea",
-                      {
-                        ref: textAreaRef,
-                        className: `w-full h-full bg-transparent outline-none font-sans leading-relaxed custom-scrollbar nowheel resize-none ${editingText ? "nodrag nopan" : "pointer-events-none"}`,
-                        style: { fontSize: "14px", color: "#a1a1aa" },
-                        placeholder: "",
-                        value: text,
-                        readOnly: !editingText,
-                        onChange: (e) => setText(e.target.value),
-                        onBlur: () => setEditingText(false),
-                        onWheel: (e) => e.stopPropagation()
-                      }
-                    )
-                  ] })
-                ]
-              }
-            )
+                    error ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "text-red-400 text-xs p-2 border border-red-500/30 rounded bg-red-500/10 flex items-start gap-2", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.AlertCircle, { size: 14, className: "mt-0.5 flex-shrink-0" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "break-all", children: error })
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+                      !text && !loading && !editingText && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.FileText, { size: 72, className: "text-gray-700", strokeWidth: 1.2 }),
+                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "text-xs text-gray-600", children: "\u53CC\u51FB\u7F16\u8F91\u5185\u5BB9\u6216AI\u751F\u6210" })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        "textarea",
+                        {
+                          ref: textAreaRef,
+                          className: `w-full h-full bg-transparent outline-none font-sans leading-relaxed custom-scrollbar nowheel resize-none ${editingText ? "nodrag nopan" : "pointer-events-none"}`,
+                          style: { fontSize: "14px", color: "#a1a1aa" },
+                          placeholder: "",
+                          value: text,
+                          readOnly: !editingText,
+                          onChange: (e) => setText(e.target.value),
+                          onBlur: () => setEditingText(false),
+                          onWheel: (e) => e.stopPropagation()
+                        }
+                      )
+                    ] })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                ResizeFullscreenHandle,
+                {
+                  targetRef: wrapperRef,
+                  minWidth: 320,
+                  minHeight: 180,
+                  onRequestFullscreen: () => setFullscreenText(true),
+                  onResizeEnd: onMainBoxResize
+                }
+              )
+            ]
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ExpandablePanel, { expanded, minWidth: 420, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "space-y-3", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "flex flex-wrap gap-2 mb-1", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "w-8 h-8 rounded overflow-hidden border border-blue-500/50 relative group bg-black", title: "\u901A\u8FC7 @ \u9009\u4E2D\u7684\u7D20\u6750", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("img", { src: "https://picsum.photos/seed/textnode/80/80", className: "w-full h-full object-cover opacity-80", alt: "\u7D20\u6750" }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "absolute top-0 right-0 p-0.5 bg-black/50 hover:bg-red-500/80 rounded-bl-md cursor-pointer opacity-0 group-hover:opacity-100 transition-all text-white text-[8px]", children: "\xD7" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text", title: "\u53C2\u8003\u6587\u672C", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.Link, { size: 10 }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "max-w-[60px] truncate", children: "\u53C2\u8003\u6587\u672C" })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
-            PromptInput,
-            {
-              value: prompt,
-              onChange: setPrompt,
-              placeholder: "\u8F93\u5165\u63D0\u793A\u8BCD (\u8F93\u5165 @ \u8C03\u51FA\u7D20\u6750)...",
-              refImages,
-              refTexts,
-              onInsert: (name) => setPrompt((p) => p ? `${p} @${name} ` : `@${name} `)
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-[#2a2a2a]", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "flex items-center gap-1.5", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("label", { className: "flex items-center gap-1.5 cursor-pointer h-6 px-2 text-[11px] text-gray-400 hover:text-gray-200 select-none bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded transition-colors", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("input", { type: "checkbox", checked: autoSplit, onChange: (e) => setAutoSplit(e.target.checked), className: "accent-blue-500 rounded sm:w-3 sm:h-3" }),
-                "\u81EA\u52A8\u62C6\u5206"
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(ExpandablePanel, { expanded, minWidth: 420, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "space-y-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex flex-wrap gap-2 mb-1", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "w-8 h-8 rounded overflow-hidden border border-blue-500/50 relative group bg-black", title: "\u901A\u8FC7 @ \u9009\u4E2D\u7684\u7D20\u6750", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("img", { src: "https://picsum.photos/seed/textnode/80/80", className: "w-full h-full object-cover opacity-80", alt: "\u7D20\u6750" }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "absolute top-0 right-0 p-0.5 bg-black/50 hover:bg-red-500/80 rounded-bl-md cursor-pointer opacity-0 group-hover:opacity-100 transition-all text-white text-[8px]", children: "\xD7" })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "relative nodrag flex items-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "w-[1px] h-3 bg-[#444] mr-1.5" }),
-                /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
-                  e.stopPropagation();
-                  setShowPresetMenu((v) => !v);
-                }, title: "\u9884\u8BBE\u63D0\u793A\u8BCD", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_lucide_react5.Sparkles, { size: 10, className: "text-blue-400" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: "\u9884\u8BBE" })
-                ] }),
-                showPresetMenu && /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 w-56 nowheel nopan nodrag", onClick: (e) => e.stopPropagation(), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "text-[10px] text-gray-500 px-1 pb-1", children: "\u9009\u62E9\u9884\u8BBE" }),
-                  ["\u7206\u6B3E\u6807\u9898", "\u5C0F\u7EA2\u4E66\u6587\u6848", "\u79CD\u8349\u7B14\u8BB0"].map((p) => /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { role: "button", className: "px-2 py-1.5 text-[11px] rounded-md text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200 cursor-pointer", onClick: () => {
-                    setPrompt((prev) => prev ? `${prev}, ${p}` : p);
-                    setShowPresetMenu(false);
-                  }, children: p }, p))
-                ] })
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text", title: "\u53C2\u8003\u6587\u672C", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Link, { size: 10 }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "max-w-[60px] truncate", children: "\u53C2\u8003\u6587\u672C" })
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(GenerateButton, { loading, onGenerate, onStop, showCost: false })
-          ] })
-        ] }) })
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              PromptInput_default,
+              {
+                ref: promptInputRef,
+                value: prompt,
+                onChange: setPrompt,
+                placeholder: "\u8F93\u5165\u63D0\u793A\u8BCD (\u8F93\u5165 @ \u8C03\u51FA\u7D20\u6750)...",
+                refImages,
+                refTexts,
+                onInsert: (name) => setPrompt((p) => p ? `${p} @${name} ` : `@${name} `),
+                inputWidth: data.inputWidth,
+                inputHeight: data.inputHeight
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-[#2a2a2a]", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex items-center gap-1.5", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("label", { className: "flex items-center gap-1.5 cursor-pointer h-6 px-2 text-[11px] text-gray-400 hover:text-gray-200 select-none bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded transition-colors", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("input", { type: "checkbox", checked: autoSplit, onChange: (e) => setAutoSplit(e.target.checked), className: "accent-blue-500 rounded sm:w-3 sm:h-3" }),
+                  "\u81EA\u52A8\u62C6\u5206"
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "w-[1px] h-3 bg-[#444] mr-1.5" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
+                    e.stopPropagation();
+                    setShowPresetMenu((v) => !v);
+                  }, title: "\u9884\u8BBE\u63D0\u793A\u8BCD", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Sparkles, { size: 10, className: "text-blue-400" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: "\u9884\u8BBE" })
+                  ] }),
+                  showPresetMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 w-56 nowheel nopan nodrag", onClick: (e) => e.stopPropagation(), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "text-[10px] text-gray-500 px-1 pb-1", children: "\u9009\u62E9\u9884\u8BBE" }),
+                    ["\u7206\u6B3E\u6807\u9898", "\u5C0F\u7EA2\u4E66\u6587\u6848", "\u79CD\u8349\u7B14\u8BB0"].map((p) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { role: "button", className: "px-2 py-1.5 text-[11px] rounded-md text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200 cursor-pointer", onClick: () => {
+                      setPrompt((prev) => prev ? `${prev}, ${p}` : p);
+                      setShowPresetMenu(false);
+                    }, children: p }, p))
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(GenerateButton, { loading, onGenerate, onStop, showCost: false })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            ResizeFullscreenHandle,
+            {
+              targetRef: promptInputRef,
+              minWidth: 200,
+              maxWidth: 900,
+              minHeight: 60,
+              maxHeight: 400,
+              onRequestFullscreen: () => setFullscreenPrompt(true),
+              onResizeEnd: onInputResize
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(FullscreenModal, { open: fullscreenText, title: "\u7F16\u8F91\u6587\u672C\u5185\u5BB9", onClose: () => setFullscreenText(false), children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          "textarea",
+          {
+            autoFocus: true,
+            className: "flex-1 w-full min-h-0 bg-[#0d0c0c] text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded",
+            style: { fontSize: "14px", lineHeight: 1.8, color: "#e5e7eb" },
+            placeholder: "\u8F93\u5165\u6587\u672C\u5185\u5BB9...",
+            value: text,
+            onChange: (e) => setText(e.target.value)
+          }
+        ) }),
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(FullscreenModal, { open: fullscreenPrompt, title: "\u7F16\u8F91\u63D0\u793A\u8BCD - \u6587\u672C", onClose: () => setFullscreenPrompt(false), children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          "textarea",
+          {
+            autoFocus: true,
+            className: "flex-1 w-full min-h-0 bg-[#0d0c0c] text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded",
+            style: { fontSize: "14px", lineHeight: 1.8, color: "#e5e7eb" },
+            placeholder: "\u8F93\u5165\u63D0\u793A\u8BCD...",
+            value: prompt,
+            onChange: (e) => setPrompt(e.target.value)
+          }
+        ) })
       ]
     }
   );
 }
 
 // src/components/PromptNode.jsx
-var import_react17 = __toESM(require_react(), 1);
-var import_lucide_react6 = __toESM(require_lucide_react(), 1);
+var import_react19 = __toESM(require_react(), 1);
+var import_lucide_react7 = __toESM(require_lucide_react(), 1);
 
 // src/components/JianyingIcon.jsx
-var import_react16 = __toESM(require_react(), 1);
-var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+var import_react18 = __toESM(require_react(), 1);
+var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
 function JianyingIcon({ size = 14 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("svg", { viewBox: "0 0 1389 1024", width: size, height: size, fill: "currentColor", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("path", { d: "M1140.11 150.95l243.537-120.088c0 33.024 0.24 63.046 0 93.188-0.24 22.096 6.124 48.636-3.843 65.208-9.607 15.611-36.266 21.015-55.6 30.622L737.457 510.852c6.004 3.482 10.327 6.485 15.01 8.766 204.99 101.834 410.1 203.428 615.208 304.902 12.13 6.004 16.212 12.49 15.972 25.819-0.84 45.753-0.24 91.506-0.24 141.103l-239.935-118.407c-12.97 24.498-23.537 50.197-39.028 72.293-37.227 53.199-91.507 77.456-154.913 77.697-250.742 0.96-501.365 0.96-752.107 0.24-97.271 0-176.289-65.328-190.94-161.638C0 817.915 3.604 772.642 6.005 728.33c0.48-9.247 14.05-20.775 24.258-25.819 111.681-56.44 223.723-111.801 335.764-167.402l47.555-23.657c-125.972-62.685-249.782-124.89-374.312-185.655-24.859-12.009-37.228-26.78-35.066-55.24 2.882-40.59-1.441-81.9 5.044-121.649C23.057 64.367 103.395 0.6 189.257 0.6 443.844 0.6 698.429 0.96 952.894 0.36c87.904-0.24 157.315 60.524 181.933 134.858l5.164 15.732z m-566.332-8.767H207.51a105.677 105.677 0 0 0-27.98 3.603c-20.415 5.524-31.343 21.135-33.505 43.232-1.921 20.054 3.363 31.943 24.018 42.03 125.851 60.524 250.982 122.49 375.153 185.895 21.616 11.048 38.188 11.169 60.043 0 125.132-63.406 251.223-125.13 376.715-187.696 6.364-3.122 15.13-7.686 16.812-13.21 12.009-40.95-13.57-74.094-56.681-74.094l-368.308 0.36z m0 736.857H949.89c31.223 0 48.035-16.812 49.356-47.795a67.009 67.009 0 0 0-0.24-18.974c-1.561-5.524-4.803-12.85-9.487-15.13-134.498-67.25-268.996-134.138-403.854-200.307a26.9 26.9 0 0 0-20.775 0 86586.855 86586.855 0 0 0-408.897 202.348c-3.843 2.041-9.007 6.364-9.367 10.087-4.203 38.188 11.528 70.852 55 70.371 123.93-1.44 248.1-0.48 372.27-0.48v-0.12z" }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("svg", { viewBox: "0 0 1389 1024", width: size, height: size, fill: "currentColor", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("path", { d: "M1140.11 150.95l243.537-120.088c0 33.024 0.24 63.046 0 93.188-0.24 22.096 6.124 48.636-3.843 65.208-9.607 15.611-36.266 21.015-55.6 30.622L737.457 510.852c6.004 3.482 10.327 6.485 15.01 8.766 204.99 101.834 410.1 203.428 615.208 304.902 12.13 6.004 16.212 12.49 15.972 25.819-0.84 45.753-0.24 91.506-0.24 141.103l-239.935-118.407c-12.97 24.498-23.537 50.197-39.028 72.293-37.227 53.199-91.507 77.456-154.913 77.697-250.742 0.96-501.365 0.96-752.107 0.24-97.271 0-176.289-65.328-190.94-161.638C0 817.915 3.604 772.642 6.005 728.33c0.48-9.247 14.05-20.775 24.258-25.819 111.681-56.44 223.723-111.801 335.764-167.402l47.555-23.657c-125.972-62.685-249.782-124.89-374.312-185.655-24.859-12.009-37.228-26.78-35.066-55.24 2.882-40.59-1.441-81.9 5.044-121.649C23.057 64.367 103.395 0.6 189.257 0.6 443.844 0.6 698.429 0.96 952.894 0.36c87.904-0.24 157.315 60.524 181.933 134.858l5.164 15.732z m-566.332-8.767H207.51a105.677 105.677 0 0 0-27.98 3.603c-20.415 5.524-31.343 21.135-33.505 43.232-1.921 20.054 3.363 31.943 24.018 42.03 125.851 60.524 250.982 122.49 375.153 185.895 21.616 11.048 38.188 11.169 60.043 0 125.132-63.406 251.223-125.13 376.715-187.696 6.364-3.122 15.13-7.686 16.812-13.21 12.009-40.95-13.57-74.094-56.681-74.094l-368.308 0.36z m0 736.857H949.89c31.223 0 48.035-16.812 49.356-47.795a67.009 67.009 0 0 0-0.24-18.974c-1.561-5.524-4.803-12.85-9.487-15.13-134.498-67.25-268.996-134.138-403.854-200.307a26.9 26.9 0 0 0-20.775 0 86586.855 86586.855 0 0 0-408.897 202.348c-3.843 2.041-9.007 6.364-9.367 10.087-4.203 38.188 11.528 70.852 55 70.371 123.93-1.44 248.1-0.48 372.27-0.48v-0.12z" }) });
 }
 
 // src/components/PromptNode.jsx
-var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
 function PromptNode({ id: id2, data, selected }) {
-  const [expanded, setExpanded] = (0, import_react17.useState)(data.expanded === void 0 ? true : data.expanded);
-  const [prompt, setPrompt] = (0, import_react17.useState)(data.prompt || "");
-  const [aspectRatio, setAspectRatio] = (0, import_react17.useState)(data.aspectRatio || "Auto");
-  const [imageSize, setImageSize] = (0, import_react17.useState)(data.imageSize || "1K");
-  const [quality, setQuality] = (0, import_react17.useState)(data.quality || "auto");
-  const [selectedModel, setSelectedModel] = (0, import_react17.useState)(data.selectedModel || "");
-  const [apiFormat, setApiFormat] = (0, import_react17.useState)(data.apiFormat || "auto");
-  const [count, setCount] = (0, import_react17.useState)(data.count || 1);
-  const [imageUrl, setImageUrl] = (0, import_react17.useState)(data.imageUrl || "");
-  const [showImgMenu, setShowImgMenu] = (0, import_react17.useState)(false);
-  const [showFormatMenu, setShowFormatMenu] = (0, import_react17.useState)(false);
-  const [showCountMenu, setShowCountMenu] = (0, import_react17.useState)(false);
-  const fileRef = (0, import_react17.useRef)(null);
+  const [expanded, setExpanded] = (0, import_react19.useState)(data.expanded === void 0 ? true : data.expanded);
+  const [prompt, setPrompt] = (0, import_react19.useState)(data.prompt || "");
+  const [aspectRatio, setAspectRatio] = (0, import_react19.useState)(data.aspectRatio || "Auto");
+  const [imageSize, setImageSize] = (0, import_react19.useState)(data.imageSize || "1K");
+  const [quality, setQuality] = (0, import_react19.useState)(data.quality || "auto");
+  const [selectedModel, setSelectedModel] = (0, import_react19.useState)(data.selectedModel || "");
+  const [apiFormat, setApiFormat] = (0, import_react19.useState)(data.apiFormat || "auto");
+  const [count, setCount] = (0, import_react19.useState)(data.count || 1);
+  const [imageUrl, setImageUrl] = (0, import_react19.useState)(data.imageUrl || "");
+  const [showImgMenu, setShowImgMenu] = (0, import_react19.useState)(false);
+  const [showFormatMenu, setShowFormatMenu] = (0, import_react19.useState)(false);
+  const [showCountMenu, setShowCountMenu] = (0, import_react19.useState)(false);
+  const fileRef = (0, import_react19.useRef)(null);
+  const promptInputRef = (0, import_react19.useRef)(null);
+  const { onInputResize } = useNodeResize(id2);
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
     onDone: () => setImageUrl(`https://picsum.photos/seed/promptgen-${Date.now()}/512/512`),
     delay: 2200
@@ -73259,38 +73543,38 @@ function PromptNode({ id: id2, data, selected }) {
   const insertMention = (name) => setPrompt((p) => p ? `${p} @${name} ` : `@${name} `);
   const hasImage = !!imageUrl;
   const toolbarButtons = [
-    ...refImages.length === 0 ? [{ key: "upload", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Plus, { size: 14 }), title: "\u4E0A\u4F20\u53C2\u8003\u56FE", onClick: () => fileRef.current?.click() }] : [],
+    ...refImages.length === 0 ? [{ key: "upload", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Plus, { size: 14 }), title: "\u4E0A\u4F20\u53C2\u8003\u56FE", onClick: () => fileRef.current?.click() }] : [],
     ...hasImage ? [
-      { key: "zoom", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.ZoomIn, { size: 14 }), title: "\u653E\u5927" },
-      { key: "crop", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Crop, { size: 14 }), title: "\u88C1\u526A" },
-      { key: "edit", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Pencil, { size: 14 }), title: "\u7F16\u8F91" },
-      { key: "send", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Send, { size: 14 }), title: "\u53D1\u9001\u5230\u5DE6\u4FA7\u7F51\u7AD9", hoverClass: "hover:text-blue-400" },
-      { key: "jianying", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(JianyingIcon, { size: 14 }), title: "\u53D1\u9001\u5230\u526A\u6620\u7D20\u6750\u5E93", hoverClass: "hover:text-emerald-400" },
-      { key: "download", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Download, { size: 14 }), title: "\u4E0B\u8F7D" }
+      { key: "zoom", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.ZoomIn, { size: 14 }), title: "\u653E\u5927" },
+      { key: "crop", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Crop, { size: 14 }), title: "\u88C1\u526A" },
+      { key: "edit", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Pencil, { size: 14 }), title: "\u7F16\u8F91" },
+      { key: "send", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Send, { size: 14 }), title: "\u53D1\u9001\u5230\u5DE6\u4FA7\u7F51\u7AD9", hoverClass: "hover:text-blue-400" },
+      { key: "jianying", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(JianyingIcon, { size: 14 }), title: "\u53D1\u9001\u5230\u526A\u6620\u7D20\u6750\u5E93", hoverClass: "hover:text-emerald-400" },
+      { key: "download", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Download, { size: 14 }), title: "\u4E0B\u8F7D" }
     ] : []
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
     NodeShell,
     {
       id: id2,
       label: data.label,
       defaultTitle: "\u751F\u56FE\u8282\u70B9",
-      icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Image, { size: 11, className: "text-gray-500" }),
+      icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Image, { size: 11, className: "text-gray-500" }),
       selected,
       minWidth: 160,
       minHeight: 160,
       aspectRatio,
       defaultHeight: 420,
       children: [
-        !loading && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(HoverToolbar, { buttons: toolbarButtons }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("input", { type: "file", ref: fileRef, style: { display: "none" }, accept: "image/*" }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        !loading && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(HoverToolbar, { buttons: toolbarButtons }),
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("input", { type: "file", ref: fileRef, style: { display: "none" }, accept: "image/*" }),
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           "div",
           {
             className: `relative bg-[#1c1c1c] rounded-xl overflow-hidden border shadow-xl transition-colors duration-300 cursor-pointer group/image w-full flex flex-col flex-1 min-h-0 ${selected ? "border-[#555]" : "border-[#333] hover:border-[#444]"}`,
             onClick: () => setExpanded((v) => !v),
-            children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: `flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${hasImage ? "" : "bg-[#0d0c0c]"}`, children: [
-              hasImage && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: `flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${hasImage ? "" : "bg-[#0d0c0c]"}`, children: [
+              hasImage && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                 "img",
                 {
                   src: imageUrl,
@@ -73301,161 +73585,178 @@ function PromptNode({ id: id2, data, selected }) {
                   draggable: false
                 }
               ),
-              loading && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0d0c0c]/70 z-10", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Loader2, { size: 28, className: "animate-spin", style: { color: "rgb(210,2,7)" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "text-xs text-gray-300 flex items-center gap-2", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Sparkles, { size: 12, className: "text-yellow-300" }),
+              loading && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0d0c0c]/70 z-10", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Loader2, { size: 28, className: "animate-spin", style: { color: "rgb(210,2,7)" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { className: "text-xs text-gray-300 flex items-center gap-2", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Sparkles, { size: 12, className: "text-yellow-300" }),
                   " \u751F\u56FE\u4E2D..."
                 ] })
               ] }),
-              error && !loading && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-500 z-10 bg-[#1a1a1a] p-4 text-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.AlertCircle, { size: 32 }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "text-xs font-medium max-w-full break-words", children: error }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "text-[10px] bg-[#333] hover:bg-[#444] text-gray-300 px-3 py-1 rounded-full border border-gray-600 transition-colors", children: "\u8BF7\u68C0\u67E5\u8BBE\u7F6E\u6216\u91CD\u8BD5" })
+              error && !loading && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-500 z-10 bg-[#1a1a1a] p-4 text-center", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.AlertCircle, { size: 32 }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "text-xs font-medium max-w-full break-words", children: error }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "text-[10px] bg-[#333] hover:bg-[#444] text-gray-300 px-3 py-1 rounded-full border border-gray-600 transition-colors", children: "\u8BF7\u68C0\u67E5\u8BBE\u7F6E\u6216\u91CD\u8BD5" })
               ] }),
-              !hasImage && !loading && !error && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "flex flex-col items-center justify-center absolute inset-0 bg-[#151515] pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Image, { size: 80, className: "text-gray-700", strokeWidth: 1.2 }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none" })
+              !hasImage && !loading && !error && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "flex flex-col items-center justify-center absolute inset-0 bg-[#151515] pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Image, { size: 80, className: "text-gray-700", strokeWidth: 1.2 }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none" })
             ] })
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ExpandablePanel, { expanded, minWidth: 500, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "space-y-3", children: [
-          (refImages.length > 0 || refTexts.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex flex-wrap gap-2 mb-1", children: [
-            refImages.map((img, i) => {
-              const name = `\u56FE\u7247${i + 1}`;
-              return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "w-10 h-10 rounded-md overflow-hidden relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan", title: img.isConnected ? "\u5DF2\u8FDE\u7EBF\u7684\u56FE\u7247" : "\u4E0A\u4F20\u7684\u56FE\u7247", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("img", { src: img.url, className: "w-full h-full object-cover opacity-80 pointer-events-none", alt: name }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "absolute inset-0 bg-blue-500/10 pointer-events-none" }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: "absolute bottom-0 left-0 right-0 bg-blue-500/80 hover:bg-blue-500 text-[8px] text-white text-center py-0.5 truncate cursor-pointer transition-colors", title: `\u70B9\u51FB\u63D2\u5165 @${name}`, onClick: (e) => {
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(ExpandablePanel, { expanded, minWidth: 500, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "space-y-3", children: [
+            (refImages.length > 0 || refTexts.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex flex-wrap gap-2 mb-1", children: [
+              refImages.map((img, i) => {
+                const name = `\u56FE\u7247${i + 1}`;
+                return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "w-10 h-10 rounded-md overflow-hidden relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan", title: img.isConnected ? "\u5DF2\u8FDE\u7EBF\u7684\u56FE\u7247" : "\u4E0A\u4F20\u7684\u56FE\u7247", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("img", { src: img.url, className: "w-full h-full object-cover opacity-80 pointer-events-none", alt: name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "absolute inset-0 bg-blue-500/10 pointer-events-none" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "button", className: "absolute bottom-0 left-0 right-0 bg-blue-500/80 hover:bg-blue-500 text-[8px] text-white text-center py-0.5 truncate cursor-pointer transition-colors", title: `\u70B9\u51FB\u63D2\u5165 @${name}`, onClick: (e) => {
+                    e.stopPropagation();
+                    insertMention(name);
+                  }, children: name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "absolute top-0 right-0 p-0.5 bg-black/50 hover:bg-red-500/80 rounded-bl-md cursor-pointer opacity-0 group-hover:opacity-100 transition-all", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.X, { size: 10, className: "text-white" }) })
+                ] }, img.id);
+              }),
+              refTexts.map((t, i) => {
+                const name = `\u6587\u672C${i + 1}`;
+                return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-pointer group/text relative", title: t.text, onClick: (e) => {
                   e.stopPropagation();
                   insertMention(name);
-                }, children: name }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "absolute top-0 right-0 p-0.5 bg-black/50 hover:bg-red-500/80 rounded-bl-md cursor-pointer opacity-0 group-hover:opacity-100 transition-all", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.X, { size: 10, className: "text-white" }) })
-              ] }, img.id);
-            }),
-            refTexts.map((t, i) => {
-              const name = `\u6587\u672C${i + 1}`;
-              return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-pointer group/text relative", title: t.text, onClick: (e) => {
-                e.stopPropagation();
-                insertMention(name);
-              }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Link, { size: 10 }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "max-w-[80px] truncate", children: [
-                  name,
-                  " (",
-                  t.label,
-                  ")"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "absolute -top-1 -right-1 p-0.5 bg-black hover:bg-red-500 rounded-full cursor-pointer opacity-0 group-hover/text:opacity-100 transition-all", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.X, { size: 10, className: "text-white" }) })
-              ] }, t.id);
-            })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
-            PromptInput,
-            {
-              value: prompt,
-              onChange: setPrompt,
-              placeholder: "\u63CF\u8FF0\u4F60\u60F3\u8981\u7684\u753B\u9762 (\u8F93\u5165 @ \u8C03\u51FA\u7D20\u6750)...",
-              refImages,
-              refTexts,
-              onInsert: insertMention
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex items-center justify-between mt-2 pt-2 border-t border-[#2a2a2a] nodrag", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex items-center gap-1.5 overflow-visible", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "relative nodrag", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { type: "button", className: "flex items-center gap-1.5 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
-                  e.stopPropagation();
-                  setShowImgMenu((v) => !v);
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "w-2.5 h-3 border border-current rounded-[2px]" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
-                    aspectRatio,
-                    " \xB7 ",
-                    imageSize,
-                    " \xB7 ",
-                    qualityOptions.find((q) => q.value === quality)?.label
-                  ] })
-                ] }),
-                showImgMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 w-56 bg-[#222] border border-[#333] rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3", onClick: (e) => e.stopPropagation(), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "text-[10px] text-gray-500 mb-2", children: "\u753B\u8D28" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "flex gap-1.5", children: sizeOptions.map((s) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: `flex-1 py-1.5 text-[11px] rounded-md border transition-colors ${imageSize === s ? "bg-[#333] border-[#555] text-white" : "bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]"}`, onClick: () => setImageSize(s), children: s }, s)) })
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Link, { size: 10 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { className: "max-w-[80px] truncate", children: [
+                    name,
+                    " (",
+                    t.label,
+                    ")"
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "text-[10px] text-gray-500 mb-2", children: "\u6BD4\u4F8B" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "flex flex-wrap gap-1.5", children: ratioOptions.map((r) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: `px-3 py-1.5 text-[11px] rounded-md border transition-colors ${aspectRatio === r ? "bg-[#333] border-[#555] text-white" : "bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]"}`, onClick: () => setAspectRatio(r), children: r }, r)) })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "text-[10px] text-gray-500 mb-2", children: "\u6E32\u67D3\u8D28\u91CF" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "flex gap-1.5", children: qualityOptions.map((q) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", className: `flex-1 py-1.5 text-[11px] rounded-md border transition-colors ${quality === q.value ? "bg-[#333] border-[#555] text-white" : "bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]"}`, onClick: () => setQuality(q.value), children: q.label }, q.value)) })
-                  ] })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models, costMap, placeholder: "\u9009\u62E9\u6A21\u578B" }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "relative nodrag flex items-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
-                  e.stopPropagation();
-                  setShowFormatMenu((v) => !v);
-                }, title: "\u8BF7\u6C42\u683C\u5F0F", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "truncate", children: formatOptions.find((f) => f.value === apiFormat)?.label }) }),
-                showFormatMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 w-32 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 block nodrag", onClick: (e) => e.stopPropagation(), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u8BF7\u6C42\u683C\u5F0F" }),
-                  formatOptions.map((f) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: `w-full block mb-1 last:mb-0 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors truncate ${apiFormat === f.value ? "bg-[#333] text-white" : "text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => {
-                    setApiFormat(f.value);
-                    setShowFormatMenu(false);
-                  }, children: f.label }, f.value))
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "relative nodrag flex items-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", title: "\u9884\u8BBE\u63D0\u793A\u8BCD", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_lucide_react6.Sparkles, { size: 10, className: "text-blue-400" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: "\u9884\u8BBE" })
-                ] })
-              ] })
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "absolute -top-1 -right-1 p-0.5 bg-black hover:bg-red-500 rounded-full cursor-pointer opacity-0 group-hover/text:opacity-100 transition-all", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.X, { size: 10, className: "text-white" }) })
+                ] }, t.id);
+              })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "flex items-center gap-2 flex-shrink-0 ml-2", children: [
-              !loading && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "relative nodrag flex items-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-[#333] hover:border-[#555] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
-                  e.stopPropagation();
-                  setShowCountMenu((v) => !v);
-                }, title: "\u6279\u91CF\u751F\u6210\u6570\u91CF", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
-                  "x",
-                  count
-                ] }) }),
-                showCountMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "absolute bottom-full right-0 mb-1 w-16 bg-[#222] border border-[#333] rounded-lg shadow-xl p-1 z-50 flex flex-col gap-0.5", onClick: (e) => e.stopPropagation(), children: [1, 2, 3, 4, 5].map((n) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { className: `w-full text-center py-1.5 text-[11px] rounded-md transition-colors ${count === n ? "bg-[#333] text-white" : "text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: (e) => {
-                  e.stopPropagation();
-                  setCount(n);
-                  setShowCountMenu(false);
-                }, children: [
-                  "x",
-                  n
-                ] }, n)) })
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+              PromptInput_default,
+              {
+                ref: promptInputRef,
+                value: prompt,
+                onChange: setPrompt,
+                placeholder: "\u63CF\u8FF0\u4F60\u60F3\u8981\u7684\u753B\u9762 (\u8F93\u5165 @ \u8C03\u51FA\u7D20\u6750)...",
+                refImages,
+                refTexts,
+                onInsert: insertMention,
+                inputWidth: data.inputWidth,
+                inputHeight: data.inputHeight
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center justify-between mt-2 pt-2 border-t border-[#2a2a2a] nodrag", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center gap-1.5 overflow-visible", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("button", { type: "button", className: "flex items-center gap-1.5 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
+                    e.stopPropagation();
+                    setShowImgMenu((v) => !v);
+                  }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "w-2.5 h-3 border border-current rounded-[2px]" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
+                      aspectRatio,
+                      " \xB7 ",
+                      imageSize,
+                      " \xB7 ",
+                      qualityOptions.find((q) => q.value === quality)?.label
+                    ] })
+                  ] }),
+                  showImgMenu && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 w-56 bg-[#222] border border-[#333] rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3", onClick: (e) => e.stopPropagation(), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "text-[10px] text-gray-500 mb-2", children: "\u753B\u8D28" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "flex gap-1.5", children: sizeOptions.map((s) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "button", className: `flex-1 py-1.5 text-[11px] rounded-md border transition-colors ${imageSize === s ? "bg-[#333] border-[#555] text-white" : "bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]"}`, onClick: () => setImageSize(s), children: s }, s)) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "text-[10px] text-gray-500 mb-2", children: "\u6BD4\u4F8B" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "flex flex-wrap gap-1.5", children: ratioOptions.map((r) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "button", className: `px-3 py-1.5 text-[11px] rounded-md border transition-colors ${aspectRatio === r ? "bg-[#333] border-[#555] text-white" : "bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]"}`, onClick: () => setAspectRatio(r), children: r }, r)) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "text-[10px] text-gray-500 mb-2", children: "\u6E32\u67D3\u8D28\u91CF" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "flex gap-1.5", children: qualityOptions.map((q) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "button", className: `flex-1 py-1.5 text-[11px] rounded-md border transition-colors ${quality === q.value ? "bg-[#333] border-[#555] text-white" : "bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]"}`, onClick: () => setQuality(q.value), children: q.label }, q.value)) })
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models, costMap, placeholder: "\u9009\u62E9\u6A21\u578B" }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
+                    e.stopPropagation();
+                    setShowFormatMenu((v) => !v);
+                  }, title: "\u8BF7\u6C42\u683C\u5F0F", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "truncate", children: formatOptions.find((f) => f.value === apiFormat)?.label }) }),
+                  showFormatMenu && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 w-32 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 block nodrag", onClick: (e) => e.stopPropagation(), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u8BF7\u6C42\u683C\u5F0F" }),
+                    formatOptions.map((f) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { className: `w-full block mb-1 last:mb-0 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors truncate ${apiFormat === f.value ? "bg-[#333] text-white" : "text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => {
+                      setApiFormat(f.value);
+                      setShowFormatMenu(false);
+                    }, children: f.label }, f.value))
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", title: "\u9884\u8BBE\u63D0\u793A\u8BCD", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_lucide_react7.Sparkles, { size: 10, className: "text-blue-400" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { children: "\u9884\u8BBE" })
+                  ] })
+                ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(GenerateButton, { loading, onGenerate, onStop, cost: count * 2 })
+              /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center gap-2 flex-shrink-0 ml-2", children: [
+                !loading && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-[#333] hover:border-[#555] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
+                    e.stopPropagation();
+                    setShowCountMenu((v) => !v);
+                  }, title: "\u6279\u91CF\u751F\u6210\u6570\u91CF", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
+                    "x",
+                    count
+                  ] }) }),
+                  showCountMenu && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "absolute bottom-full right-0 mb-1 w-16 bg-[#222] border border-[#333] rounded-lg shadow-xl p-1 z-50 flex flex-col gap-0.5", onClick: (e) => e.stopPropagation(), children: [1, 2, 3, 4, 5].map((n) => /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("button", { className: `w-full text-center py-1.5 text-[11px] rounded-md transition-colors ${count === n ? "bg-[#333] text-white" : "text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: (e) => {
+                    e.stopPropagation();
+                    setCount(n);
+                    setShowCountMenu(false);
+                  }, children: [
+                    "x",
+                    n
+                  ] }, n)) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(GenerateButton, { loading, onGenerate, onStop, cost: count * 2 })
+              ] })
             ] })
-          ] })
-        ] }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+            ResizeFullscreenHandle,
+            {
+              targetRef: promptInputRef,
+              minWidth: 200,
+              maxWidth: 900,
+              minHeight: 60,
+              maxHeight: 400,
+              onResizeEnd: onInputResize
+            }
+          )
+        ] })
       ]
     }
   );
 }
 
 // src/components/DiscountVideoNode.jsx
-var import_react18 = __toESM(require_react(), 1);
-var import_lucide_react7 = __toESM(require_lucide_react(), 1);
-var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
+var import_react20 = __toESM(require_react(), 1);
+var import_lucide_react8 = __toESM(require_lucide_react(), 1);
+var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
 function DiscountVideoNode({ id: id2, data, selected }) {
-  const [prompt, setPrompt] = (0, import_react18.useState)(data.prompt || "");
-  const [ratio, setRatio] = (0, import_react18.useState)(data.size || "16:9");
-  const [resolution, setResolution] = (0, import_react18.useState)(data.resolution || "1080p");
-  const [seconds, setSeconds] = (0, import_react18.useState)(data.selectedSeconds || "10");
-  const [selectedModel, setSelectedModel] = (0, import_react18.useState)(data.selectedModel || "runway-gen3");
-  const [expanded, setExpanded] = (0, import_react18.useState)(data.expanded === void 0 ? true : data.expanded);
-  const [videoUrl, setVideoUrl] = (0, import_react18.useState)(data.videoUrl || "");
-  const [showRatioMenu, setShowRatioMenu] = (0, import_react18.useState)(false);
-  const fileRef = (0, import_react18.useRef)(null);
-  const inputRef = (0, import_react18.useRef)(null);
+  const [prompt, setPrompt] = (0, import_react20.useState)(data.prompt || "");
+  const [ratio, setRatio] = (0, import_react20.useState)(data.size || "16:9");
+  const [resolution, setResolution] = (0, import_react20.useState)(data.resolution || "1080p");
+  const [seconds, setSeconds] = (0, import_react20.useState)(data.selectedSeconds || "10");
+  const [selectedModel, setSelectedModel] = (0, import_react20.useState)(data.selectedModel || "runway-gen3");
+  const [expanded, setExpanded] = (0, import_react20.useState)(data.expanded === void 0 ? true : data.expanded);
+  const [videoUrl, setVideoUrl] = (0, import_react20.useState)(data.videoUrl || "");
+  const [showRatioMenu, setShowRatioMenu] = (0, import_react20.useState)(false);
+  const fileRef = (0, import_react20.useRef)(null);
+  const promptInputRef = (0, import_react20.useRef)(null);
+  const { onInputResize } = useNodeResize(id2);
   const ratioOptions = [
     { value: "16:9", label: "16:9" },
     { value: "9:16", label: "9:16" },
@@ -73478,27 +73779,27 @@ function DiscountVideoNode({ id: id2, data, selected }) {
   const totalCost = Math.round(0.5 * (parseInt(seconds) || 10));
   const onUpload = () => fileRef.current?.click();
   const toolbarButtons = [
-    { key: "upload", icon: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Plus, { size: 14 }), title: "\u4E0A\u4F20\u56FE\u7247\u3001\u89C6\u9891\u6216\u97F3\u9891\u7D20\u6750", onClick: onUpload },
+    { key: "upload", icon: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Plus, { size: 14 }), title: "\u4E0A\u4F20\u56FE\u7247\u3001\u89C6\u9891\u6216\u97F3\u9891\u7D20\u6750", onClick: onUpload },
     ...videoUrl ? [
-      { key: "fullscreen", icon: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Expand, { size: 14 }), title: "\u5168\u5C4F\u64AD\u653E" },
-      { key: "download", icon: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Download, { size: 14 }), title: "\u4E0B\u8F7D" },
+      { key: "fullscreen", icon: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Expand, { size: 14 }), title: "\u5168\u5C4F\u64AD\u653E" },
+      { key: "download", icon: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Download, { size: 14 }), title: "\u4E0B\u8F7D" },
       {
         key: "jianying",
-        icon: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(JianyingIcon, { size: 14 }),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(JianyingIcon, { size: 14 }),
         title: "\u53D1\u9001\u5230\u526A\u6620\u7D20\u6750\u5E93",
         hoverClass: "hover:text-emerald-400",
         onClick: () => console.log("\u53D1\u9001\u5230\u526A\u6620\u7D20\u6750\u5E93")
       },
-      { key: "delete", icon: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Trash2, { size: 14 }), title: "\u5220\u9664", hoverClass: "hover:text-red-500", onClick: () => setVideoUrl("") }
+      { key: "delete", icon: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Trash2, { size: 14 }), title: "\u5220\u9664", hoverClass: "hover:text-red-500", onClick: () => setVideoUrl("") }
     ] : []
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
     NodeShell,
     {
       id: id2,
       label: data.label,
       defaultTitle: "\u7279\u60E0\u89C6\u9891",
-      icon: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Clapperboard, { size: 11, className: "text-gray-500" }),
+      icon: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Clapperboard, { size: 11, className: "text-gray-500" }),
       selected,
       minWidth: 200,
       minHeight: 200,
@@ -73507,16 +73808,16 @@ function DiscountVideoNode({ id: id2, data, selected }) {
       baseSize: 380,
       className: "min-w-[200px] min-h-[200px]",
       children: [
-        !loading && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(HoverToolbar, { buttons: toolbarButtons, loading: false }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("input", { type: "file", ref: fileRef, style: { display: "none" }, accept: "image/*,video/*,audio/*" }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+        !loading && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(HoverToolbar, { buttons: toolbarButtons, loading: false }),
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("input", { type: "file", ref: fileRef, style: { display: "none" }, accept: "image/*,video/*,audio/*" }),
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
           "div",
           {
             className: `relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-colors duration-300 cursor-pointer group/display flex flex-col overflow-hidden w-full flex-1 min-h-0 ${selected ? "border-[#555]" : "border-[#333] hover:border-[#444]"}`,
             onClick: () => setExpanded((v) => !v),
-            children: /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: `flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${videoUrl ? "" : "bg-[#121212]"}`, children: [
-              videoUrl && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_jsx_runtime14.Fragment, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+            children: /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: `flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${videoUrl ? "" : "bg-[#121212]"}`, children: [
+              videoUrl && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(import_jsx_runtime16.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
                   "video",
                   {
                     src: videoUrl,
@@ -73527,115 +73828,133 @@ function DiscountVideoNode({ id: id2, data, selected }) {
                     muted: false
                   }
                 ),
-                !loading && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "absolute inset-0 flex items-center justify-center pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-black/70 transition-all nodrag pointer-events-auto", title: "\u64AD\u653E\u89C6\u9891", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Play, { className: "text-white w-6 h-6", fill: "currentColor" }) }) })
+                !loading && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "absolute inset-0 flex items-center justify-center pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-black/70 transition-all nodrag pointer-events-auto", title: "\u64AD\u653E\u89C6\u9891", children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Play, { className: "text-white w-6 h-6", fill: "currentColor" }) }) })
               ] }),
-              loading && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center bg-[#121212]/80 gap-2 z-10", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Loader2, { size: 28, className: "animate-spin", style: { color: "rgb(210,2,7)" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "text-xs text-gray-300", children: "\u751F\u6210\u4E2D... 45%" })
+              loading && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center bg-[#121212]/80 gap-2 z-10", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Loader2, { size: 28, className: "animate-spin", style: { color: "rgb(210,2,7)" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("span", { className: "text-xs text-gray-300", children: "\u751F\u6210\u4E2D... 45%" })
               ] }),
-              !videoUrl && !loading && !error && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "flex flex-col items-center justify-center absolute inset-0 bg-[#151515] pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Clapperboard, { size: 80, className: "text-gray-700", strokeWidth: 1.2 }) }),
-              error && !loading && !videoUrl && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-500 z-10 bg-[#1a1a1a] p-4 text-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.AlertCircle, { size: 32 }),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "text-xs font-medium max-w-full break-words", children: error })
+              !videoUrl && !loading && !error && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "flex flex-col items-center justify-center absolute inset-0 bg-[#151515] pointer-events-none", children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Clapperboard, { size: 80, className: "text-gray-700", strokeWidth: 1.2 }) }),
+              error && !loading && !videoUrl && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-500 z-10 bg-[#1a1a1a] p-4 text-center", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.AlertCircle, { size: 32 }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("span", { className: "text-xs font-medium max-w-full break-words", children: error })
               ] })
             ] })
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ExpandablePanel, { expanded, minWidth: 500, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "space-y-3", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex flex-wrap gap-2 mb-1", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "w-10 h-10 rounded-md overflow-hidden border border-[#444] relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan", title: "\u8FDE\u7EBF\u56FE\u7247 (\u70B9\u51FB\u5E95\u90E8\u6807\u7B7E\u63D2\u5165\u5230\u63D0\u793A\u8BCD)", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("img", { src: "https://picsum.photos/seed/discountvideo/80/80", alt: "Ref", className: "w-full h-full object-cover pointer-events-none" }),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "absolute bottom-0 left-0 right-0 bg-blue-500/80 hover:bg-blue-500 text-[8px] text-white text-center py-0.5 truncate cursor-pointer transition-colors z-10", children: "\u56FE\u72471" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text", title: "\u53C2\u8003\u6587\u672C", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Link, { size: 10 }),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "max-w-[80px] truncate", children: "\u53C2\u8003\u6587\u672C" })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "flex items-start gap-2", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "flex-1 nodrag relative shrink-0", style: { minHeight: "80px", height: "80px" }, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-            "textarea",
-            {
-              ref: inputRef,
-              className: "w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nowheel nopan nodrag resize-none",
-              style: { minHeight: "80px", height: "80px", overflow: "auto" },
-              placeholder: "\u63CF\u8FF0\u4F60\u60F3\u8981\u7684\u89C6\u9891\u5185\u5BB9 (\u8F93\u5165 @ \u8C03\u51FA\u7D20\u6750)...",
-              value: prompt,
-              onChange: (e) => setPrompt(e.target.value),
-              onWheel: (e) => e.stopPropagation()
-            }
-          ) }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-[#2a2a2a] nodrag", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex items-center gap-1.5 overflow-visible z-50", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "relative nodrag flex items-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
-                  "button",
-                  {
-                    className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer",
-                    onClick: (e) => {
-                      e.stopPropagation();
-                      setShowRatioMenu((v) => !v);
-                    },
-                    title: "\u9009\u62E9\u6BD4\u4F8B\u548C\u65F6\u957F",
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Settings, { size: 12, className: "opacity-70" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: "whitespace-nowrap", children: [
-                        ratio,
-                        " \xB7 ",
-                        resolution,
-                        " \xB7 ",
-                        seconds,
-                        "s"
-                      ] })
-                    ]
-                  }
-                ),
-                showRatioMenu && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 w-72 bg-[#222] border border-[#333] rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3 max-h-none overflow-visible nopan nodrag", onClick: (e) => e.stopPropagation(), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u6BD4\u4F8B" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "flex flex-wrap gap-1.5 mb-2", children: ratioOptions.map((o) => /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: `px-3 py-1.5 text-[11px] rounded-md transition-colors ${ratio === o.value ? "bg-[#444] text-white" : "bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => setRatio(o.value), children: o.label }, o.value)) })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u5206\u8FA8\u7387" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "flex flex-wrap gap-1.5 mb-3", children: resOptions.map((r) => /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: `px-3 py-1.5 text-[11px] rounded-md transition-colors ${resolution === r ? "bg-[#444] text-white" : "bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => setResolution(r), children: r }, r)) })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u65F6\u957F (\u79D2)" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "flex flex-wrap gap-1.5 px-1", children: durationOptions.map((d) => /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { type: "button", className: `px-3 py-1.5 text-[11px] rounded-md transition-colors ${String(d) === seconds ? "bg-[#444] text-white" : "bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => setSeconds(d), children: [
-                      d,
-                      "s"
-                    ] }, d)) })
-                  ] })
-                ] })
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(ExpandablePanel, { expanded, minWidth: 500, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "space-y-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "flex flex-wrap gap-2 mb-1", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "w-10 h-10 rounded-md overflow-hidden border border-[#444] relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan", title: "\u8FDE\u7EBF\u56FE\u7247 (\u70B9\u51FB\u5E95\u90E8\u6807\u7B7E\u63D2\u5165\u5230\u63D0\u793A\u8BCD)", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("img", { src: "https://picsum.photos/seed/discountvideo/80/80", alt: "Ref", className: "w-full h-full object-cover pointer-events-none" }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("span", { className: "absolute bottom-0 left-0 right-0 bg-blue-500/80 hover:bg-blue-500 text-[8px] text-white text-center py-0.5 truncate cursor-pointer transition-colors z-10", children: "\u56FE\u72471" })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models }),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "relative nodrag flex items-center", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "w-[1px] h-3 bg-[#444] mr-1.5" }),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
-                  "button",
-                  {
-                    className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer",
-                    title: "\u9884\u8BBE\u63D0\u793A\u8BCD",
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_lucide_react7.Sparkles, { size: 10, className: "text-blue-400" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { children: "\u9884\u8BBE" })
-                    ]
-                  }
-                )
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text", title: "\u53C2\u8003\u6587\u672C", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Link, { size: 10 }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("span", { className: "max-w-[80px] truncate", children: "\u53C2\u8003\u6587\u672C" })
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-              GenerateButton,
+            /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "flex items-start gap-2", children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "flex-1 nodrag relative shrink-0", children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+              "textarea",
               {
-                loading,
-                onGenerate,
-                onStop,
-                onRefresh: onStop,
-                cost: totalCost,
-                costColor: "text-yellow-300"
+                ref: promptInputRef,
+                className: "w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nowheel nopan nodrag resize-none",
+                style: {
+                  width: data.inputWidth ? `${data.inputWidth}px` : void 0,
+                  height: data.inputHeight ? `${data.inputHeight}px` : "80px",
+                  minHeight: "80px",
+                  overflow: "auto"
+                },
+                placeholder: "\u63CF\u8FF0\u4F60\u60F3\u8981\u7684\u89C6\u9891\u5185\u5BB9 (\u8F93\u5165 @ \u8C03\u51FA\u7D20\u6750)...",
+                value: prompt,
+                onChange: (e) => setPrompt(e.target.value),
+                onWheel: (e) => e.stopPropagation()
               }
-            )
-          ] })
-        ] }) })
+            ) }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-[#2a2a2a] nodrag", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "flex items-center gap-1.5 overflow-visible z-50", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
+                    "button",
+                    {
+                      className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer",
+                      onClick: (e) => {
+                        e.stopPropagation();
+                        setShowRatioMenu((v) => !v);
+                      },
+                      title: "\u9009\u62E9\u6BD4\u4F8B\u548C\u65F6\u957F",
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Settings, { size: 12, className: "opacity-70" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("span", { className: "whitespace-nowrap", children: [
+                          ratio,
+                          " \xB7 ",
+                          resolution,
+                          " \xB7 ",
+                          seconds,
+                          "s"
+                        ] })
+                      ]
+                    }
+                  ),
+                  showRatioMenu && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "absolute bottom-full left-0 mb-1 w-72 bg-[#222] border border-[#333] rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3 max-h-none overflow-visible nopan nodrag", onClick: (e) => e.stopPropagation(), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u6BD4\u4F8B" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "flex flex-wrap gap-1.5 mb-2", children: ratioOptions.map((o) => /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("button", { className: `px-3 py-1.5 text-[11px] rounded-md transition-colors ${ratio === o.value ? "bg-[#444] text-white" : "bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => setRatio(o.value), children: o.label }, o.value)) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u5206\u8FA8\u7387" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "flex flex-wrap gap-1.5 mb-3", children: resOptions.map((r) => /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("button", { className: `px-3 py-1.5 text-[11px] rounded-md transition-colors ${resolution === r ? "bg-[#444] text-white" : "bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => setResolution(r), children: r }, r)) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "text-[10px] text-gray-500 mb-2 px-1", children: "\u65F6\u957F (\u79D2)" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "flex flex-wrap gap-1.5 px-1", children: durationOptions.map((d) => /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("button", { type: "button", className: `px-3 py-1.5 text-[11px] rounded-md transition-colors ${String(d) === seconds ? "bg-[#444] text-white" : "bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200"}`, onClick: () => setSeconds(d), children: [
+                        d,
+                        "s"
+                      ] }, d)) })
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models }),
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { className: "w-[1px] h-3 bg-[#444] mr-1.5" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
+                    "button",
+                    {
+                      className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer",
+                      title: "\u9884\u8BBE\u63D0\u793A\u8BCD",
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_lucide_react8.Sparkles, { size: 10, className: "text-blue-400" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("span", { children: "\u9884\u8BBE" })
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+                GenerateButton,
+                {
+                  loading,
+                  onGenerate,
+                  onStop,
+                  onRefresh: onStop,
+                  cost: totalCost,
+                  costColor: "text-yellow-300"
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+            ResizeFullscreenHandle,
+            {
+              targetRef: promptInputRef,
+              minWidth: 200,
+              maxWidth: 900,
+              minHeight: 60,
+              maxHeight: 400,
+              onResizeEnd: onInputResize
+            }
+          )
+        ] })
       ]
     }
   );
@@ -73681,10 +74000,10 @@ var failed = 0;
 for (const c of cases) {
   try {
     const html = (0, import_server.renderToString)(
-      import_react19.default.createElement(
+      import_react21.default.createElement(
         ReactFlowProvider,
         null,
-        import_react19.default.createElement(c.Comp, c.props)
+        import_react21.default.createElement(c.Comp, c.props)
       )
     );
     const missing = (c.expect || []).filter((cls) => !c.optional?.includes(cls) && !html.includes(cls));

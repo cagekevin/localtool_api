@@ -9,8 +9,9 @@ import ExpandablePanel from './base/ExpandablePanel.jsx'
 import GenerateButton from './base/GenerateButton.jsx'
 import ModelSelect from './base/ModelSelect.jsx'
 import PromptInput from './base/PromptInput.jsx'
+import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
-import { useGenerate } from './base/hooks.js'
+import { useGenerate, useNodeResize } from './base/hooks.js'
 
 /**
  * 生图节点（复刻原 bo.jsx / promptNode）
@@ -31,6 +32,10 @@ export default function PromptNode({ id, data, selected }) {
   const [showFormatMenu, setShowFormatMenu] = useState(false)
   const [showCountMenu, setShowCountMenu] = useState(false)
   const fileRef = useRef(null)
+  const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
+
+  // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
+  const { onInputResize } = useNodeResize(id)
 
   // 生成模拟（useGenerate 基座 hook）
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
@@ -139,7 +144,7 @@ export default function PromptNode({ id, data, selected }) {
         </div>
       </div>
 
-      {/* 展开的提示词面板 */}
+      {/* 展开的提示词面板。手柄由节点在 children 里渲染（targetRef=textarea，写回 data.inputWidth/inputHeight）。 */}
       <ExpandablePanel expanded={expanded} minWidth={500}>
         <div className="space-y-3">
           {/* 素材缩略图区 */}
@@ -171,12 +176,15 @@ export default function PromptNode({ id, data, selected }) {
 
           {/* 提示词输入（基座 PromptInput，含 @素材弹层） */}
           <PromptInput
+            ref={promptInputRef}
             value={prompt}
             onChange={setPrompt}
             placeholder="描述你想要的画面 (输入 @ 调出素材)..."
             refImages={refImages}
             refTexts={refTexts}
             onInsert={insertMention}
+            inputWidth={data.inputWidth}
+            inputHeight={data.inputHeight}
           />
 
           {/* 底部参数区 */}
@@ -251,6 +259,16 @@ export default function PromptNode({ id, data, selected }) {
             </div>
           </div>
         </div>
+
+        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 bo.jsx:1676 _Component23） */}
+        <ResizeFullscreenHandle
+          targetRef={promptInputRef}
+          minWidth={200}
+          maxWidth={900}
+          minHeight={60}
+          maxHeight={400}
+          onResizeEnd={onInputResize}
+        />
       </ExpandablePanel>
     </NodeShell>
   )

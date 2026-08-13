@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { isEditableTarget } from './hooks.js'
 
 /**
  * 右键菜单状态 hook（复刻 H_.jsx:131,1324-1388 的 Fe/Xe 菜单状态与三个触发 handler）。
@@ -17,19 +18,6 @@ export function useContextMenu() {
   const [state, setState] = useState(null)
   const containerRef = useRef(null)
 
-  // 输入框 / 可编辑元素内右键时跳过（复刻 H_.jsx Xn()）
-  const isEditableTarget = useCallback((e) => {
-    const t = e.target
-    if (!t) return false
-    const tag = t.tagName
-    return (
-      tag === 'INPUT' ||
-      tag === 'TEXTAREA' ||
-      !!t.isContentEditable ||
-      (!!t.closest && !!t.closest('input, textarea, [contenteditable="true"]'))
-    )
-  }, [])
-
   const toContainerPos = useCallback((clientX, clientY) => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return { x: clientX, y: clientY }
@@ -44,7 +32,7 @@ export function useContextMenu() {
       const { x, y } = toContainerPos(e.clientX, e.clientY)
       setState(nodeId ? { x, y, type, nodeId } : { x, y, type })
     },
-    [isEditableTarget, toContainerPos]
+    [toContainerPos]
   )
 
   // 空白处右键
