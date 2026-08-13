@@ -49,6 +49,8 @@ function useNodeSize(id) {
  *  - baseSize                         area-fixed 的面积基准（默认 380）
  *  - handleVariant                    'large'|'small'
  *  - className                        追加到根 div 的 class
+ *  - style                            追加到根 div 的 inline style（如 { minHeight: 640 }
+ *                                      可让宽节点即使 store n.height 没生效也撑出最小高度）
  *  - wrapperRef                       暴露根 div ref（供右下角手柄拖拽改整体尺寸）
  *  - children                         节点内容（hover栏 + 主显示框 + 展开面板）
  */
@@ -68,6 +70,7 @@ export default function NodeShell({
   baseSize = 380,
   handleVariant = 'large',
   className = '',
+  style: extraStyle = {},
   wrapperRef,
   children
 }) {
@@ -92,7 +95,7 @@ export default function NodeShell({
     <div
       ref={wrapperRef}
       className={`relative flex flex-col items-center group/node min-w-[160px] min-h-[160px] ${selected ? 'z-50' : 'z-10'} ${className}`}
-      style={{ width: typeof inlineW === 'number' ? `${inlineW}px` : inlineW, height: typeof inlineH === 'number' ? `${inlineH}px` : inlineH }}
+      style={{ width: typeof inlineW === 'number' ? `${inlineW}px` : inlineW, minHeight: typeof inlineH === 'number' ? `${inlineH}px` : inlineH, ...extraStyle }}
     >
       <NodeTitle label={label} defaultTitle={defaultTitle} icon={icon} />
 

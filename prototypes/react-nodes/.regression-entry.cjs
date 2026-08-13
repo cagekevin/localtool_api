@@ -72638,6 +72638,7 @@ function NodeShell({
   baseSize = 380,
   handleVariant = "large",
   className = "",
+  style: extraStyle = {},
   wrapperRef,
   children: children2
 }) {
@@ -72656,7 +72657,7 @@ function NodeShell({
     {
       ref: wrapperRef,
       className: `relative flex flex-col items-center group/node min-w-[160px] min-h-[160px] ${selected ? "z-50" : "z-10"} ${className}`,
-      style: { width: typeof inlineW === "number" ? `${inlineW}px` : inlineW, height: typeof inlineH === "number" ? `${inlineH}px` : inlineH },
+      style: { width: typeof inlineW === "number" ? `${inlineW}px` : inlineW, minHeight: typeof inlineH === "number" ? `${inlineH}px` : inlineH, ...extraStyle },
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(NodeTitle, { label, defaultTitle, icon }),
         resizable && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(

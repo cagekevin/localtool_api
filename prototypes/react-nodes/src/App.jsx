@@ -13,6 +13,7 @@ import ImageNode from './components/ImageNode.jsx'
 import PromptNode from './components/PromptNode.jsx'
 import DiscountVideoNode from './components/DiscountVideoNode.jsx'
 import GroupNode from './components/GroupNode.jsx'
+import ScriptBoxNode from './components/ScriptBoxNode.jsx'
 import CustomEdge from './components/CustomEdge.jsx'
 import ConnectionLine from './components/ConnectionLine.jsx'
 import ContextMenu from './components/base/ContextMenu.jsx'
@@ -34,7 +35,8 @@ const nodeTypes = {
   imageNode: ImageNode,
   promptNode: PromptNode,
   discountVideoNode: DiscountVideoNode,
-  group: GroupNode
+  group: GroupNode,
+  scriptBoxNode: ScriptBoxNode
 }
 
 // 边类型注册表
@@ -99,6 +101,34 @@ const initialNodes = [
       thumbnailUrl: 'https://picsum.photos/seed/imagedemo/420/300'
     },
     style: { width: 260, height: 200 }
+  },
+  {
+    id: 'script-1',
+    type: 'scriptBoxNode',
+    position: { x: 700, y: 1000 },
+    width: 900,
+    height: 640,
+    style: { width: 900, height: 640 },
+    data: {
+      label: '剧本盒子',
+      step: 1,
+      title: '剧本盒子',
+      story: '小马想要找到一片更好的草地，老牛和松鼠决定陪它一起出发。',
+      style: '电影感',
+      styleChips: ['电影感', '水墨风', '皮克斯3D', '赛博朋克'],
+      shotCount: 'auto',
+      customCount: '',
+      model: 'lovart-chat',
+      shots: [],
+      assets: [],
+      assetModel: 'gpt-image-2-low',
+      aspectRatio: '16:9',
+      imageGlobalConstraint: '',
+      videoGlobalConstraint: '',
+      customScriptPrompt: '',
+      customShotPrompt: '',
+      customAssetTemplates: ['', '', '']
+    }
   }
 ]
 
