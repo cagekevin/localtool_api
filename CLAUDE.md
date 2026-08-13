@@ -1,6 +1,6 @@
 # CLAUDE.md · 一毛AI画布多端合一（自研后端替代版）架构师工作手册
 
-> **最后更新**：2026-08-11（§〇.1 新增沟通铁律，融入 i-have-adhd 简洁法）
+> **最后更新**：2026-08-13（§三.3 新增 localTool 改动必测 `npm run test`）
 
 ## 〇、 写给后续 AI 的写作铁律（最高优先）
 
@@ -183,6 +183,18 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 
 > 注：当前无 husky/pre-commit 强制钩子，验证靠自觉；`dist/` 手改按 §五.2 单独 commit 并注明授权。
 
+### 3.3 localTool 改动必测（新增约定，2026-08-13）
+
+> **凡改动 `localTool/src/**`（含方案② base64 外置/孤儿 GC），提交前必须跑 `cd localTool && npm test`**。脚本见 §七.2 速查。理由：方案②改变了 KV 入库行为（base64→`/files/` 磁盘文件），无测试无法保证不回归。
+
+- **跑法**：`cd localTool && npm test`（= `tsc && node --test test/*.test.js`，先编译再测，73 项）。
+- **覆盖面**（`localTool/test/` 两文件）：
+  - `localtool.test.js`：本地/存储/文件链路——方案②、KV、Tasks、Resources、Admin、Files（含 upload multipart/thumbnail/move/mkdir）、Database（备份/导出/删除引用计数）、Platform、System（status/jianying）、helpers（含 SQL 注入防护）。
+  - `localtool.network.test.js`：出站转发层（**mock `globalThis.fetch`**，不碰真实网络）——official（base 决策/缓存/invalidate/不伪造权限）、passthrough（本地不转发/流式回传）、agentChat（SSE 透传/非 SSE 包装）、system（proxy 剥信封/gatewayTask code 转换）、files 的 saveRemoteUrl 下载落盘。
+- **隔离**：每个测试独立临时 `MAOMAO_DATA_DIR`，绝不触碰真实 `~/.maomao-localtool/`；`official.memCache` 为模块级单例，测试间用 `handleOfficialInvalidate` + 唯一 token 隔离。
+- **测试发现的真 bug（2026-08-13）**：Node `Buffer.from(x,'base64')` 宽容忽略非法字符 → 非法 base64 被静默落盘成损坏文件。已加 `isValidBase64` 严格校验（`base64Externalize.ts`），失败回退保留原值。**改 base64 相关逻辑后务必重跑 `npm test`。**
+- **边界**：真实官方/网关/LLM 端到端连通、`index.ts` HTTP 分发、official stale 降级（受 60s TTL 限制）不在单测内，需真机走查。
+
 ---
 
 ## 四、 关键技术机制
@@ -349,5 +361,6 @@ node scripts/clear-cache.cjs --kv=active_api_endpoint
 | 要查官方权益转发 | `localTool/src/routes/official.ts`（中转+短缓存，不伪造权限） |
 | 要改画布前端 | 先 `npm run ask` 定位 → 改 `src/bundle/` → `npm run test:smoke` → `npm run build`（回灌 dist）→ 按需 `npm run health`（见 §五.4）；严禁直接手改 dist |
 | 要看画布可读源码 | `src/bundle/`（可编辑工程源码，改完 build 回灌） |
+| 改 localTool 后端（含方案② base64 外置/孤儿 GC） | `cd localTool && npm test`（73 项，先编译再测；隔离临时库，不碰真实数据） |
 | VPN/502 排障 | 先 `ping lgw.lovart.ai:443` 确认 VPN |
-| 提交前验证 | 见 §三 流程 |
+| 提交前验证 | 前端 `npm run test:smoke`+`npm run build`；**localTool 改动另跑 `cd localTool && npm test`**（见 §三.3） |
