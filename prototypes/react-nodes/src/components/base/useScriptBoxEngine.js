@@ -23,7 +23,7 @@ import { createScriptBoxEngine } from './scriptBoxEngine.js'
  * @param data    节点当前 data（仅兜底；引擎主要经 getNodes 实时读最新 data）
  */
 export function useScriptBoxEngine(nodeId, data) {
-  const { getNodes, setNodes, addNodes, screenToFlowPosition } = useReactFlow()
+  const { getNodes, setNodes, setEdges, addNodes, screenToFlowPosition } = useReactFlow()
 
   // 引擎实例用 ref 缓存，跨 render 稳定（不因 data 变化重建导致子组件重渲染）
   const engineRef = useRef(null)
@@ -34,6 +34,9 @@ export function useScriptBoxEngine(nodeId, data) {
       // 写回 node.data：经 setNodes 不可变更新（引擎唯一写回通道）
       updateData: (patch) =>
         setNodes((ns) => ns.map((n) => (n.id === nodeId ? { ...n, data: { ...(n.data || {}), ...patch } } : n))),
+      nodeId,
+      setEdges,
+      getNodes,
       // 连线：经 addNodes 建下游节点，位置用 screenToFlowPosition 算落点基准
       addNodes: (nodes) => {
         if (!addNodes) return

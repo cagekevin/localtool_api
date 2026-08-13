@@ -6,7 +6,7 @@ import { Handle } from '@xyflow/react'
  * 大号（48px）用于特惠视频节点，小号（32px）用于文本/图片节点。
  * position: 'left' | 'right'
  */
-export default function CustomHandle({ className = '', variant = 'large', position }) {
+export default function CustomHandle({ className = '', variant = 'large', position, handleId, top }) {
   const isLeft = position === 'left'
   const isRight = position === 'right'
   const size = variant === 'large' ? 48 : 32
@@ -52,7 +52,7 @@ export default function CustomHandle({ className = '', variant = 'large', positi
 
   const wrapStyle = {
     position: 'absolute',
-    top: `calc(50% - ${half}px)`,
+    top: top !== undefined ? `calc(${top} - ${half}px)` : `calc(50% - ${half}px)`,
     width: size,
     height: size,
     ...(isLeft ? { left: -outerOffset } : isRight ? { right: -outerOffset } : {}),
@@ -69,6 +69,7 @@ export default function CustomHandle({ className = '', variant = 'large', positi
       <Handle
         type={position === 'left' ? 'target' : 'source'}
         position={position === 'left' ? 'left' : 'right'}
+        id={handleId}
         className={`!absolute !inset-0 !w-full !h-full !min-w-0 !min-h-0 !top-0 !left-0 !right-0 !bottom-0 !transform-none !bg-transparent !border-0 !rounded-none !opacity-0 ${className || ''}`}
         style={{
           position: 'absolute',

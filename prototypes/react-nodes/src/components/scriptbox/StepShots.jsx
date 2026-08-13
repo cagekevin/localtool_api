@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { SHOT_TYPES, LIGHTS, SOUNDS, MOTIONS, dialogueText, hlAt } from '../base/scriptBoxPrompts.js'
+import { useOutsideClick } from '../base/hooks.js'
 
 /**
  * 剧本盒子 步骤1「确认镜头」：左栏控制 + 右栏分镜表格（复刻原型 renderV1）。
@@ -76,7 +77,7 @@ export default function StepShots({ data, updateData, callbacks }) {
   }
 
   return (
-    <div className="grid grid-cols-[240px_1fr] gap-4">
+    <div className="grid grid-cols-[190px_1fr] gap-4">
       {/* 左栏 */}
       <div className="flex flex-col gap-3">
         <div>
@@ -116,17 +117,18 @@ export default function StepShots({ data, updateData, callbacks }) {
       </div>
 
       {/* 右栏表格 */}
-      <div className="flex flex-col min-h-0">
+      <div className="flex flex-col min-h-0 min-w-0">
         <div className="flex items-center justify-between mb-1.5 text-[11px] text-gray-400">
           <span>分镜脚本 · 风格：{d.globalStyle || '未设置'}</span>
           <span>{shots.length} 镜</span>
         </div>
-        <div className="overflow-auto custom-scrollbar max-h-[440px] border border-[#2a2a2a] rounded-lg">
-          <table className="w-full text-[11px] border-collapse">
+        {/* 表格用 table-fixed + 百分比列宽自适应右栏，不横向溢出，因此无 overflow 容器，下拉不被裁剪 */}
+        <div className="border border-[#2a2a2a] rounded-lg">
+          <table className="w-full table-fixed text-[11px] border-collapse">
             <thead>
               <tr className="bg-[#171717]">
-                {[['镜号', 44], ['时长', 60], ['画面描述', 'auto'], ['景别', 86], ['光影', 100], ['对白/旁白', 130], ['音效', 100], ['运镜', 90], ['', 40]].map(([h, w], k) => (
-                  <th key={k} style={{ width: typeof w === 'number' ? w : undefined }} className="text-left px-2 py-1.5 text-gray-500 font-normal whitespace-nowrap">{h}</th>
+                {[['镜号', '5%'], ['时长', '6%'], ['画面描述', '26%'], ['景别', '9%'], ['光影', '11%'], ['对白/旁白', '18%'], ['音效', '11%'], ['运镜', '10%'], ['', '4%']].map(([h, w], k) => (
+                  <th key={k} style={{ width: w }} className="text-left px-2 py-1.5 text-gray-500 font-normal whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -136,19 +138,18 @@ export default function StepShots({ data, updateData, callbacks }) {
               )}
               {shots.map((s, i) => (
                 <tr key={s.id} className="hover:bg-[#1c1c1c]">
-                  <td className="px-2 py-1.5 text-gray-300 whitespace-nowrap">{s.index}</td>
-                  <td className="px-2 py-1.5 whitespace-nowrap">
-                    <input value={parseInt(s.duration) || 3} onChange={(e) => patchShot(i, 'duration', `${parseInt(e.target.value) || 3}s`)} className="w-9 bg-transparent text-gray-300 text-[11px] outline-none nodrag" />
-                    <span className="text-gray-500">s</span>
+                  <td className="px-1 py-1.5 text-gray-300 whitespace-nowrap">{s.index}</td>
+                  <td className="px-1 py-1.5 whitespace-nowrap">
+                    <input value={parseInt(s.duration) || 3} onChange={(e) => patchShot(i, 'duration', `${parseInt(e.target.value) || 3}s`)} className="w-8 bg-transparent text-gray-300 text-[11px] outline-none nodrag" />
                   </td>
-                  <td className="px-2 py-1.5 min-w-[160px] max-w-[260px]" title="双击编辑">
-                    <div className="text-gray-200 line-clamp-2 cursor-text hover:bg-[#222] rounded px-1 -mx-1" onDoubleClick={() => openField(i, 'description', '画面描述')} dangerouslySetInnerHTML={{ __html: hlAt(s.description) || '<span class="text-gray-600">双击编辑画面描述</span>' }} />
+                  <td className="px-2 py-1.5" title="双击编辑">
+                    <div className="text-gray-200 line-clamp-2 break-words cursor-text hover:bg-[#222] rounded px-1 -mx-1" onDoubleClick={() => openField(i, 'description', '画面描述')} dangerouslySetInnerHTML={{ __html: hlAt(s.description) || '<span class="text-gray-600">双击编辑画面描述</span>' }} />
                   </td>
-                  <td className="px-2 py-1.5 whitespace-nowrap"><DropTable opts={SHOT_TYPES} val={s.shotType} onPick={(v) => patchShot(i, 'shotType', v)} /></td>
-                  <td className="px-2 py-1.5 whitespace-nowrap"><DropTable opts={LIGHTS} val={s.lighting} onPick={(v) => patchShot(i, 'lighting', v)} /></td>
-                  <td className="px-2 py-1.5 max-w-[130px]"><div className="text-gray-300 truncate cursor-text hover:bg-[#222] rounded px-1 -mx-1" title="双击编辑" onDoubleClick={() => openDlg(i)}>{dialogueText(s.dialogue) || <span className="text-gray-600">双击编辑</span>}</div></td>
-                  <td className="px-2 py-1.5 whitespace-nowrap"><DropTable opts={SOUNDS} val={s.sound} onPick={(v) => patchShot(i, 'sound', v)} /></td>
-                  <td className="px-2 py-1.5 whitespace-nowrap"><DropTable opts={MOTIONS} val={s.motion} onPick={(v) => patchShot(i, 'motion', v)} /></td>
+                  <td className="px-1.5 py-1.5 whitespace-nowrap"><DropTable opts={SHOT_TYPES} val={s.shotType} onPick={(v) => patchShot(i, 'shotType', v)} /></td>
+                  <td className="px-1.5 py-1.5 whitespace-nowrap"><DropTable opts={LIGHTS} val={s.lighting} onPick={(v) => patchShot(i, 'lighting', v)} /></td>
+                  <td className="px-2 py-1.5"><div className="text-gray-300 truncate cursor-text hover:bg-[#222] rounded px-1 -mx-1" title="双击编辑" onDoubleClick={() => openDlg(i)}>{dialogueText(s.dialogue) || <span className="text-gray-600">双击编辑</span>}</div></td>
+                  <td className="px-1.5 py-1.5 whitespace-nowrap"><DropTable opts={SOUNDS} val={s.sound} onPick={(v) => patchShot(i, 'sound', v)} /></td>
+                  <td className="px-1.5 py-1.5 whitespace-nowrap"><DropTable opts={MOTIONS} val={s.motion} onPick={(v) => patchShot(i, 'motion', v)} /></td>
                   <td className="px-2 py-1.5"><button className="text-gray-600 hover:text-red-400" title="删除" onClick={() => delShot(i)}><Trash2 size={11} /></button></td>
                 </tr>
               ))}
@@ -178,14 +179,16 @@ export default function StepShots({ data, updateData, callbacks }) {
   )
 }
 
-/** 表格下拉（景别/光影/音效/运镜） */
+/** 表格下拉（景别/光影/音效/运镜），用 base 的 useOutsideClick 自动关闭 */
 function DropTable({ opts, val, onPick }) {
   const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useOutsideClick(ref, open, () => setOpen(false))
   return (
-    <div className="relative" onClick={(e) => e.stopPropagation()}>
+    <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
       <button className="w-full text-left text-gray-300 text-[11px] px-1.5 py-0.5 rounded hover:bg-[#2a2a2a] whitespace-nowrap" onClick={() => setOpen(!open)}>{val || '选择'}</button>
       {open && (
-        <div className="absolute z-50 mt-1 bg-[#1c1c1e] border border-[#333] rounded-lg shadow-2xl py-1 min-w-[90px]">
+        <div className="absolute z-[9999] mt-1 bg-[#1c1c1e] border border-[#333] rounded-lg shadow-2xl py-1 min-w-[90px]">
           {opts.map((o) => (
             <button key={o} className="block w-full text-left px-2.5 py-1 text-[11px] text-gray-300 hover:bg-[#2a2a2a]" onClick={() => { onPick(o); setOpen(false) }}>{o}</button>
           ))}
@@ -195,10 +198,10 @@ function DropTable({ opts, val, onPick }) {
   )
 }
 
-/** 通用弹窗容器 */
+/** 通用弹窗容器（相对剧本盒子主容器定位，节点内部面板） */
 function Modal({ children, onClose, title }) {
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-[#1c1c1e] border border-[#333] rounded-xl p-4 w-[440px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="text-[12px] text-gray-300 mb-2">{title}</div>
         {children}

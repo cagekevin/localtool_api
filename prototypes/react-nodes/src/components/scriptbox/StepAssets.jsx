@@ -18,17 +18,14 @@ export default function StepAssets({ data, updateData, callbacks }) {
   const d = data || {}
   const assets = d.assets || []
   const pickedCount = d.pickedCount || 0
-  const [drawerIdx, setDrawerIdx] = useState(null)
-  const [promptEditorIdx, setPromptEditorIdx] = useState(null) // 双击提示词面板
+  // 当前选中编辑的资产 idx（点资产卡选中；默认 null 显示空态，不遮挡任何资产）
+  const [editIdx, setEditIdx] = useState(null)
 
   const CATS = [
     { k: 'character', n: '角色', icon: <User size={12} /> },
     { k: 'scene', n: '场景', icon: <ImageIcon size={12} /> },
     { k: 'prop', n: '道具', icon: <Package size={12} /> }
   ]
-
-  const setGlobalStyle = (v) => updateData({ globalStyle: v })
-  const setAssetModel = (m) => updateData({ assetModelSettings: { ...(d.assetModelSettings || {}), globalModel: m } })
 
   // 切换选中
   const togglePick = (id) => {
@@ -57,67 +54,67 @@ export default function StepAssets({ data, updateData, callbacks }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* 工具栏 */}
+      {/* 工具栏（统一风格/模型已在设置里配置，这里只保留素材操作，按钮靠左顶对齐） */}
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
-        <span>统一风格</span>
-        <input value={d.globalStyle || ''} onChange={(e) => setGlobalStyle(e.target.value)} className="w-36 bg-[#161616] border border-[#333] rounded-md px-2 py-1 text-gray-200 outline-none nodrag" />
-        <span className="ml-2">生图模型</span>
-        <select value={d.assetModelSettings?.globalModel || 'gpt-image-2-low'} onChange={(e) => setAssetModel(e.target.value)} className="bg-[#161616] border border-[#333] rounded-md px-1 py-1 text-gray-200 text-[10px] outline-none nodrag">
-          {['gpt-image-2-low', 'gpt-image-2', 'gpt-image-2-high'].map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <div className="flex-1" />
         <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={uploadAll}><Upload size={10} /> 上传全部素材</button>
         <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={batchGen}>
           <Wand2 size={10} /> 批量生图{pickedCount ? `(${pickedCount})` : ''}
         </button>
       </div>
 
-      {/* 三栏资产 */}
-      <div className="grid grid-cols-3 gap-4">
-        {CATS.map((c) => {
-          const list = assets.filter((a) => a.category === c.k)
-          return (
-            <div key={c.k} className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5 text-[11px] text-gray-300">{c.icon}<span>{c.n}</span><span className="text-gray-500">{list.length}</span></div>
-              <div className="flex flex-col gap-1.5 max-h-[360px] overflow-auto custom-scrollbar">
-                {list.map((a) => {
-                  const gi = assets.indexOf(a)
-                  return (
-                    <AssetCard
-                      key={a.id} asset={a} idx={gi} data={d}
-                      updateData={updateData} callbacks={callbacks}
-                      onOpen={() => setDrawerIdx(gi)}
-                      onTogglePick={() => togglePick(a.id)}
-                      onDel={() => delAsset(a.id)}
-                      onUpload={() => uploadOne(a.id)}
-                      onRetry={() => retryUpload(a.id)}
-                      onEditPrompt={() => setPromptEditorIdx(gi)}
-                    />
-                  )
-                })}
-                <button className="flex flex-col items-center justify-center h-14 border border-dashed border-[#333] hover:border-[#555] rounded-lg text-gray-500 hover:text-gray-300" onClick={() => addAsset(updateData, c.k, assets)}>
-                  <Plus size={13} /> 新增{c.n}
-                </button>
+      {/* 左右分栏：左侧资产分三行（角色/场景/道具，自上而下），右侧固定编辑面板（不遮挡资产）。
+          无限画布：不裁剪不滚动，内容自然撑开，节点高度自适应 */}
+      <div className="flex gap-3 min-h-0">
+        {/* 左侧：资产三行（每类一行，卡片横向排列） */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-visible">
+          {CATS.map((c) => {
+            const list = assets.filter((a) => a.category === c.k)
+            return (
+              <div key={c.k} className="flex flex-col gap-1.5 min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-300">{c.icon}<span>{c.n}</span><span className="text-gray-500">{list.length}</span></div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {list.map((a) => {
+                    const gi = assets.indexOf(a)
+                    return (
+                      <AssetCard
+                        key={a.id} asset={a} idx={gi} data={d}
+                        updateData={updateData} callbacks={callbacks}
+                        selected={editIdx === gi}
+                        onOpen={() => setEditIdx(gi)}
+                        onTogglePick={() => togglePick(a.id)}
+                        onDel={() => { delAsset(a.id); if (editIdx === gi) setEditIdx(null) }}
+                        onUpload={() => uploadOne(a.id)}
+                        onRetry={() => retryUpload(a.id)}
+                        onEditPrompt={() => setEditIdx(gi)}
+                      />
+                    )
+                  })}
+                  <button className="flex flex-col items-center justify-center h-12 w-full border border-dashed border-[#333] hover:border-[#555] rounded-lg text-gray-500 hover:text-gray-300" onClick={() => { const id = addAsset(updateData, c.k, assets); setEditIdx(id) }}>
+                    <Plus size={13} /> 新增{c.n}
+                  </button>
+                </div>
               </div>
+            )
+          })}
+        </div>
+
+        {/* 右侧：固定编辑面板（选中资产时显示，不遮挡左侧资产） */}
+        <div className="w-[340px] shrink-0 border-l border-[#2a2a2a] pl-3 min-h-0 overflow-visible">
+          {editIdx !== null && assets[editIdx] ? (
+            <AssetPanel key={assets[editIdx].id} asset={assets[editIdx]} idx={editIdx} data={d} updateData={updateData} onGen={() => callbacks.onGenerateAssetImage?.(assets[editIdx].id)} onClose={() => setEditIdx(null)} />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-gray-600 text-[11px] gap-2">
+              <Package size={20} className="text-gray-700" />
+              点击左侧资产卡片，在此编辑
             </div>
-          )
-        })}
+          )}
+        </div>
       </div>
-
-      {/* 抽屉 */}
-      {drawerIdx !== null && assets[drawerIdx] && (
-        <AssetDrawer asset={assets[drawerIdx]} idx={drawerIdx} data={d} updateData={updateData} onGen={() => callbacks.onGenerateAssetImage?.(assets[drawerIdx].id)} onClose={() => setDrawerIdx(null)} />
-      )}
-
-      {/* 双击提示词编辑面板 */}
-      {promptEditorIdx !== null && assets[promptEditorIdx] && (
-        <PromptEditor asset={assets[promptEditorIdx]} idx={promptEditorIdx} data={d} updateData={updateData} onGen={() => callbacks.onGenerateAssetImage?.(assets[promptEditorIdx].id)} onClose={() => setPromptEditorIdx(null)} />
-      )}
     </div>
   )
 }
 
-/** 新增资产（按当前风格生成 prompt） */
+/** 新增资产（按当前风格生成 prompt），返回新资产的 index（数组末尾） */
 function addAsset(updateData, cat, assets) {
   const name = `${cat === 'character' ? '角色' : cat === 'scene' ? '场景' : '道具'}${assets.length + 1}`
   const newAsset = {
@@ -128,16 +125,17 @@ function addAsset(updateData, cat, assets) {
     has: false, loading: false, picked: false, videoStatus: ''
   }
   updateData({ assets: [...assets, newAsset] })
+  return assets.length // 新增后位于数组末尾，旧长度即新 index
 }
 
 /** 资产卡：缩略图 + 选中框 + 名称/描述 + 视频状态 + more 菜单 */
-function AssetCard({ asset, idx, data, updateData, callbacks, onOpen, onTogglePick, onDel, onUpload, onRetry, onEditPrompt }) {
+function AssetCard({ asset, idx, data, updateData, callbacks, onOpen, onTogglePick, onDel, onUpload, onRetry, onEditPrompt, selected }) {
   const [more, setMore] = useState(false)
   const moreRef = React.useRef(null)
   useOutsideClick(moreRef, more, () => setMore(false))
 
   return (
-    <div className={`flex items-center gap-2 p-2 bg-[#181818] border rounded-lg transition-colors ${asset.picked ? 'border-emerald-500/60' : 'border-[#2a2a2a] hover:border-[#444]'}`}>
+    <div className={`w-full min-w-0 flex items-center gap-2 p-2 bg-[#181818] border rounded-lg transition-colors ${selected ? 'border-blue-500/70' : asset.picked ? 'border-emerald-500/60' : 'border-[#2a2a2a] hover:border-[#444]'}`}>
       {/* 选中框 */}
       <div className="flex flex-col items-center gap-1">
         <input type="checkbox" checked={!!asset.picked} onChange={onTogglePick} className="nodrag cursor-pointer" />
@@ -186,8 +184,9 @@ function MenuItem({ icon, text, onClick, danger }) {
   )
 }
 
-/** 资产抽屉编辑（名称/描述/提示词 + 生图），含改名联动 @旧名→@新名 */
-function AssetDrawer({ asset, idx, data, updateData, onGen, onClose }) {
+/** 右侧固定编辑面板（选中资产的名称/描述/提示词 + 生图），不遮挡资产卡片。
+ *  作为 StepAssets 右侧固定栏常驻，点资产卡切换编辑对象；含改名联动 @旧名→@新名。 */
+function AssetPanel({ asset, idx, data, updateData, onGen, onClose }) {
   const [name, setName] = useState(asset.name)
   const [desc, setDesc] = useState(asset.description)
   const [prompt, setPrompt] = useState(asset.prompt)
@@ -200,50 +199,28 @@ function AssetDrawer({ asset, idx, data, updateData, onGen, onClose }) {
     const assets = (data.assets || []).map((a, i) => (i === idx ? { ...a, name, description: desc, prompt: prompt || ZgPrompt(a.category, desc, data.globalStyle, data.customAssetTemplates) } : a))
     updateData({ assets, shots })
     if (alsoGen) onGen()
-    onClose()
   }
 
   return (
-    <div className="fixed inset-0 z-[9998] bg-black/40" onClick={onClose}>
-      <div className="absolute right-0 top-0 bottom-0 w-[340px] bg-[#1c1c1e] border-l border-[#333] p-4 flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[13px] text-gray-200">编辑资产</div>
-          <button className="text-gray-500 hover:text-white text-[16px]" onClick={onClose}>×</button>
-        </div>
-        <div className="flex flex-col gap-3 text-[11px]">
-          <label className="text-gray-400">名称
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 bg-[#161616] border border-[#333] rounded-md px-2 py-1.5 text-gray-200 outline-none nodrag" />
-          </label>
-          <label className="text-gray-400">描述
-            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full mt-1 h-20 bg-[#161616] border border-[#333] rounded-md p-2 text-gray-200 outline-none custom-scrollbar nodrag nowheel" />
-          </label>
-          <label className="text-gray-400">生图提示词
-            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full mt-1 h-40 bg-[#161616] border border-[#333] rounded-md p-2 text-gray-200 outline-none custom-scrollbar nodrag nowheel" />
-          </label>
-        </div>
-        <div className="flex-1" />
-        <div className="flex gap-2">
-          <button className="flex-1 py-2 bg-[#27272a] hover:bg-[#313135] text-gray-200 text-[12px] rounded-lg" onClick={() => save(false)}>保存</button>
-          <button className="flex-1 py-2 bg-[#3a3a3a] hover:bg-[#454545] text-gray-200 text-[12px] rounded-lg" onClick={() => save(true)}>保存并生图</button>
-        </div>
+    <div className="flex flex-col gap-3 text-[11px]">
+      <div className="flex items-center justify-between">
+        <div className="text-[12px] text-gray-200 font-medium">编辑资产</div>
+        <button className="text-gray-500 hover:text-white text-[14px]" title="收起" onClick={onClose}>×</button>
       </div>
-    </div>
-  )
-}
-
-/** 双击提示词编辑面板（editAssetPrompt） */
-function PromptEditor({ asset, idx, data, updateData, onGen, onClose }) {
-  const [prompt, setPrompt] = useState(asset.prompt)
-  return (
-    <div className="fixed inset-0 z-[9997] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-[#1c1c1e] border border-[#333] rounded-xl p-4 w-[520px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="text-[12px] text-gray-300 mb-2">编辑「{asset.name}」生图提示词</div>
-        <textarea autoFocus value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full h-40 bg-[#161616] border border-[#333] rounded-lg p-2 text-[12px] text-gray-200 outline-none custom-scrollbar nodrag nowheel" />
-        <div className="flex justify-end gap-2 mt-3">
-          <button className="px-3 py-1 text-[11px] text-gray-400 hover:text-white" onClick={onClose}>取消</button>
-          <button className="px-3 py-1 text-[11px] bg-[#2a2a2a] hover:bg-[#333] text-gray-200 rounded-md" onClick={() => { updateData({ assets: (data.assets || []).map((a, i) => (i === idx ? { ...a, prompt } : a)) }); onClose() }}>确定</button>
-          <button className="px-3 py-1 text-[11px] bg-[#3a3a3a] hover:bg-[#454545] text-gray-200 rounded-md" onClick={() => { updateData({ assets: (data.assets || []).map((a, i) => (i === idx ? { ...a, prompt } : a)) }); onGen() }}>确定并生成</button>
-        </div>
+      <div className="flex flex-col gap-3">
+        <label className="text-gray-400">名称
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 bg-[#161616] border border-[#333] rounded-md px-2 py-1.5 text-gray-200 outline-none nodrag" />
+        </label>
+        <label className="text-gray-400">描述
+          <textarea value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full mt-1 h-20 bg-[#161616] border border-[#333] rounded-md p-2 text-gray-200 outline-none custom-scrollbar nodrag nowheel" />
+        </label>
+        <label className="text-gray-400">生图提示词
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full mt-1 h-40 bg-[#161616] border border-[#333] rounded-md p-2 text-gray-200 outline-none custom-scrollbar nodrag nowheel" />
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button className="flex-1 py-2 bg-[#27272a] hover:bg-[#313135] text-gray-200 text-[12px] rounded-lg" onClick={() => save(false)}>保存</button>
+        <button className="flex-1 py-2 bg-[#3a3a3a] hover:bg-[#454545] text-gray-200 text-[12px] rounded-lg" onClick={() => save(true)}>保存并生图</button>
       </div>
     </div>
   )

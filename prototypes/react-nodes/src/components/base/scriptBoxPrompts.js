@@ -75,6 +75,37 @@ export function hlAt(text) {
   return esc(text).replace(/@([\u4e00-\u9fa5a-zA-Z0-9]+)/g, '<span class="at">@$1</span>')
 }
 
+/** 判断文本 e 中是否存在合法的 `@资产名` 引用（复刻官方 shared.js Fa）。
+ *  规则：`@名` 后一位必须是结尾或非中英数，防止 `@小马` 误匹配 `@小马妈妈`。 */
+export function matchAsset(text, name) {
+  if (!text || !name) return false
+  let n = 0
+  while (true) {
+    n = text.indexOf(`@${name}`, n)
+    if (n < 0) return false
+    const after = text[n + 1 + name.length]
+    if (after === undefined || !/[\u4e00-\u9fa5A-Za-z0-9]/.test(after)) return true
+    n += 1
+  }
+}
+
+/** 收集某个分镜引用的「有图资产」作为参考图（复刻官方 shared.js Ra 的 scriptBoxNode 分支）。
+ *  @param shot   分镜对象（读 description/prompt/videoPrompt/dialogue）
+ *  @param assets 资产数组（读 name/imageUrl）
+ *  @returns { id, url }[]  该镜头 @名 匹配到且有图（imageUrl）的资产，供下游生图/生视频作参考图 */
+export function collectAssets(shot, assets) {
+  const list = Array.isArray(assets) ? assets : []
+  if (!shot || list.length === 0) return []
+  const text = `${shot.description || ''} ${shot.prompt || ''} ${shot.videoPrompt || ''} ${shot.dialogue || ''}`
+  const out = []
+  list.forEach((a) => {
+    if (a?.name && a.imageUrl && matchAsset(text, a.name)) {
+      out.push({ id: `script-asset-${a.id}`, url: a.imageUrl })
+    }
+  })
+  return out
+}
+
 /** 单个分镜的生图/生视频提示词（对应 buildShotPrompts，详实模板） */
 export function buildShotPrompts(shot, { imageConstraint, videoConstraint } = {}) {
   const dlg = dialogueText(shot.dialogue)
@@ -156,4 +187,100 @@ export function buildAssets(style, customTemplates) {
     loading: false,
     videoStatus: ''
   }))
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 步骤3「合成提示词」· AI 生成图提示词（关键帧 / 四宫格 / 九宫格 / 俯视调度图）
+//
+// 与官方 gridMode 死模板（shared.js 仅追加「严格等分无缝」约束）不同：
+// 这里要求 AI 真正理解镜头内容（description / @资产 / 对白 / 运镜 / 时长 / 全局风格），
+// 再按所选类型主动设计画面/分格/调度，产出可直接交给生图模型的提示词文本。
+// 本文件为纯函数层，只提供定义与拼装；真实请求经引擎回调 onGenerateShotImage 发起。
+// ═══════════════════════════════════════════════════════════════════
+
+/** 生图类型定义：label=UI 显示名，sys=该类型专用的系统提示词片段 */
+export const IMAGE_GEN_TYPES = {
+  keyframe: {
+    label: '关键帧',
+    sys: `你是资深电影分镜师与AI图像提示词工程师。针对给定镜头的画面信息，提炼出该镜头最具有表现力的【单一关键帧】瞬间，生成一张静态画面的详细图像提示词（prompt）。
+
+要求：
+1. 先理解镜头描述、@资产引用、对白、运镜与时长，选出最富张力的那一刻（动作顶点 / 情绪峰值 / 冲突爆发 / 决定性瞬间）。
+2. 只写单帧中能被摄像机看见的内容：主体身份与外观、精确动作与姿态、角色间距离与视线关系、前中后景环境、关键道具位置、景别与构图、镜头焦段与视角、光源方向与明暗、色彩关系、材质纹理、空气透视、电影美术风格。
+3. 画面中出现的每个 @资产 必须逐字原样保留，不得替换成“角色”“人物”等泛称。
+4. 不得写对白、旁白、音效、字幕、心理活动、画外信息或任何“下一帧会发生什么”的内容。
+5. 提示词 450~700 个中文字符，信息充足、语言连贯，可直接交给生图模型。只返回纯文本 prompt，不要解释、不要 Markdown、不要 JSON。`,
+  },
+  grid4: {
+    label: '四宫格',
+    sys: `你是资深连环画分镜师与AI图像提示词工程师。将给定镜头的内容拆解成【4 格（2×2）连贯叙事】的单张图像提示词（prompt）。
+
+要求：
+1. 先理解镜头描述、@资产引用、对白、运镜与时长，把该镜的动作或情节按时间顺序拆成 4 个递进瞬间（起→承→转→合，或动作过程的分阶段）。
+2. 逐格写清每格的核心内容：主体位置与动作、角色朝向与互动、景别、机位视角、该格承担的画面信息，并确保 4 格首尾衔接、视觉风格与角色造型一致、形成连贯叙事。
+3. 画面中出现的每个 @资产 必须逐字原样保留。
+4. 最后统一给出画布约束：生成严格等分的 4 宫格（2×2）单张成图，各格尺寸/宽高/留白完全一致，画布铺满到边缘、格子无缝衔接，严禁白边黑边外框内框圆角描边分隔线装饰留白文字编号，风格统一。
+5. 提示词 450~700 个中文字符，可直接交给生图模型。只返回纯文本 prompt，不要解释、不要 Markdown、不要 JSON。`,
+  },
+  grid9: {
+    label: '九宫格',
+    sys: `你是资深连环画分镜师与AI图像提示词工程师。将给定镜头的内容拆解成【9 格（3×3）连贯叙事】的单张图像提示词（prompt）。
+
+要求：
+1. 先理解镜头描述、@资产引用、对白、运镜与时长，把该镜的动作或情节按时间顺序拆成 9 个递进瞬间，形成完整的事件流（起因→推进→高潮→收束）。
+2. 逐格写清每格的核心内容：主体位置与动作、角色朝向与互动、景别、机位视角、该格承担的画面信息，并确保 9 格叙事连贯、节奏合理、视觉风格与角色造型一致。
+3. 画面中出现的每个 @资产 必须逐字原样保留。
+4. 最后统一给出画布约束：生成严格等分的 9 宫格（3×3）单张成图，各格尺寸/宽高/留白完全一致，画布铺满到边缘、格子无缝衔接，严禁白边黑边外框内框圆角描边分隔线装饰留白文字编号，风格统一。
+5. 提示词 450~700 个中文字符，可直接交给生图模型。只返回纯文本 prompt，不要解释、不要 Markdown、不要 JSON。`,
+  },
+  topdown: {
+    label: '俯视调度图',
+    sys: `你是资深影视导演与AI图像提示词工程师。针对给定镜头，生成一张【top-down 俯视调度示意图】的详细图像提示词（prompt），用于直观展示机位与角色走位。
+
+要求：
+1. 先理解镜头描述、@资产引用、对白、运镜与时长，明确场景的空间布局、角色初始位置、移动轨迹、摄像机机位与镜头运动方向。
+2. 以纯俯视（top-down，正上方 90° 垂直向下）视角绘制：画出场景平面布局（地面、关键道具/障碍的位置）、每个角色及其走位轨迹（起点/终点/移动箭头）、摄像机机位与朝向（如 CAM1 从 A 推至 B）。用清晰的空间关系说明替代真实人物细节。
+3. 画面中出现的每个 @资产 必须逐字原样保留，并在图中标出其空间位置。
+4. 用标签/箭头/虚线等调度图元素表达机位、运镜方向与角色走位，标注清晰、空间关系准确，可直接指导布景与拍摄执行。
+5. 提示词 450~700 个中文字符，可直接交给生图模型。只返回纯文本 prompt，不要解释、不要 Markdown、不要 JSON。`,
+  },
+}
+
+/** 默认选中类型 */
+export const IMAGE_GEN_DEFAULT = 'keyframe'
+
+/** 取某生图类型生效的系统提示词：优先用用户自定义模板（customImageGenTemplates[type]），否则用内置默认。
+ *  用户可在齿轮设置里覆盖；返回空串时引擎可回退内置默认。纯函数，无副作用。 */
+export function getImageGenSys(type, customTemplates) {
+  const custom = customTemplates && customTemplates[type]
+  if (typeof custom === 'string' && custom.trim()) return custom.trim()
+  const t = IMAGE_GEN_TYPES[type] || IMAGE_GEN_TYPES[IMAGE_GEN_DEFAULT]
+  return t.sys
+}
+
+/** 把 4 类内置默认提示词导出为可编辑初始值（设置弹窗用） */
+export function defaultImageGenTemplates() {
+  return Object.fromEntries(
+    Object.entries(IMAGE_GEN_TYPES).map(([k, t]) => [k, t.sys])
+  )
+}
+
+/** 把单个分镜某类型的「用户内容」拼成一次 LLM 调用的 user message（纯函数，无副作用） */
+export function buildShotImageUser(shot, type, { globalStyle = '', assets = [] } = {}) {
+  const t = IMAGE_GEN_TYPES[type] || IMAGE_GEN_TYPES[IMAGE_GEN_DEFAULT]
+  const dlg = dialogueText(shot.dialogue)
+  const assetNames = (assets || []).map((a) => a.name).filter(Boolean).join('、')
+  const parts = [
+    `【你要生成的图类型】${t.label}`,
+    `【全局视觉风格】${globalStyle || '（未设置）'}`,
+    `【镜头画面描述】${shot.description || ''}`,
+    shot.shotType ? `【景别】${shot.shotType}` : '',
+    shot.lighting ? `【光影】${shot.lighting}` : '',
+    shot.motion ? `【运镜】${shot.motion}` : '',
+    shot.duration ? `【时长】${shot.duration}` : '',
+    dlg ? `【对白/旁白】${dlg}` : '',
+    shot.sound ? `【音效】${shot.sound}` : '',
+    assetNames ? `【可用 @资产】${assetNames}` : '',
+  ].filter(Boolean)
+  return parts.join('\n')
 }

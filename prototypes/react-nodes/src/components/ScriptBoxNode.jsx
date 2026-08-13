@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Clapperboard, Settings, Maximize2, Loader2 } from 'lucide-react'
+import { useReactFlow } from '@xyflow/react'
 import NodeShell from './base/NodeShell.jsx'
 import FullscreenModal from './base/FullscreenModal.jsx'
 import { useScriptBoxData } from './base/useScriptBoxData.js'
 import { useScriptBoxEngine } from './base/useScriptBoxEngine.js'
-import { useOutsideClick } from './base/hooks.js'
+import { useOutsideClick, useNodeResize } from './base/hooks.js'
 import StepShots from './scriptbox/StepShots.jsx'
 import StepAssets from './scriptbox/StepAssets.jsx'
 import StepPrompt from './scriptbox/StepPrompt.jsx'
@@ -38,6 +39,31 @@ export default function ScriptBoxNode({ id, data, selected }) {
   const settingsRef = useRef(null)
   useOutsideClick(settingsRef, settingsOpen, () => setSettingsOpen(false))
 
+  // —— 外框自适应（无限画布：内容撑开时，节点高度跟随，外框不溢出） ——
+  // 为什么：这是无限画布，剧本盒子内容（镜头/资产）多时不能在一个固定高度里滚动（用户否了滚动方案），
+  // 而要「内容自然撑开 → 节点高度跟随 → 外框贴合内容」。用 ResizeObserver 监听主容器高度变化，
+  // 写回 node.height + updateNodeInternals，让 ReactFlow 节点 wrapper（含端口定位）也跟随。
+  // 注意：必须去掉固定 height（只留 minHeight），否则根 div 高度被锁死、内容溢出到框外。
+  const { getNodes } = useReactFlow()
+  const { onMainBoxResize } = useNodeResize(id)
+  const contentRef = useRef(null)
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const h = el.offsetHeight
+      if (!h) return
+      const n = getNodes().find((x) => x.id === id)
+      const curH = n?.height ?? n?.style?.height ?? 0
+      // 差值小于阈值不写回，避免写回→NodeShell minHeight 变化→再触发的循环抖动
+      if (Math.abs(h - curH) < 4) return
+      const curW = n?.width ?? n?.style?.width ?? 900
+      onMainBoxResize(Math.round(curW), Math.max(600, Math.round(h)))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [id, getNodes, onMainBoxResize])
+
   // 生成遮罩计时
   const genMask = !!d.genMask
   const [genSecs, setGenSecs] = useState(0)
@@ -62,39 +88,45 @@ export default function ScriptBoxNode({ id, data, selected }) {
       icon={<Clapperboard size={11} className="text-gray-500" />}
       selected={selected}
       handleVariant="small"
+      showHandles={false}
       aspectRatio={null}
       minWidth={900}
       minHeight={600}
       className="min-w-[900px]"
-      style={{ height: 680, minHeight: 680, width: 900, minWidth: 900 }}
+      style={{ minHeight: 600, width: 900, minWidth: 900 }}
     >
-      {/* 顶部标题栏 */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.08] w-full drag-handle cursor-move shrink-0">
-        <Clapperboard size={14} className="text-gray-500" />
-        <span className="text-[13px] text-gray-300 font-medium">{d.projectName || '剧本盒子'}</span>
-        {genMask && (
-          <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-[#262626] px-2.5 py-1 rounded-full">
-            <Loader2 size={11} className="animate-spin text-emerald-400" />
-            生成中 {d.genChars || 0} 字 · {genSecs}s
-          </span>
-        )}
-        <div className="flex-1" />
-        <button className="p-1 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md" title="总体提示词设置" onClick={(e) => { e.stopPropagation(); setSettingsOpen(true) }}>
-          <Settings size={13} />
-        </button>
-        <button className="p-1 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md" title="全屏显示" onClick={(e) => { e.stopPropagation(); setFullscreen(true) }}>
-          <Maximize2 size={13} />
-        </button>
-      </div>
+      {/* 主容器：背景/边框/阴影已由 NodeShell 主容器提供，这里只保留布局（标题栏+导航+内容）。
+          relative：作为剧本盒子内部所有弹窗（资产抽屉/编辑框/设置弹窗）的绝对定位基准。
+          高度用 contentRef 自适应（无限画布：内容撑开时写回 node.height，外框跟随）。 */}
+      <div ref={contentRef} className="relative flex flex-col w-full min-h-0">
+        {/* 顶部标题栏 */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.08] w-full drag-handle cursor-move shrink-0">
+          <Clapperboard size={14} className="text-gray-500" />
+          <span className="text-[13px] text-gray-300 font-medium">{d.projectName || '剧本盒子'}</span>
+          {genMask && (
+            <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-[#262626] px-2.5 py-1 rounded-full">
+              <Loader2 size={11} className="animate-spin text-emerald-400" />
+              生成中 {d.genChars || 0} 字 · {genSecs}s
+            </span>
+          )}
+          <div className="flex-1" />
+          <button className="p-1 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md" title="总体提示词设置" onClick={(e) => { e.stopPropagation(); setSettingsOpen(true) }}>
+            <Settings size={13} />
+          </button>
+          <button className="p-1 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md" title="全屏显示" onClick={(e) => { e.stopPropagation(); setFullscreen(true) }}>
+            <Maximize2 size={13} />
+          </button>
+        </div>
 
-      {/* 三步导航 */}
-      <StepNav step={step} setStep={setStep} shots={d.shots} assets={d.assets} />
+        {/* 三步导航 */}
+        <StepNav step={step} setStep={setStep} shots={d.shots} assets={d.assets} />
 
-      {/* 三步内容 */}
-      <div className="px-4 pb-4 flex-1 min-h-0 overflow-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
-        {step === 1 && <StepShots {...stepProps} />}
-        {step === 2 && <StepAssets {...stepProps} />}
-        {step === 3 && <StepPrompt {...stepProps} />}
+        {/* 三步内容：不裁剪不滚动（无限画布），让内容自然撑开，节点高度自适应内容 */}
+        <div className="px-4 pb-4 min-h-0 overflow-visible" onClick={(e) => e.stopPropagation()}>
+          {step === 1 && <StepShots {...stepProps} />}
+          {step === 2 && <StepAssets {...stepProps} />}
+          {step === 3 && <StepPrompt {...stepProps} />}
+        </div>
       </div>
 
       {/* 齿轮设置弹窗 */}

@@ -12,6 +12,7 @@ import PromptInput from './base/PromptInput.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import FullscreenModal from './base/FullscreenModal.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
+import { useConnectedInputs } from './base/useConnectedInputs.js'
 
 /**
  * 文本节点（复刻原 Co.jsx / textNode）
@@ -19,6 +20,8 @@ import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
  * 保留差异化：文本编辑区（双击编辑）、自动拆分、预设菜单。
  */
 export default function TextNode({ id, data, selected }) {
+  // 通用连线数据传递：读取直接上游节点的文本/图片作为参考输入
+  const connected = useConnectedInputs(id)
   const [prompt, setPrompt] = useState(data.prompt || '')
   const [text, setText] = useState(data.text || '')
   const [autoSplit, setAutoSplit] = useState(data.autoSplit || false)
@@ -62,8 +65,8 @@ export default function TextNode({ id, data, selected }) {
     { id: 'deepseek-v3', label: 'deepseek-v3', badge: 'builtin' },
     { id: 'claude-3.5-sonnet', label: 'claude-3.5-sonnet', badge: 'builtin' }
   ]
-  const refImages = images.map((u, i) => ({ id: `img-${i}`, url: u, label: `图片${i + 1}` }))
-  const refTexts = [{ id: 'ref-t1', label: '参考文本', text: '参考文本' }]
+  const refImages = [...(connected.images || []), ...images.map((u, i) => ({ id: `img-${i}`, url: u, label: `图片${i + 1}` }))]
+  const refTexts = connected.texts || []
 
   const toolbarButtons = [
     ...(images.length === 0
@@ -92,9 +95,10 @@ export default function TextNode({ id, data, selected }) {
       <input type="file" ref={fileRef} style={{ display: 'none' }} accept="image/*" onChange={uploadImage} />
 
       {/* 主容器：flex-1 填满 wrapper（wrapper 高度由 useSizeSync defaultHeight=240 同步），
-          与生图/特惠视频节点一致，避免 wrapper≠主框导致端口/面板位置错位 */}
+          与生图/特惠视频节点一致，避免 wrapper≠主框导致端口/面板位置错位。
+          背景/边框/阴影已由 NodeShell 主容器提供，这里只保留布局与点击行为 */}
       <div
-        className={`relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-[border-color] duration-200 flex flex-col w-full flex-1 min-h-0 ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`}
+        className="relative flex flex-col w-full flex-1 min-h-0"
         onClick={(e) => {
           if (!editingText && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
             setExpanded((v) => !v)
@@ -164,17 +168,25 @@ export default function TextNode({ id, data, selected }) {
           targetRef=textarea, onResizeEnd 写回 node.data.inputWidth/inputHeight。 */}
       <ExpandablePanel expanded={expanded} minWidth={420}>
         <div className="space-y-3">
-          {/* 素材缩略图区 */}
-          <div className="flex flex-wrap gap-2 mb-1">
-            <div className="w-8 h-8 rounded overflow-hidden border border-blue-500/50 relative group bg-black" title="通过 @ 选中的素材">
-              <img src="https://picsum.photos/seed/textnode/80/80" className="w-full h-full object-cover opacity-80" alt="素材" />
-              <span className="absolute top-0 right-0 p-0.5 bg-black/50 hover:bg-red-500/80 rounded-bl-md cursor-pointer opacity-0 group-hover:opacity-100 transition-all text-white text-[8px]">×</span>
+          {/* 素材缩略图区（仅显示真实上游/上传的素材，无上游则隐藏）。
+              注意：这里绝不能写死示例图片/文本——否则无上游连线也会显示假的参考素材，
+              误导用户以为有上游数据。必须用 refImages/refTexts（来自 useConnectedInputs + 真实上传），
+              且用长度条件判断，空则整块不渲染。 */}
+          {(refImages.length > 0 || refTexts.length > 0) && (
+            <div className="flex flex-wrap gap-2 mb-1">
+              {refImages.map((img, i) => (
+                <div key={img.id || i} className="w-8 h-8 rounded overflow-hidden border border-blue-500/50 relative group bg-black" title="通过 @ 选中的素材">
+                  <img src={img.url} className="w-full h-full object-cover opacity-80" alt="素材" />
+                </div>
+              ))}
+              {refTexts.map((t, i) => (
+                <div key={t.id || i} className="h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
+                  <LinkIcon size={10} />
+                  <span className="max-w-[60px] truncate">{t.label || '参考文本'}</span>
+                </div>
+              ))}
             </div>
-            <div className="h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title="参考文本">
-              <LinkIcon size={10} />
-              <span className="max-w-[60px] truncate">参考文本</span>
-            </div>
-          </div>
+          )}
 
           {/* 提示词输入（基座 PromptInput） */}
           <PromptInput

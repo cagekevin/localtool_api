@@ -53,6 +53,33 @@ function useNodeSize(id) {
  *                                      可让宽节点即使 store n.height 没生效也撑出最小高度）
  *  - wrapperRef                       暴露根 div ref（供右下角手柄拖拽改整体尺寸）
  *  - children                         节点内容（hover栏 + 主显示框 + 展开面板）
+ *
+ * ════════════════════════════════════════════════════════════════
+ * 【新建节点指南：如何写得和通用节点一致】
+ * ════════════════════════════════════════════════════════════════
+ *
+ * 1. 高度怎么保持自适应（无限画布，内容多了不能滚动）
+ *    · 节点外壳：NodeShell 根 div 用 min-height（不是固定 height），内容多会自然撑高。
+ *    · 但 ReactFlow 的 node.height 是固定值，若内容撑开超过它，端口定位会错位。
+ *    · 复合节点（如剧本盒子）做法：用 ResizeObserver 监听主容器高度，
+ *      变化时用 useNodeResize(id).onMainBoxResize(w, h) 写回 node.height + updateNodeInternals，
+ *      让 ReactFlow wrapper 跟随 → 端口不错位。参考 ScriptBoxNode.jsx。
+ *    · 简单节点通常无需自适应：内容固定在 NodeShell 的固定尺寸内即可。
+ *
+ * 2. 怎么写才能和通用节点保持一致
+ *    · 一律用 NodeShell 作为外壳（尺寸/标题/端口/主容器背景都内置），不要自己手写外壳。
+ *    · 内容包在 NodeShell 的 children 里；背景/边框/阴影由 NodeShell 主容器统一提供，
+ *      节点内部不要再写 bg-[#1c1c1c]、rounded、border、shadow（会重复/不一致）。
+ *    · 端口用 CustomHandle（要 id 用 handleId、要位置用 top 参数），别自创样式。
+ *    · 参考 TextNode / PromptNode / DiscountVideoNode 的写法。
+ *
+ * 3. 如果不保持一致，要怎么样才最合理
+ *    · 先确认差异是「业务内容」还是「外壳」：业务内容差异正常（放 children）；
+ *      外壳差异（背景/端口/尺寸行为）应优先收敛到 NodeShell，而不是在节点里特判。
+ *    · 确实需要 NodeShell 不提供的通用能力（如：不需要端口 → showHandles={false}、
+ *      需要额外端口 → 自己渲染 CustomHandle）时，才在节点层扩展，并在注释里说明原因，
+ *      避免下一个 AI 以为是自己写错了。
+ * ════════════════════════════════════════════════════════════════
  */
 export default function NodeShell({
   id,
@@ -69,6 +96,7 @@ export default function NodeShell({
   sizeMode = 'width-fixed',
   baseSize = 380,
   handleVariant = 'large',
+  showHandles = true,
   className = '',
   style: extraStyle = {},
   wrapperRef,
@@ -81,6 +109,15 @@ export default function NodeShell({
     baseSize
   })
   const effectiveKeepAspect = keepAspect || !!ratio
+
+  // 主容器背景层（所有节点共同的纯视觉外壳：背景/圆角/边框/阴影/选中边框）。
+  // 各节点 children 由它包住，天然获得统一背景，无需各自手写 bg-[#1c1c1c]。
+  // 注意：节点若需要 onClick 等交互，应放在自身 children 内部 div 上，不要依赖此层。
+  // 注意：不加 overflow-hidden——各节点内部显示框（生图/视频/文本）已自带 rounded+overflow 裁剪；
+  // 且 ExpandablePanel / HoverToolbar 是 absolute 定位于节点外（top-full / -top-12），
+  // overflow-hidden 会把它们裁掉。背景层只需提供视觉外壳，不承担裁剪。
+  // 必须是 flex flex-col：各节点内部主容器 div 用 flex-1 填满高度，依赖父级是 flex 容器。
+  const mainShellClassName = `w-full flex-1 min-h-0 flex flex-col bg-[#1c1c1c] rounded-xl border shadow-xl transition-colors duration-200 ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`
 
   // 订阅当前节点尺寸，用于根 div inline style
   const { width, height } = useNodeSize(id)
@@ -112,11 +149,17 @@ export default function NodeShell({
         />
       )}
 
-      {children}
+      {/* 主容器背景层：统一背景/圆角/边框/阴影/选中边框（见 mainShellClassName） */}
+      <div className={mainShellClassName}>{children}</div>
 
-      {/* 端口统一渲染，相对根 div 定位 → 在 wrapper 中点 */}
-      <CustomHandle position="left" variant={handleVariant} />
-      <CustomHandle position="right" variant={handleVariant} />
+      {/* 端口统一渲染，相对根 div 定位 → 在 wrapper 中点。
+          剧本盒子等复合节点用 showHandles={false} 关闭，改用内部每镜头/每输出口端口 */}
+      {showHandles && (
+        <>
+          <CustomHandle position="left" variant={handleVariant} />
+          <CustomHandle position="right" variant={handleVariant} />
+        </>
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@ import PromptInput from './base/PromptInput.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
+import { useConnectedInputs } from './base/useConnectedInputs.js'
 
 /**
  * 生图节点（复刻原 bo.jsx / promptNode）
@@ -19,6 +20,8 @@ import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
  * 保留差异化：主图片框、素材缩略图区、画质/比例/渲染质量菜单、请求格式、批量 xN。
  */
 export default function PromptNode({ id, data, selected }) {
+  // 通用连线数据传递：读取直接上游节点的产出（图片/文本）作为参考输入
+  const connected = useConnectedInputs(id)
   const [expanded, setExpanded] = useState(data.expanded === undefined ? true : data.expanded)
   const [prompt, setPrompt] = useState(data.prompt || '')
   const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || 'Auto')
@@ -71,8 +74,12 @@ export default function PromptNode({ id, data, selected }) {
   ]
   const costMap = { 'dall-e-3': 4 }
 
-  const refImages = data.images?.length ? data.images : []
-  const refTexts = data.texts?.length ? data.texts : [{ id: 'ref-t1', label: '文本节点', text: '示例参考文本' }]
+  // 参考输入 = 连线上游的产出（useConnectedInputs）+ 自身 data.images/texts。
+  // 为什么合并两处：useConnectedInputs 是「通用连线机制」（任意上游节点 → 本节点）；
+  // data.images 是剧本盒子连下游时用 collectAssets 按 @资产名 匹配后塞给本节点的资产参考图（更精准）。
+  // 上游为空 + data 无图 → 两者都空 → 素材区隐藏，绝不显示假示例。
+  const refImages = [...(connected.images || []), ...(data.images?.length ? data.images : [])]
+  const refTexts = [...(connected.texts || []), ...(data.texts?.length ? data.texts : [])]
 
   const insertMention = (name) => setPrompt((p) => (p ? `${p} @${name} ` : `@${name} `))
   const hasImage = !!imageUrl
@@ -111,9 +118,10 @@ export default function PromptNode({ id, data, selected }) {
 
       <input type="file" ref={fileRef} style={{ display: 'none' }} accept="image/*" />
 
-      {/* 主图片框：点击切换展开/收起；flex-1 填满 wrapper（高度由 useSizeSync 同步） */}
+      {/* 主图片框：点击切换展开/收起；flex-1 填满 wrapper（高度由 useSizeSync 同步）。
+          背景/边框/阴影已由 NodeShell 主容器提供，这里只保留布局与点击行为 */}
       <div
-        className={`relative bg-[#1c1c1c] rounded-xl overflow-hidden border shadow-xl transition-colors duration-300 cursor-pointer group/image w-full flex flex-col flex-1 min-h-0 ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`}
+        className="relative cursor-pointer group/image w-full flex flex-col flex-1 min-h-0"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className={`flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${hasImage ? '' : 'bg-[#0d0c0c]'}`}>

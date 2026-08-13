@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Loader2, Image as ImageIcon, Video, LayoutGrid, Columns2, RefreshCw, Link2 } from 'lucide-react'
-import { dialogueText } from '../base/scriptBoxPrompts.js'
+import { Loader2, Image as ImageIcon, Video, LayoutGrid, Columns2, RefreshCw, Link2, Wand2, Copy, Check } from 'lucide-react'
+import { dialogueText, IMAGE_GEN_TYPES, IMAGE_GEN_DEFAULT } from '../base/scriptBoxPrompts.js'
+import CustomHandle from '../CustomHandle.jsx'
 
 /**
  * 剧本盒子 步骤3「合成提示词」：列表/单镜头双视图 + 每镜卡片（生图 prompt/生视频 prompt 双击编辑 + 宫格选择 + 生成）+
@@ -14,6 +15,9 @@ export default function StepPrompt({ data, updateData, callbacks }) {
   const [editVal, setEditVal] = useState('')
   const [gridPick, setGridPick] = useState({}) // idx -> grid 模式
   const [selShots, setSelShots] = useState(new Set())
+  const [genType, setGenType] = useState({}) // idx -> 选中的生图类型
+  const [copied, setCopied] = useState({}) // idx -> 是否已复制
+  const [singleIdx, setSingleIdx] = useState(0) // 单镜头视图：当前查看的镜头 idx
 
   const patchShot = (idx, field, val) => {
     const shots2 = shots.map((s, i) => {
@@ -33,7 +37,9 @@ export default function StepPrompt({ data, updateData, callbacks }) {
   const commitField = () => { if (editing) patchShot(editing.idx, editing.field, editVal); setEditing(null) }
 
   const cardFor = (s, i) => (
-    <div className="flex flex-col gap-2 p-3 bg-[#181818] border border-[#2a2a2a] rounded-lg">
+    <div className="relative flex flex-col gap-2 p-3 bg-[#181818] border border-[#2a2a2a] rounded-lg">
+      {/* 每镜头独立连线端口（复刻官方 c_.jsx：shot-${id} source，右侧，用统一默认端口外观） */}
+      <CustomHandle position="right" variant="small" handleId={`shot-${s.id}`} top="50%" />
       <div className="flex items-center gap-2 text-[11px]">
         <span className="px-1.5 py-0.5 bg-[#2a2a2a] rounded text-gray-300">镜头 {s.index}</span>
         <span className="text-gray-500">{s.duration}</span>
@@ -45,25 +51,61 @@ export default function StepPrompt({ data, updateData, callbacks }) {
       <div className="text-[11px] text-gray-400 leading-relaxed">{s.description}</div>
       {(s.dialogue || []).length > 0 && <div className="text-[10px] text-gray-500 italic">「{dialogueText(s.dialogue)}」</div>}
 
-      {/* 生图宫格选择（grid: 0/4/9） */}
-      <div className="flex items-center gap-1.5">
-        {[0, 4, 9].map((g) => (
-          <button key={g} onClick={() => patchShot(i, 'grid', g)} className={`px-2 py-0.5 text-[9px] rounded border ${s.grid === g ? 'border-white/40 text-white bg-[#2a2a2a]' : 'border-[#333] text-gray-500'}`}>{g === 0 ? '单图' : `${g}宫格`}</button>
-        ))}
-        <div className="flex-1" />
-        {s.loading ? <Loader2 size={12} className="animate-spin text-gray-400" /> : s.imageUrl ? <img src={s.imageUrl} className="w-8 h-8 object-cover rounded" /> : null}
-      </div>
-
-      {/* prompt 区 */}
+      {/* prompt 区：左侧生图提示词（AI 生图在下方），右侧生视频提示词（操作按钮在下方），左右均衡 */}
       <div className="grid grid-cols-2 gap-2">
-        <PromptBox label="生图提示词" text={s.prompt} loading={s.promptLoading} onEdit={() => openField(i, 'prompt', '生图提示词')} onGen={() => handleGenImg(callbacks, patchShot, i)} />
-        <PromptBox label="生视频提示词" text={s.videoPrompt} loading={s.promptLoading} onEdit={() => openField(i, 'videoPrompt', '生视频提示词')} onGen={() => handleGenVid(callbacks, patchShot, i)} />
-      </div>
-
-      {/* 操作 */}
-      <div className="flex gap-1.5">
-        <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onGenerateShotPrompts?.([s.id])}><RefreshCw size={10} /> 重新生成</button>
-        <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onConnectShot?.(s.id)}><Link2 size={10} /> 连下游</button>
+        {/* 左侧：生图提示词 + 生图按钮 + AI 生图 */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <PromptBox label="生图提示词" text={s.prompt} loading={s.promptLoading} onEdit={() => openField(i, 'prompt', '生图提示词')} onGen={() => handleGenImg(callbacks, patchShot, i)} />
+          {/* AI 生成提示词（关键帧/四宫格/九宫格/俯视调度图，均属生图），样式与重新生成/连下游一致 */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-1">
+              {/* 生图类型下拉（关键帧/四宫格/九宫格/俯视调度图） */}
+              <select
+                value={genType[i] || IMAGE_GEN_DEFAULT}
+                onChange={(e) => setGenType((g) => ({ ...g, [i]: e.target.value }))}
+                className="px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded outline-none nodrag cursor-pointer"
+              >
+                {Object.entries(IMAGE_GEN_TYPES).map(([key, t]) => (
+                  <option key={key} value={key} className="bg-[#1c1c1e] text-gray-300">{t.label}</option>
+                ))}
+              </select>
+              {s.imgGenLoading ? (
+                <Loader2 size={12} className="animate-spin text-gray-400" />
+              ) : (
+                <button
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded"
+                  onClick={() => callbacks.onGenerateShotImage?.(s.id, genType[i] || IMAGE_GEN_DEFAULT)}
+                >
+                  <Wand2 size={10} /> 生成提示词
+                </button>
+              )}
+              {/* 生成完提示词 → 生图（连生图下游） */}
+              <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onConnectShot?.(s.id, 'image')}><ImageIcon size={10} /> 生图</button>
+            </div>
+            {s.imgGen && !s.imgGenLoading && (
+              <div className="flex flex-col gap-1 bg-[#131313] rounded p-2 border border-[#2a2a2a]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-gray-400 px-1 py-px rounded bg-[#222]">{s.imgGen.label}</span>
+                  <span className="text-[9px] text-gray-600">{new Date(s.imgGen.ts).toLocaleTimeString()}</span>
+                  <div className="flex-1" />
+                  <button className="flex items-center gap-0.5 text-[9px] text-gray-400 hover:text-white" onClick={() => { navigator.clipboard?.writeText(s.imgGen.prompt).catch(() => {}); setCopied((c) => ({ ...c, [i]: true })); setTimeout(() => setCopied((c) => ({ ...c, [i]: false })), 1200) }}>
+                    {copied[i] ? <Check size={9} className="text-emerald-400" /> : <Copy size={9} />} {copied[i] ? '已复制' : '复制'}
+                  </button>
+                  <button className="px-1.5 py-0.5 text-[9px] rounded bg-[#2a2a2a] hover:bg-[#333] text-gray-300" onClick={() => patchShot(i, 'prompt', s.imgGen.prompt)}>应用到生图</button>
+                </div>
+                <div className="text-[10px] text-gray-300 leading-relaxed line-clamp-4 whitespace-pre-wrap">{s.imgGen.prompt}</div>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* 右侧：生视频提示词 + 操作 */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <PromptBox label="生视频提示词" text={s.videoPrompt} loading={s.promptLoading} onEdit={() => openField(i, 'videoPrompt', '生视频提示词')} onGen={() => handleGenVid(callbacks, patchShot, i)} />
+          <div className="flex gap-1.5">
+            <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onGenerateShotPrompts?.([s.id])}><RefreshCw size={10} /> 重新生成</button>
+            <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onConnectShot?.(s.id, 'video')}><Video size={10} /> 生视频</button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -77,6 +119,14 @@ export default function StepPrompt({ data, updateData, callbacks }) {
           <button className={`flex items-center gap-1.5 px-3 py-1 text-[11px] rounded-md ${view === 'grid' ? 'bg-[#2a2a2a] text-white' : 'text-gray-400'}`} onClick={() => setView('grid')}><LayoutGrid size={11} /> 单镜头</button>
         </div>
         <div className="flex-1" />
+        {/* 批量生成提示词：一次性生成所有镜头的生图 prompt + 生视频 videoPrompt。
+            真实现（引擎 onGenerateShotPrompts，对齐官方 Ir）：
+              传 undefined 生成全部镜头；引擎对每个镜头用 assembleShotUser 拼 user content +
+              分镜导演系统提示词（customShotPrompt 可覆盖），并发请求文本模型 chat/completions，
+              返回 { prompt, videoPrompt } 写回各 shot，期间 shot.promptLoading=true。 */}
+        <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onGenerateShotPrompts?.()}>
+          <RefreshCw size={10} /> 批量生成提示词
+        </button>
         {selShots.size > 0 && (
           <button className="px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onConnectShots?.([...selShots].map((i) => shots[i].id))}>
             连选中的 {selShots.size} 镜下游
@@ -89,9 +139,39 @@ export default function StepPrompt({ data, updateData, callbacks }) {
       {shots.length === 0 ? (
         <div className="text-center py-12 text-gray-600 text-[12px]">暂无分镜，请先在「确认镜头」步骤生成</div>
       ) : view === 'list' ? (
-        <div className="flex flex-col gap-2 max-h-[520px] overflow-auto custom-scrollbar">{shots.map((s, i) => cardFor(s, i))}</div>
+        /* 列表视图：所有镜头小卡片纵向排列 */
+        <div className="flex flex-col gap-2 min-h-0">{shots.map((s, i) => cardFor(s, i))}</div>
       ) : (
-        <div className="grid grid-cols-2 gap-2 max-h-[520px] overflow-auto custom-scrollbar">{shots.map((s, i) => cardFor(s, i))}</div>
+        /* 单镜头视图：一次一个大镜头，‹ 镜N/N › 切换（复刻官方 le==='single'） */
+        <div className="flex flex-col gap-3">
+          {/* 切换器 + 当前镜头顶部操作 */}
+          <div className="flex items-center gap-2">
+            <button
+              className="px-2.5 py-1 text-[16px] leading-none text-gray-500 hover:text-white disabled:opacity-30 disabled:hover:text-gray-500"
+              disabled={singleIdx <= 0}
+              onClick={() => setSingleIdx((v) => Math.max(0, v - 1))}
+            >‹</button>
+            <span className="text-[15px] text-white font-medium">镜{shots[singleIdx]?.index}</span>
+            <span className="text-[12px] text-gray-500">/ {shots.length}</span>
+            <button
+              className="px-2.5 py-1 text-[16px] leading-none text-gray-500 hover:text-white disabled:opacity-30 disabled:hover:text-gray-500"
+              disabled={singleIdx >= shots.length - 1}
+              onClick={() => setSingleIdx((v) => Math.min(shots.length - 1, v + 1))}
+            >›</button>
+            <div className="flex-1" />
+            {/* 当前镜头操作：生成提示词 / 生图 / 生视频（统一深色按钮，与整体设计语言一致） */}
+            <button className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] text-gray-200 bg-[#2a2a2a] hover:bg-[#333] rounded" onClick={() => callbacks.onGenerateShotPrompts?.([shots[singleIdx].id])}>
+              <RefreshCw size={11} /> {shots[singleIdx]?.prompt || shots[singleIdx]?.videoPrompt ? '重生成提示词' : '生成提示词'}
+            </button>
+            <button className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] text-gray-200 bg-[#2a2a2a] hover:bg-[#333] border border-[#333] rounded" onClick={() => callbacks.onConnectShot?.(shots[singleIdx].id, 'image')}>
+              <ImageIcon size={11} /> 生图
+            </button>
+            <button className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] text-gray-200 bg-[#2a2a2a] hover:bg-[#333] border border-[#333] rounded" onClick={() => callbacks.onConnectShot?.(shots[singleIdx].id, 'video')}>
+              <Video size={11} /> 生视频
+            </button>
+          </div>
+          {shots[singleIdx] && cardFor(shots[singleIdx], singleIdx)}
+        </div>
       )}
 
       {/* 已连线面板 */}
@@ -102,9 +182,9 @@ export default function StepPrompt({ data, updateData, callbacks }) {
         </div>
       )}
 
-      {/* 双击编辑弹窗 */}
+      {/* 双击编辑弹窗（相对剧本盒子主容器定位，节点内部面板） */}
       {editing && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={() => setEditing(null)}>
+        <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={() => setEditing(null)}>
           <div className="bg-[#1c1c1e] border border-[#333] rounded-xl p-4 w-[520px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-[12px] text-gray-300 mb-2">编辑{editing.title}</div>
             <textarea autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} className="w-full h-36 bg-[#161616] border border-[#333] rounded-lg p-2 text-[12px] text-gray-200 outline-none custom-scrollbar nodrag nowheel" />

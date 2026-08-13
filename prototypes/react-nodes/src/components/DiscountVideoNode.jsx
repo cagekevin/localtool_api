@@ -11,6 +11,7 @@ import ModelSelect from './base/ModelSelect.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
+import { useConnectedInputs } from './base/useConnectedInputs.js'
 
 /**
  * 特惠视频节点（复刻原 As.jsx / discountVideoNode）
@@ -18,6 +19,8 @@ import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
  * 保留差异化：主显示区、比例/分辨率/时长菜单、素材区、提示词输入。
  */
 export default function DiscountVideoNode({ id, data, selected }) {
+  // 通用连线数据传递：读取直接上游节点的图片/文本作为参考素材
+  const connected = useConnectedInputs(id)
   const [prompt, setPrompt] = useState(data.prompt || '')
   const [ratio, setRatio] = useState(data.size || '16:9')
   const [resolution, setResolution] = useState(data.resolution || '1080p')
@@ -98,9 +101,10 @@ export default function DiscountVideoNode({ id, data, selected }) {
       <input type="file" ref={fileRef} style={{ display: 'none' }} accept="image/*,video/*,audio/*" />
 
       {/* 主显示区：flex-1 填满 wrapper，wrapper 宽高由 useSizeSync(area-fixed) 按比例同步，
-          主框宽=wrapper宽，高=wrapper高 → 自然成比例，端口不跑偏，无需主框自己定 ratio */}
+          主框宽=wrapper宽，高=wrapper高 → 自然成比例，端口不跑偏，无需主框自己定 ratio。
+          背景/边框/阴影已由 NodeShell 主容器提供，这里只保留布局与点击行为 */}
       <div
-        className={`relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-colors duration-300 cursor-pointer group/display flex flex-col overflow-hidden w-full flex-1 min-h-0 ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`}
+        className="relative cursor-pointer group/display flex flex-col w-full flex-1 min-h-0"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className={`flex items-center justify-center absolute inset-0 rounded-xl overflow-hidden ${videoUrl ? '' : 'bg-[#121212]'}`}>
@@ -146,17 +150,22 @@ export default function DiscountVideoNode({ id, data, selected }) {
       {/* 展开的提示词面板。手柄由节点在 children 里渲染（targetRef=textarea，写回 data.inputWidth/inputHeight）。 */}
       <ExpandablePanel expanded={expanded} minWidth={500}>
         <div className="space-y-3">
-          {/* 素材缩略图 */}
-          <div className="flex flex-wrap gap-2 mb-1">
-            <div className="w-10 h-10 rounded-md overflow-hidden border border-[#444] relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan" title="连线图片 (点击底部标签插入到提示词)">
-              <img src="https://picsum.photos/seed/discountvideo/80/80" alt="Ref" className="w-full h-full object-cover pointer-events-none" />
-              <span className="absolute bottom-0 left-0 right-0 bg-blue-500/80 hover:bg-blue-500 text-[8px] text-white text-center py-0.5 truncate cursor-pointer transition-colors z-10">图片1</span>
+          {/* 素材缩略图（仅显示真实上游/上传的素材，无上游则隐藏） */}
+          {(connected.images.length > 0 || connected.texts.length > 0) && (
+            <div className="flex flex-wrap gap-2 mb-1">
+              {connected.images.map((img, i) => (
+                <div key={img.id || i} className="w-10 h-10 rounded-md overflow-hidden border border-[#444] relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan" title="连线图片 (点击底部标签插入到提示词)">
+                  <img src={img.url} alt="Ref" className="w-full h-full object-cover pointer-events-none" />
+                </div>
+              ))}
+              {connected.texts.map((t, i) => (
+                <div key={t.id || i} className="h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
+                  <LinkIcon size={10} />
+                  <span className="max-w-[80px] truncate">{t.label || '参考文本'}</span>
+                </div>
+              ))}
             </div>
-            <div className="h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title="参考文本">
-              <LinkIcon size={10} />
-              <span className="max-w-[80px] truncate">参考文本</span>
-            </div>
-          </div>
+          )}
 
           {/* 提示词输入 */}
           <div className="flex items-start gap-2">

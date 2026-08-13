@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import {
   Image as ImageIcon, Video, Music, FileText, Plus, ZoomIn, Crop,
   Pencil, Send, Download, Play
 } from 'lucide-react'
+import { useReactFlow } from '@xyflow/react'
 import NodeShell from './base/NodeShell.jsx'
 import HoverToolbar from './base/HoverToolbar.jsx'
+import { useNodeResize } from './base/hooks.js'
 
 /**
  * 图片节点（复刻原 xi.jsx / imageNode）
@@ -14,6 +16,8 @@ import HoverToolbar from './base/HoverToolbar.jsx'
 export default function ImageNode({ id, data, selected }) {
   const fileRef = useRef(null)
   const url = data.imageUrl || data.url || ''
+  const { getNodes } = useReactFlow()
+  const { onMainBoxResize } = useNodeResize(id)
 
   // 判断内容类型
   let type = 'empty'
@@ -44,6 +48,26 @@ export default function ImageNode({ id, data, selected }) {
     { key: 'download', icon: <Download size={14} />, title: '下载' }
   ]
 
+  // 图片加载后按「实际比例」调整节点形状：宽度保持当前值，高度 = 宽度 / (naturalWidth/naturalHeight)。
+  // 这样节点容器贴合图片比例，不按实际像素放大缩小（那会撑爆/缩没，不实用）。
+  const fitToImageRatio = useCallback(
+    (e) => {
+      const img = e.currentTarget
+      if (!img || !img.naturalWidth || !img.naturalHeight) return
+      const ratio = img.naturalWidth / img.naturalHeight
+      if (!isFinite(ratio) || ratio <= 0) return
+      // 当前宽度：优先取 ReactFlow 节点实际 width，兜底用固定值
+      const curNode = getNodes().find((n) => n.id === id)
+      const curW = curNode?.width ?? curNode?.style?.width ?? 260
+      // 高度 = 宽度 / 比例；限制在 [80, 900] 内，避免极端比例把节点压扁/拉爆
+      const h = Math.round(curW / ratio)
+      const clamped = Math.min(900, Math.max(80, h))
+      if (Math.abs(clamped - (curNode?.height ?? curNode?.style?.height ?? 0)) < 4) return
+      onMainBoxResize(Math.round(curW), clamped)
+    },
+    [id, getNodes, onMainBoxResize]
+  )
+
   return (
     <NodeShell
       id={id}
@@ -65,15 +89,17 @@ export default function ImageNode({ id, data, selected }) {
         multiple
       />
 
-      {/* 主容器 */}
-      <div className={`bg-[#1c1c1c] rounded-xl overflow-hidden border shadow-xl transition-all duration-300 w-full flex flex-col flex-1 ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`}>
+      {/* 主容器：背景/边框/阴影已由 NodeShell 主容器提供，这里只保留布局。
+          relative 必须保留——内部空态/播放图标是 absolute inset-0 定位，依赖本容器做定位上下文 */}
+      <div className="relative w-full flex flex-col flex-1">
         <div
           className="flex-1 p-0 bg-[#121212] flex items-center justify-center relative overflow-hidden"
           style={{ minHeight: 160 }}
         >
-          {/* 图片 */}
+          {/* 图片（onLoad 按实际比例自适应节点形状） */}
           {type === 'image' && displayUrl && (
             <img src={displayUrl} alt="Content" loading="lazy" decoding="async"
+              onLoad={fitToImageRatio}
               className="w-full h-full object-contain cursor-pointer" draggable={false} />
           )}
           {/* 视频 */}
