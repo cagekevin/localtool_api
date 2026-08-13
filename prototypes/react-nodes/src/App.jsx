@@ -189,9 +189,10 @@ function Canvas() {
   // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；缩放/适配用 fitView/zoomIn/zoomOut
   const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
 
-  // 小地图开关（复刻 H_.jsx:474 un/dn，默认开）。仅当节点数 <100 时显示 MiniMap（官方 De.length<100）。
+  // 小地图开关（复刻 H_.jsx:474 un/dn，默认关——用户要求默认不显示，点工具栏 Map 图标再开）。
+  // 仅当开启且节点数 <100 时显示 MiniMap（官方 De.length<100）。
   // 接真系统：改为读项目设置持久化（localTool KV / app_settings）即可，本 state 是唯一数据源。
-  const [minimapOn, setMinimapOn] = React.useState(true)
+  const [minimapOn, setMinimapOn] = React.useState(false)
 
   // 缩放性能模式开关（复刻 H_.jsx:79 ge，官方默认 true：性能模式默认开启）。
   // 抉择：默认开对齐官方，让缩小视图时天然触发 LOD 降级（节点隐藏图片/视频）。

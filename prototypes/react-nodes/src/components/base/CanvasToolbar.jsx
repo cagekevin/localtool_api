@@ -54,14 +54,15 @@ export default function CanvasToolbar({
   // 缩放%按钮可点击回到 100%
   const zoomPercentText = useMemo(() => `${zoomPercent}%`, [zoomPercent])
 
+  // 框整体紧凑化（用户要求不占大面积）：容器 padding 收窄、按钮 p 减小、分隔线间距减小，图标尺寸不变。
   const baseBtn =
-    'p-2 rounded-full transition-colors flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333]'
-  const divider = <span className="w-[1px] h-4 bg-[#444] mx-2" />
+    'p-1.5 rounded-full transition-colors flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#333]'
+  const divider = <span className="w-[1px] h-3.5 bg-[#444] mx-1" />
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {/* 主工具组 */}
-      <div className="flex items-center bg-[#222] border border-[#333] rounded-full px-2 py-1 shadow-xl">
+      <div className="flex items-center bg-[#222] border border-[#333] rounded-full px-1 py-0.5 shadow-xl">
         <button
           type="button"
           onClick={onRun}
