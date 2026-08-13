@@ -362,5 +362,6 @@ node scripts/clear-cache.cjs --kv=active_api_endpoint
 | 要改画布前端 | 先 `npm run ask` 定位 → 改 `src/bundle/` → `npm run test:smoke` → `npm run build`（回灌 dist）→ 按需 `npm run health`（见 §五.4）；严禁直接手改 dist |
 | 要看画布可读源码 | `src/bundle/`（可编辑工程源码，改完 build 回灌） |
 | 改 localTool 后端（含方案② base64 外置/孤儿 GC） | `cd localTool && npm test`（73 项，先编译再测；隔离临时库，不碰真实数据） |
+| localTool 库膨胀需压缩 | 停 localTool 后跑 `cd localTool && node scripts/vacuum-localtool-db.mjs`（自动备份+完整性校验+VACUUM） |
 | VPN/502 排障 | 先 `ping lgw.lovart.ai:443` 确认 VPN |
 | 提交前验证 | 前端 `npm run test:smoke`+`npm run build`；**localTool 改动另跑 `cd localTool && npm test`**（见 §三.3） |
