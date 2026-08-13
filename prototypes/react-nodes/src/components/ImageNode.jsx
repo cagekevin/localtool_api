@@ -141,7 +141,7 @@ export default function ImageNode({ id, data, selected }) {
             <img src={displayUrl} alt="Content" loading="lazy" decoding="async"
               onLoad={fitFromImage}
               onDoubleClick={(e) => { e.stopPropagation(); setZoomView(true) }}
-              className="w-full h-full object-contain cursor-pointer" draggable={false} />
+              className="w-full h-full object-contain cursor-pointer rounded-lg" draggable={false} />
           )}
           {/* 视频（复刻官方 xi.jsx：未播放显示海报+播放按钮，点击播放 → <video controls autoPlay>）
               无论是否播放都渲染一个 <video preload="metadata"> 读真实宽高 → onLoadedMetadata 调
@@ -155,7 +155,7 @@ export default function ImageNode({ id, data, selected }) {
                 ref={videoRef}
                 src={url}
                 preload="metadata"
-                className={playing ? 'max-w-full w-full h-full object-contain block' : 'hidden'}
+                className={playing ? 'max-w-full w-full h-full object-contain block rounded-lg' : 'hidden'}
                 controls={playing}
                 onLoadedMetadata={fitFromVideo}
                 onClick={(e) => e.stopPropagation()}
@@ -169,7 +169,7 @@ export default function ImageNode({ id, data, selected }) {
                 <>
                   {posterUrl ? (
                     <img src={posterUrl} alt="video poster" loading="lazy" decoding="async"
-                      draggable={false} className="w-full h-full object-contain cursor-pointer" />
+                      draggable={false} className="w-full h-full object-contain cursor-pointer rounded-lg" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-[#151515]">
                       <Video size={32} className="text-gray-700" />

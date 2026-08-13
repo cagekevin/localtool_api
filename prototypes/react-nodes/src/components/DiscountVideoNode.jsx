@@ -126,7 +126,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
               <video
                 src={videoUrl}
                 poster={data.poster || ''}
-                className={`max-w-full w-full h-full object-contain block ${loading ? 'opacity-50 blur-sm' : ''}`}
+                className={`max-w-full w-full h-full object-contain block rounded-lg ${loading ? 'opacity-50 blur-sm' : ''}`}
                 controls={false}
                 autoPlay={false}
                 muted={false}

@@ -31,6 +31,8 @@ import { useCanvasShortcuts } from './components/base/useCanvasShortcuts.js'
 import { paletteCategories, getNodesByCategory, defaultNodeData } from './components/base/NodePalette.jsx'
 import LodProvider from './components/base/LodProvider.jsx'
 import LodListener from './components/base/LodListener.jsx'
+import ToastContainer from './components/base/ToastContainer.jsx'
+import { showToast } from './components/base/toastStore.js'
 
 /* ======================================================================
  * 【区 1】常量与配置区
@@ -750,8 +752,12 @@ function Canvas() {
 
 export default function App() {
   return (
-    <ReactFlowProvider>
-      <Canvas />
-    </ReactFlowProvider>
+    <>
+      <ReactFlowProvider>
+        <Canvas />
+      </ReactFlowProvider>
+      {/* 统一通知容器（顶部居中，配合 toastStore.showToast 使用） */}
+      <ToastContainer />
+    </>
   )
 }

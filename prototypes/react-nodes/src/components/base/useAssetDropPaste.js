@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import { detectFileType, isAssetUrl } from './mediaType.js'
+import { showToast } from './toastStore.js'
 
 /**
  * 画布素材「拖入 + 粘贴」hook（复刻官方 H_.jsx:10201-10350 onDragOver ki / onDrop Ai + handlePaste）。
@@ -35,14 +36,20 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
       // 文本：读文本 → textNode
       if (type === 'text') {
         const fr = new FileReader()
-        fr.onload = () => addNode('textNode', pos, { text: fr.result, label: file.name })
+        fr.onload = () => {
+          addNode('textNode', pos, { text: fr.result, label: file.name })
+          showToast(`已导入文本「${file.name}」`)
+        }
         fr.readAsText(file)
         return
       }
       if (type === 'other' || type === 'empty') return
       // 图片/视频/音频：读 dataURL → imageNode（ImageNode 自动识别类型展示）
       const fr = new FileReader()
-      fr.onload = () => addNode('imageNode', pos, { imageUrl: fr.result, label: file.name })
+      fr.onload = () => {
+        addNode('imageNode', pos, { imageUrl: fr.result, label: file.name })
+        showToast(`已导入${type === 'image' ? '图片' : type === 'video' ? '视频' : '音频'}「${file.name}」`)
+      }
       fr.readAsDataURL(file)
     },
     [addNode]
@@ -58,8 +65,13 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
         // 拖入 URL 文本（非文件）：图片类 URL → imageNode，其它 → textNode
         const text = e.dataTransfer?.getData('text/plain')
         if (text) {
-          if (isAssetUrl(text)) addNode('imageNode', pos, { imageUrl: text })
-          else addNode('textNode', pos, { text, expanded: false })
+          if (isAssetUrl(text)) {
+            addNode('imageNode', pos, { imageUrl: text })
+            showToast('已导入图片链接')
+          } else {
+            addNode('textNode', pos, { text, expanded: false })
+            showToast('已导入文本')
+          }
         }
         return
       }

@@ -59,7 +59,8 @@ export default function PromptNode({ id, data, selected }) {
     delay: 2200
   })
 
-  const ratioOptions = ['Auto', '1:1', '16:9', '9:16', '3:2', '2:3', '4:3', '3:4', '21:9', '9:21', '1:3', '3:1', '2:1', '1:2']
+  // 图片可选比例（去掉 1:3 / 3:1 / 2:1 / 1:2 等极端竖/横比例，保留常用档）
+  const ratioOptions = ['Auto', '1:1', '16:9', '9:16', '3:2', '2:3', '4:3', '3:4', '21:9', '9:21']
   const sizeOptions = ['1K', '2K', '4K']
   const qualityOptions = [
     { value: 'auto', label: '自动' },
@@ -144,7 +145,7 @@ export default function PromptNode({ id, data, selected }) {
               alt="Generated Content"
               loading="lazy"
               decoding="async"
-              className={`max-w-full w-full h-full object-contain block ${loading ? 'opacity-50 blur-sm' : ''}`}
+              className={`max-w-full w-full h-full object-contain block rounded-lg ${loading ? 'opacity-50 blur-sm' : ''}`}
               draggable={false}
             />
           )}
