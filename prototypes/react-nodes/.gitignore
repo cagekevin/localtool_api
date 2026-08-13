@@ -1,0 +1,17 @@
+# react-nodes 原型工程专属忽略（独立于根仓库规则，便于原型独立演进）
+
+# 依赖（可重装）
+node_modules/
+
+# 构建产物
+dist/
+
+# Vite 缓存
+.vite/
+
+# 运行时日志
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
