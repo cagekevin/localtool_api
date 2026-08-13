@@ -67,6 +67,7 @@ export default function TextNode({ id, data, selected }) {
       selected={selected}
       handleVariant="small"
       aspectRatio={null}
+      defaultHeight={240}
       className="transition-all"
     >
       {/* hover 操作栏 */}
@@ -75,10 +76,10 @@ export default function TextNode({ id, data, selected }) {
       {/* 隐藏文件上传（复刻 Co.jsx:250） */}
       <input type="file" ref={fileRef} style={{ display: 'none' }} accept="image/*" onChange={uploadImage} />
 
-      {/* 主容器（固定 420×240） */}
+      {/* 主容器：flex-1 填满 wrapper（wrapper 高度由 useSizeSync defaultHeight=240 同步），
+          与生图/特惠视频节点一致，避免 wrapper≠主框导致端口/面板位置错位 */}
       <div
-        className={`relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-[border-color] duration-200 flex flex-col ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`}
-        style={{ width: '420px', height: '240px' }}
+        className={`relative bg-[#1c1c1c] rounded-xl border shadow-xl transition-[border-color] duration-200 flex flex-col w-full flex-1 min-h-0 ${selected ? 'border-[#555]' : 'border-[#333] hover:border-[#444]'}`}
         onClick={(e) => {
           if (!editingText && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
             setExpanded((v) => !v)
