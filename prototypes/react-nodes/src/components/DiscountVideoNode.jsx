@@ -20,7 +20,11 @@ import { useLod } from './base/useLod.js'
  * 保留差异化：主显示区、比例/分辨率/时长菜单、素材区、提示词输入。
  */
 export default function DiscountVideoNode({ id, data, selected }) {
-  // 性能模式 LOD：lodLevel>=3（缩到 0.2 以下）隐藏视频（复刻官方"图片视频已隐藏"）
+  // 性能模式 LOD 媒体降级（复刻官方横幅"图片视频已隐藏"）：
+  //   lodLevel>=3（缩到 ≤0.2）隐藏视频。阈值比图片更晚（≥3）——视频隐藏代价更高，
+  //   官方也是「lodLevel=3 才连视频一起藏」（横幅 yt===3 才写"图片视频已隐藏"）。
+  // 接真系统：官方 As.jsx 用 useThumbnail 换视频首帧图（_frame1.jpg）。接资源缩略图服务后，
+  //       把占位换成 <img src={poster/首帧}> 即可，hideVideo 判断保留。
   const { lodLevel = 0 } = useLod()
   const hideVideo = lodLevel >= 3
 

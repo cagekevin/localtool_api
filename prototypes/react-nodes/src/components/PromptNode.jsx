@@ -21,7 +21,11 @@ import { useLod } from './base/useLod.js'
  * 保留差异化：主图片框、素材缩略图区、画质/比例/渲染质量菜单、请求格式、批量 xN。
  */
 export default function PromptNode({ id, data, selected }) {
-  // 性能模式 LOD：lodLevel>=2（缩到 0.3 以下）隐藏生图结果（复刻官方"图片已隐藏"）
+  // 性能模式 LOD 媒体降级（复刻官方横幅"图片已隐藏"）：
+  //   lodLevel>=2（缩到 ≤0.3）隐藏生图结果 <img>，替换为轻量占位。
+  //   阈值与 ImageNode 的图片档一致（对齐官方横幅：lodLevel>=2 藏图片）。
+  // 接真系统：官方 bo.jsx 用 useThumbnail 换缩略图（非隐藏）。接资源缩略图服务后，
+  //       把占位换成 <img src={thumbnailUrl}> 即可，hideResult 判断保留。
   const { lodLevel = 0 } = useLod()
   const hideResult = lodLevel >= 2
 

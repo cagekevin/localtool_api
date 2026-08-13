@@ -4,30 +4,39 @@ import { Play, LayoutGrid, Map, Maximize, Minus, Plus, RefreshCw, Zap } from 'lu
 /**
  * 左下角工具栏（复刻 H_.jsx:12013-12094 bottom-left 工具栏）。
  *
- * 原工具栏按钮（含 title 悬浮说明）：
- *  - 运行整个工作流（Play，绿）
- *  - 整理画布（Scissors，Ctrl+L 自动布局）
- *  - 画布小地图（Map，点击开关 MiniMap）
- *  - 清理缓存（Trash2）
- *  - 适合视图（Maximize，fitView）
- *  - 缩放性能模式（Gauge，可选）
- *  - zoom out / zoom % / zoom in
+ * 【抉择：为什么是「纯展示 + 回调上抛」】
+ * 本组件**不含任何业务逻辑**，只渲染按钮、把点击通过 props 回调上抛给画布宿主（App.jsx）。
+ * 原因（原则 1 关注点分离）：按钮「点一下该干嘛」是画布壳的决策（整理→dagre、小地图→切
+ * MiniMap、缩放→fitView/zoomIn），不该埋在工具栏组件里。这样工具栏可被任何宿主复用，
+ * 换一个画布（脚本盒、别的编辑器）直接换回调即可。
  *
- * 样式令牌遵循 docs/39：容器 bg-[#222] border-[#333] rounded-full；按钮
- * hover:bg-[#333] hover:text-white；图标默认 text-gray-400；激活项 text-white。
+ * 【抉择：图标取舍】
+ * 官方图标是混淆后的 lucide 组件（Et/He/_Component124 等，无法直接引用）。本组件用
+ * **语义等价**的 lucide 图标：
+ *  - 整理画布 → LayoutGrid（网格布局，贴合 dagre 自动排列）
+ *  - 清理缓存 → RefreshCw（缓存重整语义，非垃圾桶）
+ *  - 性能模式 → Zap（闪电，激活黄高亮）
+ * 视觉与官方「表达同一动作」即可，不追求逐像素一致（用户确认过不必 100%）。
+ *
+ * 【占位按钮说明（抉择）】
+ * onRun（运行工作流）、onClearCache（清理缓存）当前是**占位**（props 可选、App 暂不传
+ * 实际逻辑）。原型未接后端，故这两颗按钮点了暂无动作。接真系统时在 App.jsx 里传对应
+ * 处理函数即可：
+ *  - onRun        → 按连线拓扑从所有起点依次触发节点生成（官方 ti() 工作流执行）
+ *  - onClearCache → 把节点 data 里的内联大资源转成 /files/ 本地 URL（官方 Ki 清理）
  *
  * @param {Object} props
- * @param {boolean} props.minimapOn      小地图开关
+ * @param {boolean} props.minimapOn      小地图开关（激活白高亮）
  * @param {Function} props.onToggleMinimap
- * @param {Function} props.onArrange      整理画布
- * @param {Function} props.onFitView      适合视图
+ * @param {Function} props.onArrange      整理画布（dagre 自动排版）
+ * @param {Function} props.onFitView      适合视图（fitView）
  * @param {Function} props.onZoomIn       放大
  * @param {Function} props.onZoomOut      缩小
  * @param {number} props.zoomPercent      当前缩放百分比（整型）
- * @param {boolean} props.performanceMode 缩放性能模式开关（激活黄色高亮）
+ * @param {boolean} props.performanceMode 缩放性能模式开关（激活黄高亮）
  * @param {Function} props.onTogglePerformance
- * @param {Function} [props.onClearCache] 清理缓存（原型暂为占位）
- * @param {Function} [props.onRun]        运行整个工作流（原型暂为占位）
+ * @param {Function} [props.onClearCache] 清理缓存（原型暂为占位，接真系统再传）
+ * @param {Function} [props.onRun]        运行整个工作流（原型暂为占位，接真系统再传）
  */
 export default function CanvasToolbar({
   minimapOn,

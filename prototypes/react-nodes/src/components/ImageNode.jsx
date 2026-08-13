@@ -20,7 +20,15 @@ export default function ImageNode({ id, data, selected }) {
   const { getNodes } = useReactFlow()
   const { onMainBoxResize } = useNodeResize(id)
 
-  // 性能模式 LOD：lodLevel>=2（缩到 0.3 以下）隐藏图片；>=3（0.2 以下）连视频也隐藏（复刻官方横幅"图片视频已隐藏"）
+  // 性能模式 LOD 媒体降级（复刻官方横幅"图片视频已隐藏"）：
+  //   lodLevel 由性能模式开关 + 视口缩放共同决定（见 LodListener）：
+  //   - lodLevel>=2（缩到 ≤0.3）→ 隐藏图片内容
+  //   - lodLevel>=3（缩到 ≤0.2）→ 连视频/音频也隐藏
+  // 抉择：用字符串 hideMedia 区分「藏哪些媒体」，而非布尔——因为图片和视频阈值不同，
+  //       需分别控制。true 时不渲染 <img>/<video>/<audio>，替换为轻量占位。
+  // 接真系统：官方是「用缩略图替换原图」而非完全隐藏（xi.jsx 用 useThumbnail 换 /files/_resize 图）。
+  //       若后续接入 localTool 的资源缩略图服务，可把「隐藏」改为「换 thumbnailUrl」，
+  //       这里 hideMedia 判断保留，只把占位改成 <img src={thumbnail}> 即可。
   const { lodLevel = 0 } = useLod()
   const hideMedia = lodLevel >= 3 ? 'image video audio' : lodLevel >= 2 ? 'image' : ''
 

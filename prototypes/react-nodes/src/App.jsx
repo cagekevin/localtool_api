@@ -186,19 +186,25 @@ function Canvas() {
   // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；缩放/适配用 fitView/zoomIn/zoomOut
   const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
 
-  // 小地图开关（复刻 H_.jsx:474 un/dn，默认开）
+  // 小地图开关（复刻 H_.jsx:474 un/dn，默认开）。仅当节点数 <100 时显示 MiniMap（官方 De.length<100）。
+  // 接真系统：改为读项目设置持久化（localTool KV / app_settings）即可，本 state 是唯一数据源。
   const [minimapOn, setMinimapOn] = React.useState(true)
 
-  // 缩放性能模式开关（复刻 H_.jsx:79 ge，官方默认 true：性能模式默认开启）
+  // 缩放性能模式开关（复刻 H_.jsx:79 ge，官方默认 true：性能模式默认开启）。
+  // 抉择：默认开对齐官方，让缩小视图时天然触发 LOD 降级（节点隐藏图片/视频）。
+  // 接真系统：官方此值从 app_settings 读入（Vr.jsx ei），改为持久化即可。
   const [performanceMode, setPerformanceMode] = React.useState(true)
 
-  // 整理后「是否保留」快照（复刻 H_.jsx:134 tt/nt，null = 无弹窗）
+  // 整理后「是否保留」快照（复刻 H_.jsx:134 tt/nt，null = 无弹窗）。
+  // 存「排列前」的 nodes/edges 快照，「还原」= 整体写回（见 revertArrange）。
   const [arrangeSnapshot, setArrangeSnapshot] = React.useState(null)
 
-  // 自动排版（复刻 H_.jsx:10985 Ui / Ctrl+L）
+  // 自动排版（复刻 H_.jsx:10985 Ui / Ctrl+L）。本 hook 只做纯布局计算，快照/历史/确认弹窗由
+  // arrangeCanvas 在此统一编排（见能力区）。
   const { arrange } = useArrangeCanvas()
 
-  // 当前缩放百分比（监听 viewport 变化，驱动左下角 zoom% 显示）
+  // 当前缩放百分比（监听 viewport 变化，驱动左下角 zoom% 显示）。
+  // 接真系统：若需在缩小到某级做额外事（如隐藏 toolbar 部分按钮），可直接读 lodLevel state（见下）。
   const [zoomPercent, setZoomPercent] = React.useState(100)
   const onViewportChange = React.useCallback((v) => {
     setZoomPercent(Math.round((v?.zoom || 1) * 100))
@@ -309,6 +315,15 @@ function Canvas() {
 
   // 整理画布（复刻 H_.jsx:10985 Ui / Ctrl+L）：
   // 先存排列前快照 → dagre 布局写回 → 弹「是否保留整理结果」确认。
+  // 整理画布（复刻 H_.jsx:10985 Ui / Ctrl+L）。
+  // 编排顺序（抉择）：
+  //   1. 先存「排列前快照」before → 供「还原」用（不污染全局撤销栈，见 ArrangeConfirm 注释）；
+  //   2. 调 useArrangeCanvas.arrange 算新布局并写回（onArrange 走 setNodes/setEdges）；
+  //   3. 写回后 fitView 适配新布局；
+  //   4. 弹「是否保留」确认窗（ArrangeConfirm）；
+  //   5. 把「排列后结果」入历史栈（undo 可回到排列前）。
+  // 接真系统：nodesRef.current/edgesRef.current 换 useReactFlow().getNodes/getEdges() 即可，
+  // 其余编排不变。
   const arrangeCanvas = useCallback(() => {
     const before = { nodes: nodesRef.current, edges: edgesRef.current }
     const result = arrange({
@@ -330,6 +345,7 @@ function Canvas() {
   }, [arrange, setNodes, setEdges, fitView, history])
 
   // 还原整理：写回排列前快照 + 关闭弹窗 + fitView（复刻 H_.jsx:11996-12006）
+  // 抉择：直接用快照整体 setNodes/setEdges，比逆向 dagre 更简单可靠。
   const revertArrange = useCallback(() => {
     if (!arrangeSnapshot) return
     setNodes(arrangeSnapshot.nodes)
@@ -340,12 +356,12 @@ function Canvas() {
     }, 100)
   }, [arrangeSnapshot, setNodes, setEdges, fitView])
 
-  // 保留整理：仅关闭弹窗（复刻 H_.jsx:12008-12010）
+  // 保留整理：仅关闭弹窗（复刻 H_.jsx:12008-12010），整理结果已写回、无需再动
   const keepArrange = useCallback(() => {
     setArrangeSnapshot(null)
   }, [])
 
-  // 缩放控制（复刻 H_.jsx:12051-12067）
+  // 缩放控制（复刻 H_.jsx:12051-12067）。zoomIn/zoomOut 是 @xyflow 内置方法，带 300ms 平滑。
   const zoomInStep = useCallback(() => zoomIn({ duration: 300 }), [zoomIn])
   const zoomOutStep = useCallback(() => zoomOut({ duration: 300 }), [zoomOut])
 
@@ -658,6 +674,7 @@ function Canvas() {
             bgColor="#0d0c0c"
           />
           {/* 小地图（复刻 H_.jsx:12095-12098，仅当开启且节点数 <100 时显示） */}
+          {/* 抉择：定位在左下角工具栏上方（bottom-16），样式令牌 #222/#333/nodeColor#444 对齐 docs/39 */}
           {minimapOn && nodes.length < 100 && (
             <div className="absolute left-4 bottom-16 z-[990] flex flex-col items-start gap-2 pointer-events-none">
               <MiniMap
@@ -670,6 +687,7 @@ function Canvas() {
             </div>
           )}
           {/* 性能模式横幅（复刻 H_.jsx:11966-11971：ge 开 且 lodLevel>=2 时顶部黄条） */}
+          {/* lodLevel 由下方 LodListener 计算（缩放越小 level 越高）：>=2 缩到 ≤0.3，>=3 缩到 ≤0.2 */}
           {performanceMode && lodLevel >= 2 && (
             <Panel position="top-center" className="mt-4 pointer-events-none">
               <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm flex items-center gap-2 animate-pulse">
@@ -678,11 +696,14 @@ function Canvas() {
               </div>
             </Panel>
           )}
-          {/* LOD 视口缩放监听（基座 LodListener；enablePerformanceMode 由性能模式开关控制） */}
+          {/* LOD 视口缩放监听（基座 LodListener）。
+              enablePerformanceMode=false 时 LodListener 会清空 lod class 并把 lodLevel 置 0，
+              因此「性能模式关 → 节点不隐藏媒体、横幅不弹」天然成立（各节点用 useLod 读 lodLevel）。 */}
           <LodListener onLodChange={setLodLevel} enablePerformanceMode={performanceMode} />
         </ReactFlow>
 
         {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
+        {/* 抉择：工具栏 + 确认弹窗叠在一个 absolute 容器（left-3 bottom-3），弹窗 absolute bottom-full 挂在工具栏上方 */}
         <div className="absolute left-3 bottom-3 z-[900] pointer-events-auto">
           <div className="relative">
             {/* 整理后「是否保留」确认弹窗（复刻 H_.jsx:11993） */}
@@ -691,6 +712,7 @@ function Canvas() {
               onRevert={revertArrange}
               onKeep={keepArrange}
             />
+            {/* 占位按钮 onRun/onClearCache 未传：接真系统时在 App 传入（见 CanvasToolbar 注释） */}
             <CanvasToolbar
               minimapOn={minimapOn}
               onToggleMinimap={() => setMinimapOn((v) => !v)}
