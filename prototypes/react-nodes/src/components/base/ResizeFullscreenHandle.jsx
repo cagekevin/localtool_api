@@ -9,10 +9,25 @@ import React, { useState, useCallback } from 'react'
  *  - 双击：触发 onRequestFullscreen（通常打开全屏弹层）
  *  - hover：右下角显示 tooltip「拖动改尺寸 · 双击全屏」
  *
+ * ── 职责边界（重要，别把它写成"改 ReactFlow 节点"）──
+ * 本组件是个「纯 DOM 手柄」：拖拽时只临时改 targetRef 元素的 inline width/height
+ * （即时预览），松手后把最终尺寸通过 onResizeEnd 交出去，自己不做任何状态持久化。
+ * 「最终尺寸怎么写回 ReactFlow（让 wrapper 跟随、端口不错位）」由调用方决定，
+ * 各节点统一走 useNodeResize(id)：
+ *   - 主框手柄   → onMainBoxResize(w,h)：写回 node.width/height + updateNodeInternals
+ *   - 输入框手柄 → onInputResize(w,h)：写回 node.data.inputWidth/inputHeight
+ * 这样拖拽的目标（DOM）和 ReactFlow 的尺寸源保持同步，避免出现"拖了但 wrapper 不跟、
+ * 端口跑偏"的旧坑。
+ *
+ * ── scale 缩放修正（为什么要有）──
+ * ReactFlow 画布可缩放。getBoundingClientRect() 返回的是「屏幕像素」，offsetWidth 是
+ * 「逻辑像素」。若画布放大 2 倍，鼠标移动 2px 只应让元素变大 1px，所以用
+ * scale = rect.width / offsetWidth 把鼠标位移换算回逻辑尺寸，保证手感不受缩放影响。
+ *
  * @param props
  *  - targetRef        要改尺寸的 DOM 元素 ref
  *  - onRequestFullscreen  双击全屏回调
- *  - onResizeEnd      (width, height) 拖拽结束回调
+ *  - onResizeEnd      (width, height) 拖拽结束回调（最终尺寸交给调用方持久化）
  *  - minWidth / maxWidth / minHeight / maxHeight
  *  - className        附加类
  */

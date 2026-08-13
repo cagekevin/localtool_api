@@ -10,7 +10,7 @@ import GenerateButton from './base/GenerateButton.jsx'
 import ModelSelect from './base/ModelSelect.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
-import { useGenerate, useNodeResize } from './base/hooks.js'
+import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 
 /**
  * 特惠视频节点（复刻原 As.jsx / discountVideoNode）
@@ -28,6 +28,8 @@ export default function DiscountVideoNode({ id, data, selected }) {
   const [showRatioMenu, setShowRatioMenu] = useState(false)
   const fileRef = useRef(null)
   const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
+  const ratioMenuRef = useRef(null) // 比例/分辨率/时长菜单容器（点击外部关闭）
+  useOutsideClick(ratioMenuRef, showRatioMenu, () => setShowRatioMenu(false))
 
   // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
   const { onInputResize } = useNodeResize(id)
@@ -180,8 +182,8 @@ export default function DiscountVideoNode({ id, data, selected }) {
           {/* 底部控制 */}
           <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a] nodrag">
             <div className="flex items-center gap-1.5 overflow-visible z-50">
-              {/* 比例/分辨率/时长 */}
-              <div className="relative nodrag flex items-center">
+              {/* 比例/分辨率/时长（ref 绑外层 relative，点外部才关） */}
+              <div ref={ratioMenuRef} className="relative nodrag flex items-center">
                 <button
                   className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
                   onClick={(e) => { e.stopPropagation(); setShowRatioMenu((v) => !v) }}
@@ -248,7 +250,11 @@ export default function DiscountVideoNode({ id, data, selected }) {
           </div>
         </div>
 
-        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 As.jsx:2055 _Component23） */}
+        {/* 面板右下角手柄：拖拽改输入框尺寸（复刻 As.jsx:2055 _Component23）。
+            targetRef=textarea（promptInputRef），onResizeEnd → onInputResize 写回
+            node.data.inputWidth/inputHeight，textarea 的 inline style 读这个 data 渲染。
+            注意：视频 textarea 外层不能设固定 height（否则纵向拖不动），
+            高度完全由 data.inputHeight 驱动。输入框不参与端口定位，只写 data。 */}
         <ResizeFullscreenHandle
           targetRef={promptInputRef}
           minWidth={200}

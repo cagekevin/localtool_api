@@ -18,6 +18,35 @@ export function isEditableTarget(e) {
 }
 
 /**
+ * 「点击外部关闭」公共 hook（outside click）。
+ *
+ * 场景：下拉菜单 / 弹层打开后，用户点击弹层以外的空白处时自动收起。
+ * 全项目所有这类弹层统一用它，避免各组件各自手写 document 监听（历史上 ModelSelect、
+ * PromptInput 两份几乎逐字的重复代码就是从这里抽出来的）。
+ *
+ * 实现要点：
+ *  - visible 为 true 时才挂 document mousedown 监听（capture 阶段，用 true）。
+ *  - 用 capture=true 是因为 mousedown 冒泡前就能拦截，且弹层内部 onClick 常做
+ *    stopPropagation；capture 监听发生在冒泡之前，配合 contains 判断不会误关。
+ *  - contains 判断：点击落在 ref.current（弹层本身）内部 → 不关；否则 → onClose()。
+ *  - 卸载时自动移除监听，避免内存泄漏。
+ *
+ * @param ref     弹层/菜单容器的 ref
+ * @param visible 弹层是否打开（仅打开时挂监听）
+ * @param onClose 点击外部时的关闭回调
+ */
+export function useOutsideClick(ref, visible, onClose) {
+  useEffect(() => {
+    if (!visible) return
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose?.()
+    }
+    document.addEventListener('mousedown', close, true)
+    return () => document.removeEventListener('mousedown', close, true)
+  }, [ref, visible, onClose])
+}
+
+/**
  * 展开/收起控制 hook。
  * 所有带「下方输入面板」的节点共用同一套展开语义：
  *  - 点击主显示框切换
@@ -99,10 +128,20 @@ export function parseAspect(aspectRatio) {
  * 右下角手柄（ResizeFullscreenHandle）的尺寸写回 hook。
  * 统一「手柄拖拽 → 尺寸写回 ReactFlow」这一公共机制，供所有节点复用一个入口：
  *
- *  - onMainBoxResize(w, h)：主框手柄 → 写回 node.width/height + updateNodeInternals，
- *    让 ReactFlow wrapper 跟随（端口基于 wrapper 中点不错位）。
- *  - onInputResize(w, h)：输入框手柄 → 写回 node.data.inputWidth/inputHeight，
- *    输入框尺寸跟随（复刻官方 inputWidth/inputHeight 机制）。
+ *  - onMainBoxResize(w, h)：主框手柄 → 写回 node.width/height + updateNodeInternals
+ *  - onInputResize(w, h)：输入框手柄 → 写回 node.data.inputWidth/inputHeight
+ *
+ * ── 为什么两条路径不同（本质差异）──
+ * 1. 主框是节点的「主体」，它的尺寸就是 ReactFlow 节点的尺寸（wrapper 大小）。
+ *    主框手柄拖拽后，必须把新尺寸写回 node.width/height + updateNodeInternals，
+ *    否则 ReactFlow wrapper 仍是旧尺寸 → 端口（handle 基于 wrapper 中点定位）会错位、
+ *    拖拽结果也不会持久。所以 onMainBoxResize 要动 node.width/height。
+ * 2. 输入框只是「面板里的一个元素」，不参与 ReactFlow 节点尺寸/端口定位，
+ *    它自己的宽高用 node.data.inputWidth/inputHeight 记录即可，textarea 的
+ *    inline style 读这个 data 渲染（复刻官方 inputWidth/inputHeight 机制）。
+ *
+ * 一句话：主框拖的是「节点的壳」，必须写回 ReactFlow；输入框拖的是「壳里的部件」，
+ * 存 data 即可。两者都通过 setNodes 触发重渲染，从而让目标元素跟随新尺寸。
  *
  * @param id 节点 id
  */

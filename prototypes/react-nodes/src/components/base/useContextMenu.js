@@ -12,7 +12,13 @@ import { isEditableTarget } from './hooks.js'
  *  - onPaneClick 点击空白关闭菜单
  *  - close      手动关闭
  *
- * 坐标均换算为相对画布容器的 x/y（复刻源码用 container.getBoundingClientRect() 作基准）。
+ * ── 坐标系（与 ContextMenu 组件配套，务必一致）──
+ * 鼠标事件的 clientX/clientY 是「相对视口」的页面坐标，但菜单要 absolute 定位在
+ * ReactFlow 外层那个 <div ref={containerRef} className="relative"> 里，top/left 是
+ * 「相对容器」的坐标。所以 toContainerPos 用 containerRef.getBoundingClientRect() 做基准，
+ * 把 client 坐标换算成相对容器坐标：x = clientX - rect.left，y = clientY - rect.top。
+ * ContextMenu 拿到 state.x/y 后 top/left 直接用它，就能让菜单左上角对齐鼠标点。
+ * 注意：containerRef 必须和 ContextMenu 挂在同一个 relative div 上，否则坐标系错位。
  */
 export function useContextMenu() {
   const [state, setState] = useState(null)

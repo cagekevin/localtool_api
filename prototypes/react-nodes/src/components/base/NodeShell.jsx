@@ -4,9 +4,11 @@ import NodeTitle from '../NodeTitle.jsx'
 import CustomHandle from '../CustomHandle.jsx'
 import { useSizeSync } from './hooks.js'
 
-// ReactFlow store 选择器：取单个节点的当前 width/height
-// （订阅该节点尺寸变化，触发重渲染以保持根 div inline 尺寸 = wrapper 尺寸。
-//  SSR / 未初始化时 store 可能无 nodeLookup，需安全兜底）
+// ReactFlow store 选择器：订阅单个节点的当前 width/height。
+// 目的：让根 div 的 inline width/height 永远等于 ReactFlow 的 node.width/height。
+// 当 NodeResizer 拖拽 / 自定义手柄 onMainBoxResize 写回 setNodes 后，store 更新 →
+// 本 hook 触发重渲染 → 根 div 尺寸跟随新值 → 与 ReactFlow wrapper 保持像素一致。
+// （SSR / 未初始化时 store 可能无 nodeLookup，需安全兜底返回 undefined，外层回退到默认尺寸）
 function useNodeSize(id) {
   return useStore((s) => {
     const lookup = s?.nodeLookup
@@ -22,13 +24,18 @@ function useNodeSize(id) {
 /**
  * 节点外壳（所有节点的公共骨架基座）。
  *
- * 统一封装并根治「调整尺寸/改比例时端口错位」：
- *  1. 根 div 的 width/height 用 ReactFlow store 订阅的 inline style（= node.width/height），
- *     与 ReactFlow wrapper（react-flow__node）保持像素级一致。
- *  2. NodeResizer 拖拽时 ReactFlow 自动同步 wrapper 并 updateNodeInternals。
- *  3. 节点自定义手柄 (ResizeFullscreenHandle) 拖拽根 div 后，onResizeEnd 写回 setNodes
- *     → ReactFlow wrapper 跟随 → 端口基于 wrapper 中点不错位。
- *  4. useSizeSync 在比例变化时同步 wrapper 尺寸。
+ * ── 关键设计：根 div 尺寸必须 = ReactFlow node 尺寸 ──
+ * 端口（CustomHandle）和连线都基于「节点整体中点」计算，而 ReactFlow 节点的尺寸由
+ * node.width/height（或 style）决定。因此根 div 不能简单用 `w-full h-full`（那是跟父级
+ * 容器，不是跟 ReactFlow 节点尺寸），而必须用 useNodeSize 从 store 订阅 node.width/height，
+ * 以 inline style 渲染。这样 NodeResizer / 自定义手柄 / 改比例（useSizeSync）任一途径
+ * 改了 node 尺寸，根 div 都跟着变，端口永远在正确中点，杜绝「拖了但端口跑偏」。
+ *
+ * 尺寸来源总览（都汇聚到 node.width/height）：
+ *  - NodeResizer（ReactFlow 内置）：拖拽节点边缘改尺寸，ReactFlow 自动同步 wrapper。
+ *  - ResizeFullscreenHandle（自定义手柄）：onResizeEnd → useNodeResize.onMainBoxResize
+ *    → 写回 node.width/height + updateNodeInternals。
+ *  - useSizeSync：改比例时按比例重算 node 尺寸。
  *
  * @param props
  *  - id, label, defaultTitle, icon   标题栏

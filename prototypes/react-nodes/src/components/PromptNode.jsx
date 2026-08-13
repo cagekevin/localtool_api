@@ -11,7 +11,7 @@ import ModelSelect from './base/ModelSelect.jsx'
 import PromptInput from './base/PromptInput.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
-import { useGenerate, useNodeResize } from './base/hooks.js'
+import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 
 /**
  * 生图节点（复刻原 bo.jsx / promptNode）
@@ -33,6 +33,13 @@ export default function PromptNode({ id, data, selected }) {
   const [showCountMenu, setShowCountMenu] = useState(false)
   const fileRef = useRef(null)
   const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
+  // 三个下拉菜单容器（画质/格式/数量）：ref 绑外层 relative，使「按钮+菜单」都在内，点外部才关
+  const imgMenuRef = useRef(null)
+  const formatMenuRef = useRef(null)
+  const countMenuRef = useRef(null)
+  useOutsideClick(imgMenuRef, showImgMenu, () => setShowImgMenu(false))
+  useOutsideClick(formatMenuRef, showFormatMenu, () => setShowFormatMenu(false))
+  useOutsideClick(countMenuRef, showCountMenu, () => setShowCountMenu(false))
 
   // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
   const { onInputResize } = useNodeResize(id)
@@ -191,7 +198,7 @@ export default function PromptNode({ id, data, selected }) {
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#2a2a2a] nodrag">
             <div className="flex items-center gap-1.5 overflow-visible">
               {/* 画质 / 比例 / 渲染质量 */}
-              <div className="relative nodrag">
+              <div ref={imgMenuRef} className="relative nodrag">
                 <button type="button" className="flex items-center gap-1.5 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowImgMenu((v) => !v) }}>
                   <span className="w-2.5 h-3 border border-current rounded-[2px]" />
                   <span>{aspectRatio} · {imageSize} · {qualityOptions.find((q) => q.value === quality)?.label}</span>
@@ -218,7 +225,7 @@ export default function PromptNode({ id, data, selected }) {
               <ModelSelect value={selectedModel} onChange={setSelectedModel} models={models} costMap={costMap} placeholder="选择模型" />
 
               {/* 请求格式 */}
-              <div className="relative nodrag flex items-center">
+              <div ref={formatMenuRef} className="relative nodrag flex items-center">
                 <div className="w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" />
                 <button className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowFormatMenu((v) => !v) }} title="请求格式">
                   <span className="truncate">{formatOptions.find((f) => f.value === apiFormat)?.label}</span>
@@ -244,7 +251,7 @@ export default function PromptNode({ id, data, selected }) {
             {/* 批量 xN + 生成/停止 */}
             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               {!loading && (
-                <div className="relative nodrag flex items-center">
+                <div ref={countMenuRef} className="relative nodrag flex items-center">
                   <button className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-[#333] hover:border-[#555] rounded text-[11px] text-gray-300 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowCountMenu((v) => !v) }} title="批量生成数量">
                     <span>x{count}</span>
                   </button>
@@ -260,7 +267,10 @@ export default function PromptNode({ id, data, selected }) {
           </div>
         </div>
 
-        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 bo.jsx:1676 _Component23） */}
+        {/* 面板右下角手柄：拖拽改输入框尺寸（复刻 bo.jsx:1676 _Component23）。
+            targetRef=textarea（promptInputRef），onResizeEnd → onInputResize 写回
+            node.data.inputWidth/inputHeight，PromptInput 的 textarea 读这个 data 渲染。
+            输入框是面板里的部件，不参与端口定位，所以只写 data，不改 node.width/height。 */}
         <ResizeFullscreenHandle
           targetRef={promptInputRef}
           minWidth={200}

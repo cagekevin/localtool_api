@@ -11,7 +11,7 @@ import ModelSelect from './base/ModelSelect.jsx'
 import PromptInput from './base/PromptInput.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import FullscreenModal from './base/FullscreenModal.jsx'
-import { useGenerate, useNodeResize } from './base/hooks.js'
+import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 
 /**
  * 文本节点（复刻原 Co.jsx / textNode）
@@ -31,6 +31,9 @@ export default function TextNode({ id, data, selected }) {
   const fileRef = useRef(null)
   const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
   const wrapperRef = useRef(null) // NodeShell 根 div ref（主框手柄拖拽改整体尺寸）
+  const presetMenuRef = useRef(null) // 预设提示词菜单容器（点击外部关闭）
+  // 预设菜单打开时点击外部自动关闭（公共 hook）
+  useOutsideClick(presetMenuRef, showPresetMenu, () => setShowPresetMenu(false))
   // 全屏编辑状态（复刻 Co.jsx:33,35 的 m/y → 主框/输入框全屏）
   const [fullscreenText, setFullscreenText] = useState(false)
   const [fullscreenPrompt, setFullscreenPrompt] = useState(false)
@@ -197,8 +200,9 @@ export default function TextNode({ id, data, selected }) {
               {/* 模型选择（基座 ModelSelect） */}
               <ModelSelect value={selectedModel} onChange={setSelectedModel} models={models} />
 
-              {/* 预设提示词 */}
-              <div className="relative nodrag flex items-center">
+              {/* 预设提示词（ref 绑在外层 relative，使「按钮 + 菜单」都在 ref 内，
+                  点按钮不会误关，点外部才关） */}
+              <div ref={presetMenuRef} className="relative nodrag flex items-center">
                 <div className="w-[1px] h-3 bg-[#444] mr-1.5" />
                 <button className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowPresetMenu((v) => !v) }} title="预设提示词">
                   <Sparkles size={10} className="text-blue-400" />
@@ -220,7 +224,12 @@ export default function TextNode({ id, data, selected }) {
           </div>
         </div>
 
-        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 Co.jsx:672 _Component23） */}
+        {/* 面板右下角手柄：拖拽改输入框尺寸 + 双击全屏（复刻 Co.jsx:672 _Component23）。
+            targetRef=textarea（promptInputRef），拖拽改 textarea 尺寸；
+            onResizeEnd → onInputResize 写回 node.data.inputWidth/inputHeight，
+            textarea 的 inline style 读这个 data 渲染（见 PromptInput）。
+            注意：输入框是面板里的「部件」，不参与节点端口定位，所以只写 data，
+            不走 onMainBoxResize 那种 node.width/height 写回。 */}
         <ResizeFullscreenHandle
           targetRef={promptInputRef}
           minWidth={200}

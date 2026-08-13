@@ -12,10 +12,18 @@ export default function CustomHandle({ className = '', variant = 'large', positi
   const size = variant === 'large' ? 48 : 32
   const half = size / 2
   const ref = useRef(null)
-  // 端口向节点外侧偏移量（复刻 _Component12.jsx：让大端口中心对准节点边缘）
+  // 端口向节点外侧偏移量（复刻 _Component12.jsx）。
+  // 为什么往外移：端口圆很大（48px），若中心贴着节点边缘，圆会有一半伸到节点外、
+  // 一半缩在节点内。用 left/right:-outerOffset 把整个大圆整体外移 16px，
+  // 让「大圆的中心」对准节点边缘，露出的可点击/可视区域更饱满，
+  // 而 ReactFlow 的连线锚点仍按节点边界计算（--cust-anchor-x 固定 50%），互不影响。
   const outerOffset = 16
 
-  // 复刻 mousemove 追踪（--cust-shift-x/y）
+  // 复刻 mousemove 追踪（--cust-shift-x/y）。
+  // 说明：下面三个 span（.cust-handle-dot/ring/plus）的位置/位移都由 index.css 里
+  // 的 CSS 变量驱动——--cust-anchor-x 固定锚点、--cust-shift-x/y 让「十字」指示器
+  // 跟随鼠标轻微移动（左右端口各只往自身一侧偏，见 isLeft/isRight 限制）。
+  // 改动外观时需同时看 index.css，别只改这里。
   useEffect(() => {
     const el = ref.current
     if (!el) return

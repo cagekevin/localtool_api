@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Zap, Sparkles, Coins } from 'lucide-react'
+import { useOutsideClick } from './hooks.js'
 
 /**
  * 模型 badge 元信息：根据 badge 类型返回文案与样式类。
@@ -31,13 +32,8 @@ export default function ModelSelect({
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
-  useEffect(() => {
-    const close = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', close, true)
-    return () => document.removeEventListener('mousedown', close, true)
-  }, [open])
+  // 打开时点击外部自动关闭（公共 hook，见 hooks.js）
+  useOutsideClick(ref, open, () => setOpen(false))
 
   const badge = (id) => {
     const item = models.find((m) => m.id === id)

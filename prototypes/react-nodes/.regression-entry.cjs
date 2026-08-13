@@ -1368,7 +1368,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect9(create2, deps) {
+        function useEffect7(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -2151,7 +2151,7 @@ var require_react_development = __commonJS({
         exports2.useContext = useContext2;
         exports2.useDebugValue = useDebugValue2;
         exports2.useDeferredValue = useDeferredValue;
-        exports2.useEffect = useEffect9;
+        exports2.useEffect = useEffect7;
         exports2.useId = useId;
         exports2.useImperativeHandle = useImperativeHandle;
         exports2.useInsertionEffect = useInsertionEffect;
@@ -16243,7 +16243,7 @@ var require_use_sync_external_store_shim_production = __commonJS({
     }
     var objectIs = "function" === typeof Object.is ? Object.is : is;
     var useState12 = React20.useState;
-    var useEffect9 = React20.useEffect;
+    var useEffect7 = React20.useEffect;
     var useLayoutEffect = React20.useLayoutEffect;
     var useDebugValue2 = React20.useDebugValue;
     function useSyncExternalStore$2(subscribe, getSnapshot) {
@@ -16256,7 +16256,7 @@ var require_use_sync_external_store_shim_production = __commonJS({
         },
         [subscribe, value, getSnapshot]
       );
-      useEffect9(
+      useEffect7(
         function() {
           checkIfSnapshotChanged(inst) && forceUpdate({ inst });
           return subscribe(function() {
@@ -16317,7 +16317,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
           },
           [subscribe, value, getSnapshot]
         );
-        useEffect9(
+        useEffect7(
           function() {
             checkIfSnapshotChanged(inst) && forceUpdate({ inst });
             return subscribe(function() {
@@ -16343,7 +16343,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React20 = require_react(), objectIs = "function" === typeof Object.is ? Object.is : is, useState12 = React20.useState, useEffect9 = React20.useEffect, useLayoutEffect = React20.useLayoutEffect, useDebugValue2 = React20.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      var React20 = require_react(), objectIs = "function" === typeof Object.is ? Object.is : is, useState12 = React20.useState, useEffect7 = React20.useEffect, useLayoutEffect = React20.useLayoutEffect, useDebugValue2 = React20.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
       exports2.useSyncExternalStore = void 0 !== React20.useSyncExternalStore ? React20.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     }();
@@ -16374,7 +16374,7 @@ var require_with_selector_production = __commonJS({
     var objectIs = "function" === typeof Object.is ? Object.is : is;
     var useSyncExternalStore = shim.useSyncExternalStore;
     var useRef12 = React20.useRef;
-    var useEffect9 = React20.useEffect;
+    var useEffect7 = React20.useEffect;
     var useMemo3 = React20.useMemo;
     var useDebugValue2 = React20.useDebugValue;
     exports2.useSyncExternalStoreWithSelector = function(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {
@@ -16418,7 +16418,7 @@ var require_with_selector_production = __commonJS({
         [getSnapshot, getServerSnapshot, selector, isEqual]
       );
       var value = useSyncExternalStore(subscribe, instRef[0], instRef[1]);
-      useEffect9(
+      useEffect7(
         function() {
           inst.hasValue = true;
           inst.value = value;
@@ -16440,7 +16440,7 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React20 = require_react(), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef12 = React20.useRef, useEffect9 = React20.useEffect, useMemo3 = React20.useMemo, useDebugValue2 = React20.useDebugValue;
+      var React20 = require_react(), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef12 = React20.useRef, useEffect7 = React20.useEffect, useMemo3 = React20.useMemo, useDebugValue2 = React20.useDebugValue;
       exports2.useSyncExternalStoreWithSelector = function(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {
         var instRef = useRef12(null);
         if (null === instRef.current) {
@@ -16483,7 +16483,7 @@ var require_with_selector_development = __commonJS({
           [getSnapshot, getServerSnapshot, selector, isEqual]
         );
         var value = useSyncExternalStore(subscribe, instRef[0], instRef[1]);
-        useEffect9(
+        useEffect7(
           function() {
             inst.hasValue = true;
             inst.value = value;
@@ -72509,6 +72509,16 @@ function CustomHandle({ className = "", variant = "large", position }) {
 
 // src/components/base/hooks.js
 var import_react6 = __toESM(require_react(), 1);
+function useOutsideClick(ref, visible, onClose) {
+  (0, import_react6.useEffect)(() => {
+    if (!visible) return;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose?.();
+    };
+    document.addEventListener("mousedown", close, true);
+    return () => document.removeEventListener("mousedown", close, true);
+  }, [ref, visible, onClose]);
+}
 function useSizeSync(id2, aspectRatio, opts = {}) {
   const { getNodes, setNodes } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -72935,13 +72945,7 @@ function ModelSelect({
 }) {
   const [open, setOpen] = (0, import_react13.useState)(false);
   const ref = (0, import_react13.useRef)(null);
-  (0, import_react13.useEffect)(() => {
-    const close = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    if (open) document.addEventListener("mousedown", close, true);
-    return () => document.removeEventListener("mousedown", close, true);
-  }, [open]);
+  useOutsideClick(ref, open, () => setOpen(false));
   const badge = (id2) => {
     const item = models.find((m) => m.id === id2);
     return item?.badge || "builtin";
@@ -73036,13 +73040,7 @@ var PromptInput = (0, import_react14.forwardRef)(function PromptInput2({
     if (typeof ref === "function") ref(el);
     else if (ref) ref.current = el;
   };
-  (0, import_react14.useEffect)(() => {
-    const close = (e) => {
-      if (mentionRef.current && !mentionRef.current.contains(e.target)) setShowMention(false);
-    };
-    if (showMention) document.addEventListener("mousedown", close, true);
-    return () => document.removeEventListener("mousedown", close, true);
-  }, [showMention]);
+  useOutsideClick(mentionRef, showMention, () => setShowMention(false));
   const all = [
     ...refImages.map((i, idx) => ({ ...i, name: `\u56FE\u7247${idx + 1}` })),
     ...refTexts.map((t, idx) => ({ ...t, name: `\u6587\u672C${idx + 1}` }))
@@ -73285,6 +73283,8 @@ function TextNode({ id: id2, data, selected }) {
   const fileRef = (0, import_react17.useRef)(null);
   const promptInputRef = (0, import_react17.useRef)(null);
   const wrapperRef = (0, import_react17.useRef)(null);
+  const presetMenuRef = (0, import_react17.useRef)(null);
+  useOutsideClick(presetMenuRef, showPresetMenu, () => setShowPresetMenu(false));
   const [fullscreenText, setFullscreenText] = (0, import_react17.useState)(false);
   const [fullscreenPrompt, setFullscreenPrompt] = (0, import_react17.useState)(false);
   const { onMainBoxResize, onInputResize } = useNodeResize(id2);
@@ -73424,7 +73424,7 @@ function TextNode({ id: id2, data, selected }) {
                   "\u81EA\u52A8\u62C6\u5206"
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { ref: presetMenuRef, className: "relative nodrag flex items-center", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "w-[1px] h-3 bg-[#444] mr-1.5" }),
                   /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
                     e.stopPropagation();
@@ -73513,6 +73513,12 @@ function PromptNode({ id: id2, data, selected }) {
   const [showCountMenu, setShowCountMenu] = (0, import_react19.useState)(false);
   const fileRef = (0, import_react19.useRef)(null);
   const promptInputRef = (0, import_react19.useRef)(null);
+  const imgMenuRef = (0, import_react19.useRef)(null);
+  const formatMenuRef = (0, import_react19.useRef)(null);
+  const countMenuRef = (0, import_react19.useRef)(null);
+  useOutsideClick(imgMenuRef, showImgMenu, () => setShowImgMenu(false));
+  useOutsideClick(formatMenuRef, showFormatMenu, () => setShowFormatMenu(false));
+  useOutsideClick(countMenuRef, showCountMenu, () => setShowCountMenu(false));
   const { onInputResize } = useNodeResize(id2);
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
     onDone: () => setImageUrl(`https://picsum.photos/seed/promptgen-${Date.now()}/512/512`),
@@ -73650,7 +73656,7 @@ function PromptNode({ id: id2, data, selected }) {
             ),
             /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center justify-between mt-2 pt-2 border-t border-[#2a2a2a] nodrag", children: [
               /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center gap-1.5 overflow-visible", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { ref: imgMenuRef, className: "relative nodrag", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("button", { type: "button", className: "flex items-center gap-1.5 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
                     e.stopPropagation();
                     setShowImgMenu((v) => !v);
@@ -73680,7 +73686,7 @@ function PromptNode({ id: id2, data, selected }) {
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(ModelSelect, { value: selectedModel, onChange: setSelectedModel, models, costMap, placeholder: "\u9009\u62E9\u6A21\u578B" }),
-                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { ref: formatMenuRef, className: "relative nodrag flex items-center", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" }),
                   /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
                     e.stopPropagation();
@@ -73703,7 +73709,7 @@ function PromptNode({ id: id2, data, selected }) {
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "flex items-center gap-2 flex-shrink-0 ml-2", children: [
-                !loading && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                !loading && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { ref: countMenuRef, className: "relative nodrag flex items-center", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { className: "flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-[#333] hover:border-[#555] rounded text-[11px] text-gray-300 transition-colors cursor-pointer", onClick: (e) => {
                     e.stopPropagation();
                     setShowCountMenu((v) => !v);
@@ -73756,6 +73762,8 @@ function DiscountVideoNode({ id: id2, data, selected }) {
   const [showRatioMenu, setShowRatioMenu] = (0, import_react20.useState)(false);
   const fileRef = (0, import_react20.useRef)(null);
   const promptInputRef = (0, import_react20.useRef)(null);
+  const ratioMenuRef = (0, import_react20.useRef)(null);
+  useOutsideClick(ratioMenuRef, showRatioMenu, () => setShowRatioMenu(false));
   const { onInputResize } = useNodeResize(id2);
   const ratioOptions = [
     { value: "16:9", label: "16:9" },
@@ -73873,7 +73881,7 @@ function DiscountVideoNode({ id: id2, data, selected }) {
             ) }) }),
             /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "flex items-center justify-between pt-2 border-t border-[#2a2a2a] nodrag", children: [
               /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "flex items-center gap-1.5 overflow-visible z-50", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { className: "relative nodrag flex items-center", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { ref: ratioMenuRef, className: "relative nodrag flex items-center", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
                     "button",
                     {

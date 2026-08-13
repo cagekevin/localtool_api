@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, forwardRef } from 'react'
+import React, { useState, useRef, forwardRef } from 'react'
 import { X, Link as LinkIcon } from 'lucide-react'
+import { useOutsideClick } from './hooks.js'
 
 /**
  * 提示词输入区（复刻各节点 contentEditable 提示词 + @素材弹层）。
@@ -48,13 +49,8 @@ const PromptInput = forwardRef(function PromptInput(
     else if (ref) ref.current = el
   }
 
-  useEffect(() => {
-    const close = (e) => {
-      if (mentionRef.current && !mentionRef.current.contains(e.target)) setShowMention(false)
-    }
-    if (showMention) document.addEventListener('mousedown', close, true)
-    return () => document.removeEventListener('mousedown', close, true)
-  }, [showMention])
+  // @素材弹层打开时点击外部自动关闭（公共 hook，见 hooks.js）
+  useOutsideClick(mentionRef, showMention, () => setShowMention(false))
 
   const all = [
     ...refImages.map((i, idx) => ({ ...i, name: `图片${idx + 1}` })),

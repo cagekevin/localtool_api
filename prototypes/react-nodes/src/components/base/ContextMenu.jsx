@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState, useLayoutEffect } from 'react'
 
 /**
  * 通用右键菜单基座（复刻 H_.jsx:12229-12619 的 ContextMenu）。
@@ -11,41 +11,69 @@ import React from 'react'
  *  - { key, icon, label, shortcut, danger, disabled, onClick, submenu }
  *    submenu: 子菜单数组（悬停展开，同构，支持嵌套）
  *
+ * ── 坐标系（务必理解，否则定位全错）──
+ * state.x / state.y 是「相对画布容器」的坐标，由 useContextMenu.toContainerPos() 换算：
+ *   (clientX - containerRect.left, clientY - containerRect.top)。
+ * 本组件挂在 ReactFlow 外层那个 <div ref={containerRef} className="relative"> 里，
+ * 菜单 absolute 定位，top/left 就相对这个 relative div，所以直接用 state.x/y 即可对齐鼠标。
+ * containerRef 同时是防溢出的基准（getBoundingClientRect 拿到容器可视范围）。
+ *
+ * ── 防溢出定位（核心设计意图）──
+ * 官方（H_.jsx Ji()）的写法是写死「预估高度」：node/selection 菜单预留 150、canvas 菜单预留 550，
+ * 判断「鼠标y + 预估高 > 容器高」时，就把菜单顶放到「容器高 - 预估高 - 10」，让菜单整体上移、底部贴住容器底。
+ * 官方为何要 550 那么大？因为官方 canvas 菜单真的很长（分组子菜单多，接近满屏高），
+ * 在屏幕下方点击时如果不整体上移，菜单会一路掉出屏幕底，所以必须预留足够高度提前上移。
+ * 但「写死预估」的坏处是：我们的 canvas 菜单实际没那么高（约 200 左右），若沿用 550，
+ * 在屏幕下方点击会「过早上移、离鼠标点很远」，看起来菜单飘到了很上面，是 bug。
+ *
+ * 因此这里改为「按实际渲染高度自适应」：
+ *   1. 先按鼠标点击点定位（top=state.y, left=state.x），菜单向右下展开；
+ *   2. useLayoutEffect 在浏览器绘制前（无闪跳）测出菜单真实 offsetWidth/offsetHeight；
+ *   3. 若 bottom 超出容器底 → 上移，让菜单底贴住容器底（top = 容器高 - 菜单高 - 10）；
+ *      若 right  超出容器右 → 左移，让菜单右贴住容器右。
+ *   原则：位置只会「往左上收」，保证永远完整落在容器内；绝不会「往右下移」导致越界。
+ *   这样菜单多高就在屏幕下方点多靠近，恰好放下，不飘高也不超出。
+ *
  * @param props
- *  - state        { x, y, type, nodeId } | null
+ *  - state        { x, y, type, nodeId } | null（x/y 为相对容器坐标）
  *  - items        (state) => items[]    根据 type 返回菜单项
  *  - onClose      关闭回调
- *  - containerRef 画布容器 ref（用于防溢出）
+ *  - containerRef 画布容器 ref（坐标基准 + 防溢出基准，需与本组件挂在同一个 relative div）
  */
 export default function ContextMenu({ state, items, onClose, containerRef }) {
-  if (!state) return null
+  const menuRef = useRef(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
 
-  const style = computePosition(state, containerRef)
+  // 见头部「防溢出定位」注释：首次按鼠标点定位，绘制前按实际尺寸往左上收。
+  useLayoutEffect(() => {
+    if (!state) return
+    const el = menuRef.current
+    const rect = containerRef?.current?.getBoundingClientRect()
+    let top = state.y
+    let left = state.x
+    if (el && rect) {
+      const mw = el.offsetWidth
+      const mh = el.offsetHeight
+      if (top + mh > rect.height) top = Math.max(4, rect.height - mh - 10)
+      if (left + mw > rect.width) left = Math.max(4, rect.width - mw - 10)
+    }
+    setPos({ top, left })
+  }, [state, containerRef])
+
+  if (!state) return null
   const menuItems = typeof items === 'function' ? items(state) : items
 
   return (
     <div
+      ref={menuRef}
       className="absolute z-50 bg-[#1c1c1e] border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 flex flex-col min-w-[208px]"
-      style={style}
+      style={{ top: pos.top, left: pos.left }}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
       {renderItems(menuItems, onClose)}
     </div>
   )
-}
-
-// 防溢出定位（复刻 H_.jsx Ji()：node/selection 预留 150px 高，canvas 预留 550px 高）
-function computePosition({ x, y, type }, containerRef) {
-  const nodeLike = type === 'node' || type === 'selection'
-  const minH = nodeLike ? 150 : 550
-  const minW = 160
-  const rect = containerRef?.current?.getBoundingClientRect()
-  if (rect) {
-    if (x + minW > rect.width) x = rect.width - minW - 10
-    if (y + minH > rect.height) y = Math.max(10, rect.height - minH - 10)
-  }
-  return { top: y, left: x }
 }
 
 // 统一渲染 icon：支持「组件引用（函数 / forwardRef 对象）」或「React 元素」两种形式
@@ -78,6 +106,10 @@ function renderItems(items, onClose) {
             </span>
             <span className="text-xl text-gray-400 leading-none">›</span>
           </button>
+          {/* 子菜单：用纯 CSS group-hover 展开，无需 JS 状态。
+              before 伪元素是一个「桥」：向左延伸 12px，鼠标从父项移到子菜单
+              经过中间 8px gap 时仍算 hover（group-hover/sub），子菜单不会收起。
+              这是官方防抖的常用技巧，删掉会出现"鼠标一过 gap 子菜单就消失"。 */}
           <div
             className={`absolute left-full top-0 ml-2 bg-[#1c1c1e] border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 min-w-[200px] z-50 hidden group-hover/sub:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
           >
@@ -99,6 +131,7 @@ function renderItems(items, onClose) {
             </span>
             <span className="text-xl text-gray-400 leading-none">›</span>
           </button>
+          {/* 分组子菜单（工具面板）：同样 group-hover 展开 + before 桥防抖（见上一条注释） */}
           <div
             className={`absolute left-full top-0 ml-2 bg-[#1c1c1e] border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 w-[300px] z-50 hidden group-hover/tools:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
           >
