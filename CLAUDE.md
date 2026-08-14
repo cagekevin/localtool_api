@@ -210,6 +210,7 @@ localTool :18080  ── 自研，整体对接 apimart-gateway
 * **唯一入口**：localTool 的 `/files/` 是唯一文件入口，Python 网关不直接落盘。
 * **不丢图增强**：localTool 拿到 CDN url 后调 `saveRemoteUrl`（基于 `sha1(url)` 幂等）转存本地。
 * **降级策略**：下载失败仍返回 CDN 链接 + WARN，**绝不抛 500 阻断生图**。
+* **丢图留痕（2026-08-14）**：`saveRemoteUrl` 每次下载打 `[download]`（OK/FAIL/SKIP + 落盘路径）、`/api/files/upload` 打 `[upload]`（200/400）日志（`localTool/src/routes/files.ts`）。**"生成图显示在画布但资源面板没有"通常是下载失败降级为远程 URL 未本地化**——先用 `npm run db -- --lost-check` 查，日志看 `[download] FAIL`。常见外因：CDN（`a.lovart.ai`）需代理才能访问，VPN/代理抖动时偶发超时。
 * **出站代理（2026-08-02）**：localTool 是独立 Node 进程，原生 `fetch` **不继承浏览器/系统代理**。若外部 CDN（如 Lovart `a.lovart.ai`）在本机需经代理才能访问，`saveRemoteUrl` 直连会超时 → 表现 `POST /api/files/upload 400`。统一封装 `localTool/src/utils/netProxy.ts` 的 `fetchWithProxy`：**直连优先 → 失败读代理环境变量（`HTTPS_PROXY`>`HTTP_PROXY`>`ALL_PROXY`，大小写兼容）→ 无则探测本机常见代理端口（`7897/7890/1087/1080/8888/8118`）→ 用 `node:https`+`tls.connect` CONNECT 隧道经代理重试**。本地目标（`127.0.0.1`/`localhost`/内网）永不走代理。适用点：`files.ts` 的 `saveRemoteUrl`（下载 CDN 图）与 `handleReadProxy`（`x-proxy-url` 外部代理读）；`/api/proxy`→`:9004`、`official.ts`/`passthrough.ts`→官方（直连可达）**不涉及**。
 
 ---
@@ -362,6 +363,10 @@ node scripts/clear-cache.cjs --kv=active_api_endpoint
 | 要改画布前端 | 先 `npm run ask` 定位 → 改 `src/bundle/` → `npm run test:smoke` → `npm run build`（回灌 dist）→ 按需 `npm run health`（见 §五.4）；严禁直接手改 dist |
 | 要看画布可读源码 | `src/bundle/`（可编辑工程源码，改完 build 回灌） |
 | 改 localTool 后端（含方案② base64 外置/孤儿 GC） | `cd localTool && npm test`（73 项，先编译再测；隔离临时库，不碰真实数据） |
-| localTool 库膨胀需压缩 | 停 localTool 后跑 `cd localTool && node scripts/vacuum-localtool-db.mjs`（自动备份+完整性校验+VACUUM） |
+| localTool 库膨胀需压缩 | 停 localTool 后跑 `cd localTool && npm run db:vacuum`（即 `node scripts/db-query.mjs --vacuum`，自动备份+完整性校验+VACUUM） |
+| 想查 localTool 数据库 | `cd localTool && npm run db -- --tables/--table/--sql/--kv/--search`（`localTool/scripts/db-query.mjs`，只读，支持 `--json`） |
+| 查 localTool 日志 | `cd localTool && npm run db -- --logs [download\|upload\|proxy\|error\|...]`（按前缀/关键词过滤，自动高亮异常） |
+| **丢图排查主入口** | `cd localTool && npm run db -- --lost-check`（tasks 远程URL未落盘 / 失败任务 / 磁盘↔资源一致性 / 日志下载失败与上传400 一次列全）或 `npm run db -- --task <node_id>` 看单节点各任务结果形态 |
+| localTool 全部脚本清单 | `localTool/scripts/README.md` |
 | VPN/502 排障 | 先 `ping lgw.lovart.ai:443` 确认 VPN |
 | 提交前验证 | 前端 `npm run test:smoke`+`npm run build`；**localTool 改动另跑 `cd localTool && npm test`**（见 §三.3） |

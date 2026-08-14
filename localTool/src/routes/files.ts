@@ -28,6 +28,10 @@ export async function handleUpload(req: IncomingMessage, res: ServerResponse): P
   }
 }
 
+// upload 响应留痕：此前日志只记 [POST] /api/files/upload 请求、不记响应，失败（400）无法从日志看出。
+const uploadLog = (status: number, msg: string) =>
+  console.log(`[upload] ${new Date().toISOString().replace('T', ' ').slice(0, 19)} | ${status} | ${msg}`);
+
 async function handleUploadFormData(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const { fields, files } = await parseMultipart(req);
 
@@ -43,7 +47,7 @@ async function handleUploadFormData(req: IncomingMessage, res: ServerResponse): 
     const savedPath = await saveFile(fileData.data, subfolder, saveName);
     const fileUrlPath = `/files/${subfolder}/${path.basename(savedPath)}`;
     const thumbnailUrl = await tryGenerateThumbnail(savedPath, fileUrlPath);
-
+    uploadLog(200, `formdata ${saveName} -> ${fileUrlPath}`);
     return json(res, {
       url: `${BASE_URL}${fileUrlPath}`,
       path: savedPath,
@@ -55,18 +59,22 @@ async function handleUploadFormData(req: IncomingMessage, res: ServerResponse): 
     // fileUrl 模式：下载远程文件保存（幂等：同一远程 URL → 同一本地文件名，已存在则跳过下载）
     try {
       const result = await saveRemoteUrl(subfolder, fileUrl, filename);
+      uploadLog(200, `fileUrl ${fileUrl}`);
       return json(res, result);
     } catch (e) {
+      uploadLog(400, `fileUrl ${fileUrl} | ${(e as Error).message}`);
       return sendError(res, `Failed to download fileUrl: ${(e as Error).message}`, 400);
     }
   }
 
+  uploadLog(400, 'missing file/fileUrl');
   return sendError(res, 'Missing file or fileUrl field', 400);
 }
 
 async function handleUploadJson(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = (await parseJsonBody(req)) as { fileUrl?: string; subfolder?: string; filename?: string } | null;
   if (!body || !body.fileUrl) {
+    uploadLog(400, 'missing fileUrl in JSON');
     return sendError(res, 'Missing fileUrl in JSON body', 400);
   }
 
@@ -75,8 +83,10 @@ async function handleUploadJson(req: IncomingMessage, res: ServerResponse): Prom
 
   try {
     const result = await saveRemoteUrl(subfolder, body.fileUrl, filename);
+    uploadLog(200, `fileUrl ${body.fileUrl}`);
     return json(res, result);
   } catch (e) {
+    uploadLog(400, `fileUrl ${body.fileUrl} | ${(e as Error).message}`);
     return sendError(res, `Failed to download fileUrl: ${(e as Error).message}`, 400);
   }
 }
@@ -101,15 +111,26 @@ async function saveRemoteUrl(subfolder: string, fileUrl: string, filename?: stri
   const { savedPath, urlPath } = resolveUploadTarget(subfolder, stableName);
   ensureDir(path.dirname(savedPath));
 
+  // 留痕：下载成败都打 [download] 日志（含 URL/落盘路径/原因），供"图丢了"排查溯源。
+  // 此前失败仅表现为 upload 400 且日志不记响应，导致丢图无迹可循（见 daily/2026-08-14 §一）。
+  const ts = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
   if (!fs.existsSync(savedPath)) {
     // 直连优先，失败走代理（跨平台：读环境变量或探测 127.0.0.1:7897 等常见本机代理端口）。
     // 解决了 localTool 进程 fetch 不继承浏览器代理、导致下载 Lovart CDN 图超时 400 的问题。
-    const response = await fetchWithProxy(fileUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download fileUrl: ${response.status}`);
+    try {
+      const response = await fetchWithProxy(fileUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = Buffer.from(await response.arrayBuffer());
+      writeUploadBufferAt(subfolder, stableName, data);
+      console.log(`[download] ${ts()} | OK  | ${fileUrl} -> ${urlPath} | ${(data.length / 1024).toFixed(0)}KB`);
+    } catch (e) {
+      console.error(`[download] ${ts()} | FAIL | ${fileUrl} | ${(e as Error).message}`);
+      throw new Error(`Failed to download fileUrl: ${(e as Error).message}`);
     }
-    const data = Buffer.from(await response.arrayBuffer());
-    writeUploadBufferAt(subfolder, stableName, data);
+  } else {
+    console.log(`[download] ${ts()} | SKIP(已存在) | ${fileUrl} -> ${urlPath}`);
   }
 
   const thumbnailUrl = await tryGenerateThumbnail(savedPath, urlPath);
