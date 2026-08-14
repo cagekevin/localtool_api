@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
 import { reportGenerate } from './taskStore.js'
+import { logger } from './logger.js'
 
 /**
  * 判断事件目标是否在可编辑元素内（INPUT / TEXTAREA / contenteditable）。
@@ -197,11 +198,13 @@ export function useGenerate({ onDone, delay = 2000, task } = {}) {
     if (t?.nodeId) {
       taskCtl = reportGenerate(t.nodeId, t.type, t.prompt, { modelName: t.modelName })
       taskCtl.progress(15)
+      logger.info('生成', 'start', { nodeId: t.nodeId, type: t.type, prompt: t.prompt })
     }
     timer.current = setTimeout(() => {
       setLoading(false)
       timer.current = null
       taskCtl?.done(t.resultUrl) // 标记任务完成
+      if (t?.nodeId) logger.info('生成', 'success', { nodeId: t.nodeId, type: t.type })
       onDone?.()
     }, delay)
   }, [onDone, delay])

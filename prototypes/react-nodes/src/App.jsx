@@ -26,6 +26,7 @@ import AgentPanel from './components/AgentPanel.jsx'
 import LeftPanel from './components/base/LeftPanel.jsx'
 import ProjectSelector from './components/base/ProjectSelector.jsx'
 import { switchProject, loadCanvasState, saveCanvasState, getCurrentProject } from './components/base/projectStore.js'
+import { logger } from './components/base/logger.js'
 import CustomEdge from './components/CustomEdge.jsx'
 import ConnectionLine from './components/ConnectionLine.jsx'
 import ContextMenu from './components/base/ContextMenu.jsx'
@@ -256,6 +257,7 @@ function Canvas() {
       setNodes(next.nodes)
       setEdges(next.edges)
       history.clear?.()
+      logger.info('项目', 'switch', { targetId })
     },
     [setNodes, setEdges, history]
   )
@@ -265,6 +267,7 @@ function Canvas() {
     setNodes([])
     setEdges([])
     history.clear?.()
+    logger.info('项目', 'create', { name: getCurrentProject().name })
   }, [setNodes, setEdges, history])
 
   // 右键菜单状态（基座 useContextMenu）
@@ -317,6 +320,7 @@ function Canvas() {
       setNodes(nextNodes)
       if (connection) setEdges(nextEdges)
       history.record({ nodes: nextNodes, edges: nextEdges })
+      // 不记建节点日志：结构操作可从画布快照/历史栈还原，记了是噪音（见 logger.js 注释）
       return id
     },
     [setNodes, setEdges, history]
@@ -330,6 +334,7 @@ function Canvas() {
       setNodes(nextNodes)
       setEdges(nextEdges)
       history.record({ nodes: nextNodes, edges: nextEdges })
+      // 不记删节点日志（同建节点）
     },
     [setNodes, setEdges, history]
   )
@@ -548,6 +553,7 @@ function Canvas() {
       const nextEdges = [...edgesRef.current, { ...params, type: 'default', animated: false }]
       setEdges(nextEdges)
       history.record({ nodes: nodesRef.current, edges: nextEdges })
+      // 不记连线日志（同建节点）
     },
     [setEdges, history]
   )
@@ -636,6 +642,7 @@ function Canvas() {
       if (!deleted || !deleted.length) return
       const nextEdges = edgesRef.current.filter((ed) => !deleted.some((d) => d.id === ed.id))
       history.record({ nodes: nodesRef.current, edges: nextEdges })
+      // 不记删线日志（同建节点）
     },
     [history]
   )
