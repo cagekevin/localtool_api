@@ -5,10 +5,10 @@
 ## 文档指引（开发前必读）
 
 > **先看这两份再动手，避免重复造轮子：**
-> - **`BASE-CAPABILITIES.md`** ← **能力清单**：`base/` 已建好的通用能力（节点外壳/通知/素材导入/图片编辑/性能降级等），做新功能直接照用
+> - **`BASE-CAPABILITIES.md`** ← **能力清单**：`base/` 已建好的通用能力（节点外壳/通知/素材导入/图片编辑/性能降级/**画布统一工具层**等），做新功能直接照用
 > - **`ARCHITECTURE.md`** ← **设计规范**：为什么这样设计、新增节点流程、接真系统路径
 >
-> 一句话：**弹提示用 `showToast`、新节点用 `NodeShell`、缩小时藏媒体用 `useMediaDegrade`、拖入素材用 `useAssetDropPaste`**。
+> 一句话：**弹提示用 `showToast`、新节点用 `NodeShell`、缩小时藏媒体用 `useMediaDegrade`、拖入素材用 `useAssetDropPaste`、操作画布（供 Agent/自动化）用 `useCanvasAgentTools`**。
 
 ## 启动
 
@@ -16,6 +16,20 @@
 npm install
 npm run dev     # 自动打开 http://localhost:5180
 ```
+
+## 画布 AI 助手（演示）
+
+右上角 **AI 助手** 按钮打开右侧聊天面板。说一句话就能驱动画布（创建节点/连线/删除/查看）。
+
+**零配置演示（推荐先试）**：复制 `.env.example` 为 `.env`，确保含 `VITE_AGENT_DEMO=1`，重启 dev——用本地规则引擎模拟 LLM，无需任何 API key：
+
+```
+试试说：「帮我生成一张赛博朋克风格的猫咪图」  → 创建生图节点
+       「连接 text-1 和 prompt-1」            → 建立连线
+       「看看画布有哪些节点」                  → 列出画布
+```
+
+**真实 LLM 对话**：去掉 `VITE_AGENT_DEMO`，按 `.env.example` 配 `VITE_LLM_CHAT_BASE_URL`（走 localTool 或直连 OpenAI 兼容端点）。注意端点必须**支持 function calling**（`docs/27 §4`：Lovart 网关不支持 tools）。配置详见 `.env.example`。
 
 ## 结构
 

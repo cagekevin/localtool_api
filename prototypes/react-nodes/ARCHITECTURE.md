@@ -61,7 +61,7 @@ prototypes/react-nodes/src/
 | 层 | 职责 | 承载原则 |
 |---|---|---|
 | ① App.jsx | ReactFlow 装配 + 画布状态 + 通用操作 + 历史/快捷键 + nodeTypes 注册 + 演示节点数据 | 原则1 |
-| ② base/ | 节点外壳/端口/公共 hooks/面板/菜单/节点目录 + 画布级工具栏工具（CanvasToolbar/ArrangeConfirm/useArrangeCanvas，见 §二.5） | 原则1 |
+| ② base/ | 节点外壳/端口/公共 hooks/面板/菜单/节点目录 + 画布级工具栏工具（CanvasToolbar/ArrangeConfirm/useArrangeCanvas，见 §二.5）+ **画布统一工具层（useCanvasAgentTools，见 §二.6）** | 原则1 |
 | ③ components/*.jsx | 每个节点的 UI + 交互 + 数据 | 原则2、3 |
 | ④ scriptbox/ | 剧本盒子三步子组件 | 原则2、3、4 |
 
@@ -116,6 +116,37 @@ const { lodLevel = 0 } = useLod()
 const hideMedia = lodLevel >= 2 // 按需调阈值
 ```
 然后渲染时 `!hideMedia && <img/video/...>`，替换为轻量占位即可。**阈值选择对齐横幅语义**：≥2 藏图片，≥3 藏视频。
+
+---
+
+## 二.6、画布统一工具层（Canvas Agent Tools，`useCanvasAgentTools.js`）
+
+> **给将来「AI 画布助手」（LLM function calling）铺路**。官方 A1 画布助手（`docs/27`）依赖「30 个画布工具 + 前端执行器 + LLM 中转」。本原型已用 ReactFlow 重写了画布操作（`addNode`/`setNodes` 等在 App.jsx），**缺的正是把这份能力抽象成「可被 LLM 调用」的统一工具层**——这就是 `useCanvasAgentTools`。
+
+### 为什么放 base/（原则 1 关注点分离）
+
+- 工具层通过 `useReactFlow()` 自取能力（同 `useScriptBoxEngine` 模式），**App 无需传参、不变成垃圾场**。
+- 它只是「画布操作」的**统一出口**，不含任何 Agent UI / LLM 逻辑。Agent 面板（聊天/工具调用循环）是后续独立工作，届时只需调 `callTool(name, args)`。
+
+### 工具返回契约（原则 4 面向真实引擎）
+
+每个工具 `{ ok, data | error }`，`error` 恒为人话，可直接喂 LLM（对齐官方 `lr()` 返回形状，LLM 解析无差异）。写操作一律「不可变局部更新」（原则 3）：只改目标节点，非目标节点 `: n` 原样返回。
+
+### 何时走工具层 / 何时不走
+
+- **走**：Agent 面板、自动化脚本、测试驱动画布——统一走 `useCanvasAgentTools`，保证「画布操作」只有这一个出口。
+- **不走**：节点内部 UI 交互（那是节点自己的事）；手写一次性操作（直接 `setNodes`）。
+
+### 新增工具流程
+
+1. 在 `useCanvasAgentTools.js` 定义工具对象（`name/description/parameters/execute`，`execute(args, ctx)` 返回信封）。
+2. 加入 `AGENT_TOOLS` 数组 → 自动出现在 `toolSchemas`（LLM 可见）与 `CANVAS_AGENT_TOOL_NAMES`。
+3. 在 `scripts/test_agent_tools.cjs` 加一条用例（`npm run test:tools`）。
+4. 登记进 `BASE-CAPABILITIES.md` §二.5 清单。
+
+### 接真系统路径
+
+当前操作 ReactFlow 内存画布（原型阶段）。接真引擎时若 Agent 改走服务端，只需把 `setNodes/setEdges` 换成调 localTool 状态接口；**工具签名与返回信封不变，LLM 侧无感知**（原则 4 的可对接性）。
 
 ---
 

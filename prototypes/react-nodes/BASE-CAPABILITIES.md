@@ -43,6 +43,66 @@
 
 ---
 
+## 二.5、画布统一工具层（Canvas Agent Tools）★ 为 Agent 铺路
+
+> **给将来「AI 画布助手」（LLM function calling，见 `docs/27` 官方 30 工具）用的统一工具层。**
+> 把画布操作（建/删/改节点、连线、查结构、视图）收敛成一份「可被 LLM 调用」的工具清单，不再散落在 App.jsx。
+
+| 能力 | 文件 | 一句话 | 用法 |
+|------|------|--------|------|
+| **工具层 hook** | `useCanvasAgentTools.js` | 统一画布工具 Map + OpenAI schema | `const { tools, toolSchemas, callTool, execute } = useCanvasAgentTools()` |
+| **纯逻辑工厂** | `buildCanvasAgentTools(ctx)` | 脱离 React 构建工具 Map（测试/非 hook 环境用） | `buildCanvasAgentTools(fakeCtx)` |
+| **schema 生成** | `buildCanvasAgentToolSchemas()` | OpenAI function calling 格式工具描述数组 | 直接喂 LLM `tools` 字段 |
+| **工具名清单** | `CANVAS_AGENT_TOOL_NAMES` | 全部工具名数组 | 枚举/校验 |
+| **工具逻辑验证** | `npm run test:tools` | 8 项核心逻辑测试（建/删/改/连线/查询/去重/不可变更新） | `node scripts/test_agent_tools.cjs` |
+
+### 工具清单（当前 17 个）
+
+**只读**：`list_nodes` / `list_edges` / `get_node_details` / `read_canvas`
+**修改**：`create_node` / `batch_create_nodes` / `delete_node` / `batch_delete_nodes` / `update_node`（白名单）/ `update_node_raw` / `connect_nodes` / `batch_connect_nodes` / `delete_edge` / `move_node`
+**其他**：`trigger_generation`（假实现）/ `fit_view` / `group_nodes`（假实现）
+
+### 使用约定（必读）
+
+- **返回信封**：每个工具 `{ ok, data | error }`，`error` 永远是人话，可直接喂 LLM（对齐官方 `lr()` 返回形状）。
+- **写回铁律（原则3）**：所有写操作一律「不可变局部更新」，只改目标节点，非目标节点 `: n` 原样返回，绝不全局造新引用。
+- **改节点白名单**：`update_node` 只允许 `prompt/label/selectedModel/aspectRatio/resolution/seconds/text`；要改任意字段才用 `update_node_raw`。
+- **新增工具**：在 `useCanvasAgentTools.js` 定义工具对象（name/description/parameters/execute）→ 加入 `AGENT_TOOLS` 数组 → 自动出现在 schema 和 `test:tools` 覆盖范围。**记得加进本清单。**
+- **接真系统路径**：当前操作 ReactFlow 内存画布；接真引擎时若 Agent 改走服务端，把 `setNodes/setEdges` 换成调 localTool 状态接口即可，**工具签名与返回信封不变，LLM 侧无感知**。
+
+---
+
+## 二.6、画布 AI 助手面板（AgentPanel）★ 复刻官方 _Component40
+
+> **「说一句话 → 画布实时变化」的聊天面板**，完全复刻官方 `_Component40.jsx`（标题栏/清空/关闭/消息列表/思考中/输入框/模型切换/图片上传/发送/停止/宽度拖拽），并把工具执行接到 §二.5 的工具层。
+
+| 能力 | 文件 | 一句话 | 用法 |
+|------|------|--------|------|
+| **聊天面板** | `src/components/AgentPanel.jsx` | 复刻官方右侧面板 UI，接入 useAgentChat | `<AgentPanel open onClose agentKey="canvas-assistant" />`（App 已挂，右上角 AI 按钮开关） |
+| **对话 hook** | `src/components/base/useAgentChat.js` | 复刻官方 `dr`：消息状态 + SSE 发送 + 多轮工具循环（工具执行接工具层） | `const { messages, sending, send, stop, clear } = useAgentChat({ agentKey })` |
+| **消息气泡** | `src/components/AgentMessage.jsx` | 复刻官方 `Cr/Sr/_Component34`：user/assistant/tool 三态 + 思考折叠 + 工具标签 | 被 AgentPanel 使用 |
+| **demo 规则引擎** | `useAgentChat.js` 的 `demoPlan` | 本地规则模拟 LLM：识别「创建/连接/删除/查看」意图调工具 | `VITE_AGENT_DEMO=1` 开启，零配置演示 |
+
+### 三种对话模式（useAgentChat 按 env 选择）
+
+| 模式 | 开关 | 行为 |
+|------|------|------|
+| **Demo（推荐先体验）** | `VITE_AGENT_DEMO=1` | 本地规则引擎模拟 LLM，说一句话→调工具→画布变化，无需 API key |
+| **走 localTool** | （默认） | 请求发到 `http://127.0.0.1:18080/api/agent/canvas-assistant/chat`，localTool 转发到支持 function calling 的 LLM（前提：localTool 已配 `LLM_CHAT_BASE_URL`） |
+| **直连 OpenAI 兼容** | `VITE_LLM_CHAT_BASE_URL` + `VITE_LLM_CHAT_API_KEY` + `VITE_LLM_CHAT_MODEL` | 直接指到支持 function calling 的端点（魔搭/DeepSeek/OpenAI） |
+
+> 配置见 `prototypes/react-nodes/.env.example`（复制为 `.env` 生效）。
+
+### 复刻要点（对应官方）
+
+- **多轮工具循环**：≤8 轮（`ur=8`，复刻 shared.js:2536），每轮 SSE 解析 `tool_calls` → 调工具层 → 回填 `tool` 结果 → 下一轮。
+- **工具执行**：官方 `lr(name,args,canvasHandleRef)` → 本实现 `callTool`（useCanvasAgentTools），**返回信封 `{ok,data|error}` 一致，LLM 侧无感知**。
+- **消息契约**：user（含 attachments 图片）/ assistant（content+reasoning+tool_calls+streaming）/ tool（content 为 JSON）三态，与官方一致。
+- **视觉模型校验**：发送/上传图片前检查模型是否在视觉集合（`VITE_AGENT_VISION_MODELS` 可扩）。
+- **模型下拉**：内置列表（`VITE_AGENT_MODELS` 可覆盖），localStorage 记忆选中模型。
+
+---
+
 ## 三、通知系统（统一 toast 地基）★ 打地基的核心
 
 | 能力 | 文件 | 一句话 | 用法 |

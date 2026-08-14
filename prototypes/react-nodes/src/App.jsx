@@ -22,6 +22,7 @@ import DiscountVideoNode from './components/DiscountVideoNode.jsx'
 import GroupNode from './components/GroupNode.jsx'
 import ScriptBoxNode from './components/ScriptBoxNode.jsx'
 import GhostTargetNode from './components/GhostTargetNode.jsx'
+import AgentPanel from './components/AgentPanel.jsx'
 import CustomEdge from './components/CustomEdge.jsx'
 import ConnectionLine from './components/ConnectionLine.jsx'
 import ContextMenu from './components/base/ContextMenu.jsx'
@@ -188,6 +189,10 @@ function Canvas() {
 
   // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；缩放/适配用 fitView/zoomIn/zoomOut
   const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
+
+  // 画布 AI 助手面板开关（复刻官方 _Component40 的 open state；点右上角 AI 图标打开）
+  // 接真系统：可持久化到项目设置 KV（app_settings），本 state 是唯一数据源。
+  const [agentOpen, setAgentOpen] = React.useState(false)
 
   // 小地图开关（复刻 H_.jsx:474 un/dn，默认关——用户要求默认不显示，点工具栏 Map 图标再开）。
   // 仅当开启且节点数 <100 时显示 MiniMap（官方 De.length<100）。
@@ -718,6 +723,30 @@ function Canvas() {
               因此「性能模式关 → 节点不隐藏媒体、横幅不弹」天然成立（各节点用 useLod 读 lodLevel）。 */}
           <LodListener onLodChange={setLodLevel} enablePerformanceMode={performanceMode} />
         </ReactFlow>
+
+        {/* 画布 AI 助手入口（右上角，复刻官方打开方式） */}
+        <div className="absolute top-3 right-3 z-[950] pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => setAgentOpen((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors shadow-lg border ${agentOpen ? 'bg-[#2a2a2a] text-white border-[#444]' : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#2a2a2a] hover:text-white border-[#333]'}`}
+            title={agentOpen ? '关闭 AI 助手' : '打开 AI 助手'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+            {agentOpen ? '关闭' : 'AI 助手'}
+          </button>
+        </div>
+
+        {/* 画布 AI 助手面板（复刻官方 _Component40；open 时右侧浮出） */}
+        <AgentPanel
+          agentKey="canvas-assistant"
+          open={agentOpen}
+          onClose={() => setAgentOpen(false)}
+          systemPrompt={''}
+        />
 
         {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
         {/* 抉择：工具栏 + 确认弹窗叠在一个 absolute 容器（left-3 bottom-3），弹窗 absolute bottom-full 挂在工具栏上方 */}
