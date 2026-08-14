@@ -221,3 +221,35 @@ export function useGenerate({ onDone, delay = 2000, task } = {}) {
 
   return { loading, setLoading, error, setError, start, stop }
 }
+
+/**
+ * 统一「新建节点落点」计算（公共 base）。
+ *
+ * 所有新建节点入口共用此落点规则，避免各写各的导致不一致：
+ *  - posAtMenu(menuState)  右键菜单（含工具子菜单/视频抽帧）→ 右键点击位置（点哪建哪）
+ *                          注意用 menuState.client（视口坐标）经 screenToFlowPosition 换算成
+ *                          flow 坐标；不能用 menuState.x/y（那是容器相对坐标，坐标系不同）。
+ *  - posAtCenter()         Q/W/E 快捷键等无坐标入口 → 视图中央
+ *
+ * 返回的 position 均为画布 flow 坐标，可直接传给 addNode / addNodes。
+ */
+export function useNodePosition() {
+  const { screenToFlowPosition } = useReactFlow()
+
+  const posAtMenu = useCallback(
+    (menuState) => {
+      const s = menuState || {}
+      return s.client
+        ? screenToFlowPosition(s.client)
+        : screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    },
+    [screenToFlowPosition]
+  )
+
+  const posAtCenter = useCallback(
+    () => screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 }),
+    [screenToFlowPosition]
+  )
+
+  return { posAtMenu, posAtCenter }
+}

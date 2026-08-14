@@ -34,9 +34,9 @@ export const paletteNodes = [
   // --- 图片工具 ---
   { type: 'promptNode', label: '图片', icon: ImageIcon, cat: 'image', data: { prompt: '' }, builtin: true },
   { type: 'imageNode', label: '图片节点', icon: ImageIcon, cat: 'image', data: { images: [] }, builtin: true },
-  { type: 'imageBoxNode', label: '图片盒子', icon: Box, cat: 'image', data: { images: [], activeIndex: 0, expanded: false } },
-  { type: 'gridSplitNode', label: '图片切分', icon: Grid3X3, cat: 'image' },
-  { type: 'gridMergeNode', label: '图片拼图', icon: Grid2X2, cat: 'image' },
+  { type: 'imageBoxNode', label: '图片盒子', icon: Box, cat: 'image', data: { images: [], activeIndex: 0, expanded: false }, builtin: true },
+  { type: 'gridSplitNode', label: '图片切分', icon: Grid3X3, cat: 'image', data: { imageUrl: '', extractedImages: [], rows: 3, cols: 3, splitMode: 'grid', hLines: [0.5], vLines: [0.5], lassoShapes: [], titlePattern: '#{num}', sendToImageBox: false }, builtin: true },
+  { type: 'gridMergeNode', label: '图片拼图', icon: Grid2X2, cat: 'image', data: { mergeMode: 'grid', rows: 3, cols: 3, cellSize: 512, aspectRatio: '1:1', autoSize: true, titlePattern: '', longDirection: 'vertical', longGap: 0, longTargetSize: 1024, longAutoSize: true, bgColor: 'transparent', overlayState: { layers: [], canvasWidth: 1024, canvasHeight: 1024, bgColor: 'transparent' } }, builtin: true },
   { type: 'panoramaNode', label: '全景图', icon: Globe, cat: 'image' },
   { type: 'director3dNode', label: '3D导演台', icon: Film, cat: 'image' },
   { type: 'imageCompressNode', label: '图片压缩', icon: FileArchive, cat: 'image' },

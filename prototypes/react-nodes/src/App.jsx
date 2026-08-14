@@ -19,6 +19,10 @@ import TextNode from './components/TextNode.jsx'
 import ImageNode from './components/ImageNode.jsx'
 import PromptNode from './components/PromptNode.jsx'
 import DiscountVideoNode from './components/DiscountVideoNode.jsx'
+import VideoExtractNode from './components/VideoExtractNode.jsx'
+import ImageBoxNode from './components/ImageBoxNode.jsx'
+import GridSplitNode from './components/GridSplitNode.jsx'
+import GridMergeNode from './components/GridMergeNode.jsx'
 import GroupNode from './components/GroupNode.jsx'
 import ScriptBoxNode from './components/ScriptBoxNode.jsx'
 import GhostTargetNode from './components/GhostTargetNode.jsx'
@@ -27,6 +31,7 @@ import LeftPanel from './components/base/LeftPanel.jsx'
 import ProjectSelector from './components/base/ProjectSelector.jsx'
 import { switchProject, loadCanvasState, saveCanvasState, getCurrentProject } from './components/base/projectStore.js'
 import { logger } from './components/base/logger.js'
+import { useNodePosition } from './components/base/hooks.js'
 import CustomEdge from './components/CustomEdge.jsx'
 import ConnectionLine from './components/ConnectionLine.jsx'
 import ContextMenu from './components/base/ContextMenu.jsx'
@@ -50,6 +55,10 @@ const nodeTypes = {
   imageNode: ImageNode,
   promptNode: PromptNode,
   discountVideoNode: DiscountVideoNode,
+  videoExtractNode: VideoExtractNode,
+  imageBoxNode: ImageBoxNode,
+  gridSplitNode: GridSplitNode,
+  gridMergeNode: GridMergeNode,
   group: GroupNode,
   scriptBoxNode: ScriptBoxNode,
   ghostTarget: GhostTargetNode
@@ -272,6 +281,8 @@ function Canvas() {
 
   // 右键菜单状态（基座 useContextMenu）
   const menu = useContextMenu()
+  // 统一新建节点落点（公共 base）：posAtMenu 右键位置 / posAtCenter 视图中央
+  const { posAtMenu, posAtCenter } = useNodePosition()
 
   // LOD 视口缩放等级（基座 LodListener/LodProvider）
   const [lodLevel, setLodLevel] = React.useState(0)
@@ -311,6 +322,10 @@ function Canvas() {
       if (type === 'promptNode') {
         // 生图节点默认 420×420，避免端口跑偏
         Object.assign(newNode, { width: 420, height: 420, style: { width: 420, height: 420 } })
+      }
+      if (type === 'gridSplitNode') {
+        // 图片切分对齐官方 Lo.jsx：固定窄容器 280px，图片区跟随图片比例
+        Object.assign(newNode, { width: 280, style: { width: 280 } })
       }
       const nextNodes = [...nodesRef.current, newNode]
       // 若带 connection：自动创建 source→新节点 的边
@@ -491,10 +506,10 @@ function Canvas() {
         buildFromConnection(type, conn)
         return
       }
-      const s = menu.state || { x: 0, y: 0 }
-      addNode(type, { x: s.x, y: s.y }, defaultNodeData(type))
+      // 右键菜单（含工具子菜单/视频抽帧）：用公共 posAtMenu 算落点（右键位置，点哪建哪）
+      addNode(type, posAtMenu(menu.state), defaultNodeData(type))
     },
-    [menu.state, buildFromConnection, addNode]
+    [menu.state, buildFromConnection, addNode, posAtMenu]
   )
 
   // 多选菜单：删除
@@ -541,9 +556,8 @@ function Canvas() {
         buildFromConnection(type, conn)
         return
       }
-      // 否则快速添加节点到视窗中心（复刻 Q/W/E）
-      const center = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
-      addNode(type, center, defaultNodeData(type))
+      // 否则快速添加节点到视窗中心（复刻 Q/W/E，统一走公共 posAtCenter）
+      addNode(type, posAtCenter(), defaultNodeData(type))
     }
   })
 

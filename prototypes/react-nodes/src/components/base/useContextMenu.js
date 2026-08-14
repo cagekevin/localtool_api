@@ -36,7 +36,9 @@ export function useContextMenu() {
       e.preventDefault()
       e.stopPropagation()
       const { x, y } = toContainerPos(e.clientX, e.clientY)
-      setState(nodeId ? { x, y, type, nodeId } : { x, y, type })
+      // client 存原始屏幕坐标（视口坐标系），供建节点时用 screenToFlowPosition 换算出正确落点
+      const client = { x: e.clientX, y: e.clientY }
+      setState(nodeId ? { x, y, type, nodeId, client } : { x, y, type, client })
     },
     [toContainerPos]
   )

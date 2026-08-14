@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { detectFileType, isAssetUrl } from './mediaType.js'
 import { showToast } from './toastStore.js'
 
@@ -23,6 +23,24 @@ import { showToast } from './toastStore.js'
  * @returns {{ onDragOver, onDrop, onPaste }} 挂到 ReactFlow 的事件 + 供 window paste 监听
  */
 export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
+  // 记录最近一次鼠标位置（视口坐标）：粘贴时优先落在鼠标处，无鼠标则回退到视图中心。
+  // paste 事件本身不带 clientX/Y，官方也是用「当前视口位置」建节点；这里用 mousemove 追踪
+  // 更贴近用户预期（在哪儿右键/停留就在哪儿粘贴），对齐 H_.jsx 用视口坐标建节点的思路。
+  const lastMouse = useRef(null)
+  useEffect(() => {
+    const track = (e) => {
+      lastMouse.current = { x: e.clientX, y: e.clientY }
+    }
+    window.addEventListener('mousemove', track)
+    return () => window.removeEventListener('mousemove', track)
+  }, [])
+
+  // 计算粘贴落点（flow 坐标）：最近鼠标位置优先，回退到视图中心。都经 screenToFlowPosition 换算。
+  const pastePos = useCallback(() => {
+    if (lastMouse.current) return screenToFlowPosition(lastMouse.current)
+    return screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+  }, [screenToFlowPosition])
+
   // 拖入时阻止浏览器默认（打开文件），标记 copy
   const onDragOver = useCallback((e) => {
     e.preventDefault()
@@ -80,12 +98,13 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
     [screenToFlowPosition, addNode, createNodeFromFile]
   )
 
-  // 粘贴：文件（图片/视频/音频）→ imageNode；纯文本 → textNode
+  // 粘贴：文件（图片/视频/音频）→ imageNode；mutiwindow-images → imageNode 网格；纯文本 → textNode
   const onPaste = useCallback(
     (e) => {
       const items = e.clipboardData?.items
       if (!items) return
-      const pos = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+      // 落点：最近鼠标位置优先，回退到视图中心（flow 坐标）
+      const pos = pastePos()
       for (const item of items) {
         if (item.kind === 'file') {
           const type = item.type
@@ -99,10 +118,24 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
           e.preventDefault()
           item.getAsString((text) => {
             if (text && text.trim()) {
-              // 内部节点 JSON 跳过（复刻官方 mutiwindow-nodes）
+              // 内部节点 JSON：mutiwindow-nodes 跳过；mutiwindow-images → 建 imageNode 网格（复刻官方 H_.jsx:9790-9828）
               try {
                 const parsed = JSON.parse(text)
-                if (parsed && parsed.type === 'mutiwindow-nodes') return
+                if (parsed?.type === 'mutiwindow-nodes') return
+                if (parsed?.type === 'mutiwindow-images' && Array.isArray(parsed.images)) {
+                  const images = parsed.images
+                  if (images.length === 0) return
+                  images.forEach((img, i) => {
+                    const col = i % 6
+                    const row = Math.floor(i / 6)
+                    addNode('imageNode', { x: pos.x + col * 150, y: pos.y + row * 150 }, {
+                      imageUrl: img,
+                      label: `提取帧 ${i + 1}`
+                    })
+                  })
+                  showToast(`已粘贴 ${images.length} 张提取的图片`)
+                  return
+                }
               } catch {}
               addNode('textNode', pos, { text: text.trim(), expanded: false })
             }
@@ -111,7 +144,7 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
         }
       }
     },
-    [createNodeFromFile, addNode]
+    [createNodeFromFile, addNode, pastePos]
   )
 
   return { onDragOver, onDrop, onPaste }

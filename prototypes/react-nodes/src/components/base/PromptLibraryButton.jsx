@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
+import { useNodePosition } from './hooks.js'
 import PromptLibrary from './PromptLibrary.jsx'
 
 /**
@@ -18,12 +19,13 @@ import PromptLibrary from './PromptLibrary.jsx'
  */
 export default function PromptLibraryButton({ category = 'text' }) {
   const [open, setOpen] = useState(false)
-  const { addNodes, screenToFlowPosition } = useReactFlow()
+  const { addNodes } = useReactFlow()
+  const { posAtCenter } = useNodePosition()
 
   // 点「使用」→ 新建文本节点（内容 = 预设 prompt）
   const handleUse = (prompt) => {
-    // 落点：统一视口中央
-    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    // 落点：统一视图中央（走公共 base，与 Q/W/E 等一致）
+    const position = posAtCenter()
     const newNode = {
       id: `textNode-${Date.now()}`,
       type: 'textNode',

@@ -251,3 +251,66 @@ const hideMedia = lodLevel >= 2 // 按需调阈值
 - [ ] 标识符是语义全名？没搬官方混淆短名？
 - [ ] 假实现标注了真链路？回调签名对齐契约？
 - [ ] 三（build / smoke / regression）道门全绿？
+
+---
+
+## 九、踩坑经验（开发教训，新增节点/改节点必读）
+
+> 以下是从图片盒子 / 图片切分 / 图片拼图复刻中反复踩到的坑。**每条都是真发生过的事**，下次动手前先对照，能省一整轮调试。
+
+### 9.1 新建文件后 dev server 模块缓存会坏（最高频坑）
+- **症状**：页面报 `Uncaught SyntaxError: The requested module '.../XxxNode.jsx?t=...' does not provide an export named 'default'`，但 `check-jsx` / esbuild 打包都通过。
+- **根因**：dev server **启动早于**新文件创建（或新文件编辑中途被缓存），Vite 内存里的模块图钉住了一个损坏/空版本，`npm run build` 反而能过。
+- **修法**：**重启 dev server 并清缓存**（新文件/改 App.jsx 后必做）：
+  ```powershell
+  $p = (Get-NetTCPConnection -LocalPort 5180 -State Listen | select -expand OwningProcess | select -First 1)
+  if ($p) { Stop-Process -Id $p -Force }
+  Remove-Item -Recurse -Force node_modules\.vite
+  Start-Process -FilePath "cmd.exe" -ArgumentList "/c","npm run dev > dev-server.log 2>&1" -WindowStyle Hidden
+  ```
+- **判定**：重启后浏览器动态 `import('/src/components/XxxNode.jsx')` 应返回 `{ default: fn }`；再跑 `test:smoke` 确认注册生效。
+
+### 9.2 import 路径要核对层级
+- 坑例：`CustomHandle.jsx` 在 `src/components/`（根），不是 `base/`。写成 `./base/CustomHandle.jsx` → 500 / 模块加载失败。
+- 铁律：**复用既有组件的 import 路径，用 `read_file` 看过原文件再写**，别凭记忆。`NodeTitle` 在 `components/`，`NodeShell/CustomHandle` 等在外壳组件里自查。
+
+### 9.3 节点外观必须与其他节点统一
+- **标题**：一律用 `NodeShell` 自带标题（传 `label/defaultTitle/icon`），标题右侧操作组用 **`titleRight` 插槽**（NodeShell 渲染，`absolute right-0 -top-0.5` 与标题垂直居中）。**禁止** `showTitle={false}` 后自己在 children 里渲染 NodeTitle——会把标题包进主容器内、出现双重外框、边框颜色不一致。
+- **边框/背景**：主容器边框由 NodeShell 统一（`border-[#333]`），节点内层**不要**重复加 `border` + 独立 `bg`（如 `bg-[#121212]`），否则出现内外两个框、颜色不一致。图片/内容区只做圆角内容面板，不顶替外框。
+- **验证**：新增节点后用 playwright 量标题离主容器距离，应与 `textNode`（文本生成）一致（实测左 17px / 顶 -20.5px）。
+
+### 9.4 高度用 ResizeObserver 自适应（别固定 420）
+- 坑例：图片切分节点被 NodeShell 默认 `minHeight 420` 撑高，内容只有 280px，底部大块空白。
+- 铁律：**复合/可折叠内容节点用 `useNodeResize(id)` + ResizeObserver** 让高度贴合内容：
+  ```js
+  const { onMainBoxResize } = useNodeResize(id)
+  const contentRef = useRef(null)
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const h = el.offsetHeight
+      if (!h) return
+      const n = getNodes().find((x) => x.id === id)
+      if (Math.abs(h - (n?.height ?? n?.style?.height ?? 0)) < 4) return
+      onMainBoxResize(Math.round(n?.width ?? n?.style?.width ?? 320), Math.max(160, Math.round(h)))
+    })
+    ro.observe(el); return () => ro.disconnect()
+  }, [id, getNodes, onMainBoxResize])
+  ```
+  内容区 `div ref={contentRef}`。实测节点高度从 420 → 301，贴合内容。
+
+### 9.5 改公共组件要保证默认行为不变
+- 给 `NodeShell` 加的 `showTitle` / `titleRight` prop，**默认值必须不影响既有节点**（`showTitle` 默认 true、`titleRight` 默认 undefined → 走原逻辑）。改完跑 `test:smoke` + `test:regression`，确认 TextNode / PromptNode 等标题无回归。
+
+### 9.6 完整复刻官方，不简化
+- 官方 `Yo.jsx`（图片拼图）有 grid / longImage / overlay 三模式，overlay 是完整的图层编辑器（`Uo.jsx`：图层列表/排序/涂抹擦除/属性面板/全屏）。**用户要求与官方一致时，模式与交互必须全做**，不能用简化版占位。复杂子功能抽到 `base/` 独立文件（如 `base/OverlayEditor.jsx`），主组件保持清晰。
+
+### 9.7 注册节点要三处同步
+- `App.jsx` nodeTypes 一行 + `NodePalette.jsx` 一行（**记得 `builtin: true` + 默认 data**，否则 palette 有但画布不渲染/缺默认值）。漏一个 → 右键菜单能搜到但建不出来或渲染异常。
+
+### 9.8 节点默认尺寸
+- 需要固定窄容器的节点（图片切分 `280px`、图片拼图 `320px`）在 `App.jsx` `addNode` 里 `Object.assign(newNode, { width, style: { width } })`。图片区用 `h-auto`（跟随图片比例）或固定高度，别让节点被撑太大。
+
+### 9.9 功能验证用 playwright 实测，不只靠 check-jsx
+- `check-jsx` / lint 只查语法。**交互类功能（拖拽交换、模式切换、上传、展开）必须用 playwright 打开 dev server 实测**，注入带数据的 localStorage 快照 + 模拟事件，断言渲染结果与 JS 错误数。临时脚本用完删，不留仓库。

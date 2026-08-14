@@ -97,6 +97,8 @@ export default function NodeShell({
   baseSize = 380,
   handleVariant = 'large',
   showHandles = true,
+  showTitle = true,
+  titleRight,
   className = '',
   style: extraStyle = {},
   wrapperRef,
@@ -134,7 +136,12 @@ export default function NodeShell({
       className={`relative flex flex-col items-center group/node min-w-[160px] min-h-[160px] ${selected ? 'z-50' : 'z-10'} ${className}`}
       style={{ width: typeof inlineW === 'number' ? `${inlineW}px` : inlineW, minHeight: typeof inlineH === 'number' ? `${inlineH}px` : inlineH, ...extraStyle }}
     >
-      <NodeTitle label={label} defaultTitle={defaultTitle} icon={icon} />
+      {/* 标题：与所有节点完全一致（NodeTitle mb-1 self-start，宽度只包内容）。
+          titleRight 操作组用绝对定位浮在标题右侧，不改变 NodeTitle 的位置/间距 */}
+      {showTitle && <NodeTitle label={label} defaultTitle={defaultTitle} icon={icon} />}
+      {titleRight && (
+        <div className="absolute right-0 -top-0.5 flex items-center gap-1 nodrag">{titleRight}</div>
+      )}
 
       {/* 尺寸调整（ReactFlow NodeResizer：仅右下角白色圆角手柄） */}
       {resizable && (
