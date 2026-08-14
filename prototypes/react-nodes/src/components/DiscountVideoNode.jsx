@@ -61,10 +61,11 @@ export default function DiscountVideoNode({ id, data, selected }) {
     { id: 'hailuo-01', label: 'hailuo-01', badge: 'builtin' }
   ]
 
-  // 生成模拟（useGenerate 基座 hook）
+  // 生成模拟（useGenerate 基座 hook；task 上报任务中心）
   const { loading, setLoading, error, setError, start: onGenerate, stop: onStop } = useGenerate({
     onDone: () => setVideoUrl('https://www.w3schools.com/html/mov_bbb.mp4'),
-    delay: 2200
+    delay: 2200,
+    task: { nodeId: id, type: 'video', prompt, resultUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' }
   })
 
   const totalCost = Math.round(0.5 * (parseInt(seconds) || 10))

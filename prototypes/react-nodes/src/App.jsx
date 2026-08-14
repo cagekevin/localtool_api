@@ -23,6 +23,9 @@ import GroupNode from './components/GroupNode.jsx'
 import ScriptBoxNode from './components/ScriptBoxNode.jsx'
 import GhostTargetNode from './components/GhostTargetNode.jsx'
 import AgentPanel from './components/AgentPanel.jsx'
+import LeftPanel from './components/base/LeftPanel.jsx'
+import ProjectSelector from './components/base/ProjectSelector.jsx'
+import { switchProject, loadCanvasState, saveCanvasState, getCurrentProject } from './components/base/projectStore.js'
 import CustomEdge from './components/CustomEdge.jsx'
 import ConnectionLine from './components/ConnectionLine.jsx'
 import ContextMenu from './components/base/ContextMenu.jsx'
@@ -184,8 +187,17 @@ function Canvas() {
    * 【区 2】状态区
    * nodes / edges + ref 同步（供能力区取最新快照，避免闭包旧值）
    * ==================================================================== */
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  // 项目系统（对齐官方 Vr.jsx）：画布状态按当前项目初始化/持久化。
+  // 默认项目（default）首次用内置演示画布；其余/已有项目从 canvas-state-v1-{projectId} 读快照。
+  // 注意：这里只做一次性惰性读取，不订阅 store（切换/新建由 onSwitch/onCreate 回调显式 setNodes）。
+  const initialCanvasRef = useRef(null)
+  if (initialCanvasRef.current === null) {
+    const currentProjectId = getCurrentProject().id
+    const saved = loadCanvasState(currentProjectId)
+    initialCanvasRef.current = saved && saved.nodes ? saved : { nodes: initialNodes, edges: initialEdges }
+  }
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialCanvasRef.current.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialCanvasRef.current.edges)
 
   // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；缩放/适配用 fitView/zoomIn/zoomOut
   const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
@@ -233,6 +245,27 @@ function Canvas() {
       setEdges(es)
     }
   )
+
+  // 切换项目：保存当前画布快照 → 切换 → 加载目标项目快照 → 重置历史（对齐官方 Vr.jsx）
+  const handleSwitchProject = useCallback(
+    (targetId) => {
+      saveCanvasState(getCurrentProject().id, nodesRef.current, edgesRef.current)
+      switchProject(targetId)
+      const saved = loadCanvasState(targetId)
+      const next = saved && saved.nodes ? saved : { nodes: [], edges: [] }
+      setNodes(next.nodes)
+      setEdges(next.edges)
+      history.clear?.()
+    },
+    [setNodes, setEdges, history]
+  )
+
+  // 新建项目：清空画布（store 已在 ProjectSelector 中创建并切换到新项目）
+  const handleCreateProject = useCallback(() => {
+    setNodes([])
+    setEdges([])
+    history.clear?.()
+  }, [setNodes, setEdges, history])
 
   // 右键菜单状态（基座 useContextMenu）
   const menu = useContextMenu()
@@ -747,6 +780,12 @@ function Canvas() {
           onClose={() => setAgentOpen(false)}
           systemPrompt={''}
         />
+
+        {/* 顶部中央项目选择器（对齐官方 project-selector；切换/新建时保存与加载画布快照） */}
+        <ProjectSelector onSwitch={handleSwitchProject} onCreate={handleCreateProject} />
+
+        {/* 左侧滑出面板：任务中心 + 素材库（fixed 覆盖层，不依赖画布容器） */}
+        <LeftPanel />
 
         {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
         {/* 抉择：工具栏 + 确认弹窗叠在一个 absolute 容器（left-3 bottom-3），弹窗 absolute bottom-full 挂在工具栏上方 */}

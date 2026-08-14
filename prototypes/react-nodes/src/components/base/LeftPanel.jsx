@@ -1,0 +1,124 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { Clock, FolderOpen, ChevronRight, X } from 'lucide-react'
+import TaskCenter from './TaskCenter.jsx'
+import AssetLibrary from './AssetLibrary.jsx'
+import { useTasks } from './taskStore.js'
+import { useAssets } from './assetStore.js'
+
+// 两个 tab 配置
+const TABS = [
+  { key: 'tasks', label: '任务中心', icon: Clock },
+  { key: 'assets', label: '素材库', icon: FolderOpen }
+]
+
+/**
+ * 左侧滑出面板：收起态是一条竖着的窄工具栏（图标 + 未读角标），
+ * 点击图标滑出面板，内部用 tab 切换「任务中心 / 素材库」。
+ * 点击面板外部 → 收起；点击收起箭头 → 收起。
+ */
+export default function LeftPanel() {
+  const [activeTab, setActiveTab] = useState('tasks')
+  const [expanded, setExpanded] = useState(false)
+  const tasks = useTasks()
+  const assets = useAssets()
+  const panelRef = useRef(null)
+
+  // 未读角标：失败任务数 + 进行中任务数
+  const badgeCount = useMemo(() => tasks.filter((t) => t.status === 'failed' || t.status === 'running' || t.status === 'queued').length, [tasks])
+
+  // 点面板外部收起
+  useEffect(() => {
+    if (!expanded) return
+    const onDown = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) setExpanded(false)
+    }
+    // 延时注册，避免展开瞬间的点击误关
+    const t = setTimeout(() => document.addEventListener('pointerdown', onDown), 0)
+    return () => { clearTimeout(t); document.removeEventListener('pointerdown', onDown) }
+  }, [expanded])
+
+  // 收起时同步保存当前 tab
+  const openTab = (key) => {
+    setActiveTab(key)
+    setExpanded(true)
+  }
+
+  return (
+    <>
+      {/* 收起态：左侧竖条工具栏 */}
+      {!expanded && (
+        <div className="fixed left-3 top-1/2 -translate-y-1/2 z-[800] flex flex-col items-center gap-1.5 bg-[#191919]/90 backdrop-blur border border-[#2a2a2a] rounded-xl px-1.5 py-2 shadow-lg">
+          {TABS.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.key
+            const showBadge = tab.key === 'tasks' && badgeCount > 0
+            return (
+              <button
+                key={tab.key}
+                className={`relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer border-none ${isActive ? 'bg-[#2a2a2a] text-white' : 'text-[#888] hover:text-white hover:bg-[#242424]'}`}
+                title={tab.label}
+                onClick={() => openTab(tab.key)}
+              >
+                <Icon size={17} />
+                {showBadge && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-semibold flex items-center justify-center">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* 展开态：滑出面板 */}
+      {expanded && (
+        <div ref={panelRef} className="fixed left-3 top-2 bottom-2 z-[800] w-[330px] bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-panel-in">
+          {/* 顶栏：收起箭头 + 标题 */}
+          <div className="h-[52px] border-b border-[#222] flex items-center px-3 gap-1 flex-shrink-0">
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer border-none"
+              onClick={() => setExpanded(false)}
+              title="收起面板"
+            >
+              <ChevronRight size={18} />
+            </button>
+            <div className="flex-1 flex gap-1">
+              {TABS.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-[34px] rounded-lg text-[13px] transition-colors cursor-pointer border-none ${isActive ? 'bg-[#222] text-white font-medium' : 'text-[#888] hover:text-[#ccc] hover:bg-[#1e1e1e]'}`}
+                    onClick={() => setActiveTab(tab.key)}
+                  >
+                    <Icon size={14} />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer border-none"
+              onClick={() => setExpanded(false)}
+              title="关闭"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* 内容区 */}
+          <div className="flex-1 min-h-0">
+            {activeTab === 'tasks' ? <TaskCenter /> : <AssetLibrary />}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes panelIn { from { transform: translateX(-16px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .animate-panel-in { animation: panelIn 0.22s ease-out; }
+      `}</style>
+    </>
+  )
+}

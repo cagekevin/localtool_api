@@ -44,10 +44,11 @@ export default function TextNode({ id, data, selected }) {
   //  - onInputResize：输入框手柄 → node.data.inputWidth/inputHeight（复刻官方）
   const { onMainBoxResize, onInputResize } = useNodeResize(id)
 
-  // 生成模拟（useGenerate 基座 hook）
+  // 生成模拟（useGenerate 基座 hook；task 上报任务中心）
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
     onDone: () => setText('这是一段由 AI 生成的文本内容，用于演示文本节点的输出效果。'),
-    delay: 1800
+    delay: 1800,
+    task: { nodeId: id, type: 'text', prompt: prompt || text || '文本生成' }
   })
 
   const uploadImage = (e) => {

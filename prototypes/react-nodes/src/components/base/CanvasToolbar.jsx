@@ -62,7 +62,7 @@ export default function CanvasToolbar({
   return (
     <div className="flex items-center gap-2">
       {/* 主工具组 */}
-      <div className="flex items-center bg-[#222] border border-[#333] rounded-full px-1 py-0.5 shadow-xl">
+      <div className="flex items-center rounded-full px-1 py-0.5">
         <button
           type="button"
           onClick={onRun}

@@ -66,5 +66,12 @@ export function useCanvasHistory(getSnapshot, apply) {
     }
   }, [history, index, apply])
 
-  return { canUndo: index > 0, canRedo: index < history.length - 1, record, undo, redo }
+  // 清空历史（切换/新建项目时调用，避免跨项目残留撤销栈）
+  const clear = useCallback(() => {
+    setHistory([])
+    setIndex(-1)
+    branchRef.current = -1
+  }, [])
+
+  return { canUndo: index > 0, canRedo: index < history.length - 1, record, undo, redo, clear }
 }

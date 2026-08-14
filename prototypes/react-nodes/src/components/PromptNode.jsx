@@ -55,10 +55,11 @@ export default function PromptNode({ id, data, selected }) {
   // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
   const { onInputResize } = useNodeResize(id)
 
-  // 生成模拟（useGenerate 基座 hook）
+  // 生成模拟（useGenerate 基座 hook；task 上报任务中心）
   const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
     onDone: () => setImageUrl(`https://picsum.photos/seed/promptgen-${Date.now()}/512/512`),
-    delay: 2200
+    delay: 2200,
+    task: { nodeId: id, type: 'image', prompt, resultUrl: 'https://picsum.photos/seed/taskimg/240/240' }
   })
 
   // 图片可选比例（含 1:3 / 3:1 极端竖/横比例，不含 1:2 / 2:1）
