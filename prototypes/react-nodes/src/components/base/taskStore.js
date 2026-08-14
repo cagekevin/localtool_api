@@ -1,59 +1,41 @@
 /**
- * 任务中心 store（模拟 + 事件订阅），字段对齐官方任务中心（Ln.jsx / jn.jsx）。
+ * 任务中心 store —— 后端化（对齐官方，数据落 localTool /api/tasks → SQLite）。
  *
- * 任务字段：
- *  {
- *    id, nodeId,
- *    status: 'pending' | 'running' | 'completed' | 'failed',   // 对齐官方
- *    type: 'image' | 'video' | 'text',                          // 对齐官方类型
- *    prompt, modelName, channelName,
- *    progress: 0-100,             // 运行中进度（官方进度条）
- *    errorMsg,                    // 失败错误信息
- *    resultUrl,                   // 结果缩略图（图片/视频）
- *    createdAt
- *  }
+ * 职责：
+ *  - 内存态 `tasks` 是唯一数据源（供 useTasks / 任务中心 UI 实时订阅）。
+ *  - 启动时从 /api/tasks 加载历史任务（刷新/重启不丢）。
+ *  - 增删改（reportGenerate / progress / done / fail / removeTask / clearTasksBy）
+ *    同步调用后端持久化（fire-and-forget，不阻塞 UI；失败降级为仅内存）。
  *
- * 接真系统：reportGenerate 改为 POST /api/tasks，列表从 /api/tasks 读，UI 不变。
+ * 任务字段（对齐官方 Ln.jsx / jn.jsx）：
+ *  { id(=taskId), nodeId, type, prompt, modelName, channelName,
+ *    status:'pending'|'running'|'completed'|'failed', progress, errorMsg, resultUrl, createdAt }
  */
 import { useSyncExternalStore } from 'react'
+import { fetchTasks, saveTask, deleteTask, batchDeleteTasks, clearAllTasksApi } from './tasksApi.js'
 
-let tasks = seedTasks()
+let tasks = []
 const listeners = new Set()
 
-// 预置演示任务（首次即有内容可看）
-function seedTasks() {
-  const now = Date.now()
-  const at = (minAgo) => now - minAgo * 60 * 1000
-  return [
-    {
-      id: 'seed_1', nodeId: 'seed-node-1', type: 'image', status: 'completed',
-      prompt: '赛博朋克城市夜景，霓虹灯，雨夜，电影感光影',
-      modelName: 'flux-1.1-pro', channelName: '在线', progress: 100,
-      resultUrl: 'https://picsum.photos/seed/cyber/240/240', createdAt: at(2)
-    },
-    {
-      id: 'seed_2', nodeId: 'seed-node-2', type: 'video', status: 'failed',
-      prompt: '一只小猫在花园里追逐蝴蝶，阳光，微风吹动花朵',
-      modelName: 'kling-1.6', channelName: '在线', progress: 100,
-      errorMsg: '模型接口超时，请稍后重试', createdAt: at(5)
-    },
-    {
-      id: 'seed_3', nodeId: 'seed-node-3', type: 'text', status: 'completed',
-      prompt: '写一段关于春天的散文，清新自然，多用比喻',
-      modelName: 'gpt-4o-mini', channelName: '在线', progress: 100,
-      createdAt: at(8)
-    },
-    {
-      id: 'seed_4', nodeId: 'seed-node-4', type: 'image', status: 'running',
-      prompt: '莫奈风格的睡莲，印象派，柔和光线', modelName: 'flux-1.1-pro',
-      channelName: '在线', progress: 42, createdAt: at(12)
-    },
-    {
-      id: 'seed_5', nodeId: 'seed-node-5', type: 'video', status: 'pending',
-      prompt: '波普艺术风格人像', modelName: 'kling-1.6', channelName: '在线',
-      progress: 0, createdAt: at(15)
-    }
-  ]
+// ── 启动时从后端加载历史任务 ──
+let loaded = false
+export function initTasks() {
+  if (loaded) return
+  loaded = true
+  fetchTasks({ pageSize: 500 })
+    .then((data) => {
+      const items = Array.isArray(data?.items) ? data.items : []
+      if (items.length > 0) {
+        tasks = items
+        notify()
+      }
+    })
+    .catch((e) => console.warn('[taskStore] 加载历史任务失败（localTool 未连？）:', e?.message))
+}
+
+// 后端保存（fire-and-forget，失败仅降级为内存态）
+function persist(task) {
+  saveTask(task).catch(() => {})
 }
 
 // 状态 → 圆点/文字 颜色（对齐官方 An）
@@ -105,7 +87,8 @@ function getSnapshot() {
 // 节点生成时上报任务（生成中 → 完成/失败）。返回更新函数。
 export function reportGenerate(nodeId, type, prompt, meta = {}) {
   // 结束同 nodeId 之前未完成的任务
-  tasks = tasks.filter((t) => !(t.nodeId === nodeId && (t.status === 'running' || t.status === 'pending')))
+  const old = tasks.find((t) => t.nodeId === nodeId && (t.status === 'running' || t.status === 'pending'))
+  tasks = tasks.filter((t) => t !== old)
   const task = {
     id: genId(), nodeId, type, prompt,
     modelName: meta.modelName || '', channelName: meta.channelName || '',
@@ -114,21 +97,25 @@ export function reportGenerate(nodeId, type, prompt, meta = {}) {
   }
   tasks = [task, ...tasks]
   notify()
+  persist(task) // 后端持久化
   return {
     // 更新进度
     progress: (p) => {
       tasks = tasks.map((t) => (t.id === task.id ? { ...t, status: 'running', progress: p } : t))
       notify()
+      persist({ ...task, status: 'running', progress: p }) // 同步后端进度
     },
     // 标记完成（可带结果缩略图）
     done: (resultUrl) => {
       tasks = tasks.map((t) => (t.id === task.id ? { ...t, status: 'completed', progress: 100, resultUrl: resultUrl || '' } : t))
       notify()
+      persist({ ...task, status: 'completed', progress: 100, resultUrl: resultUrl || '' })
     },
     // 标记失败
     fail: (errorMsg) => {
       tasks = tasks.map((t) => (t.id === task.id ? { ...t, status: 'failed', errorMsg: errorMsg || '生成失败' } : t))
       notify()
+      persist({ ...task, status: 'failed', errorMsg: errorMsg || '生成失败' })
     }
   }
 }
@@ -136,19 +123,50 @@ export function reportGenerate(nodeId, type, prompt, meta = {}) {
 export function removeTask(id) {
   tasks = tasks.filter((t) => t.id !== id)
   notify()
+  deleteTask(id).catch(() => {}) // 后端删除
 }
 
+// ── 「再来一次/刷新」真正触发节点重新生成 ──
+const retryRegistry = new Map()
+
+export function registerTaskRetry(nodeId, fn) {
+  if (nodeId) retryRegistry.set(nodeId, fn)
+}
+export function unregisterTaskRetry(nodeId) {
+  if (nodeId) retryRegistry.delete(nodeId)
+}
+
+/**
+ * 重试任务：触发对应节点的重新生成（若节点已注册回调）。
+ * 返回是否成功触发（true=已触发，false=找不到节点回调）。
+ */
 export function retryTask(id) {
-  tasks = tasks.map((t) => (t.id === id ? { ...t, status: 'running', progress: 0, errorMsg: '' } : t))
-  notify()
+  const t = tasks.find((x) => x.id === id)
+  const fn = t ? retryRegistry.get(t.nodeId) : undefined
+  if (fn) {
+    try { fn() } catch (e) { console.error('[taskStore] 触发节点重试失败:', e) }
+    return true
+  }
+  console.warn('[taskStore] 未找到任务对应节点的重试回调 nodeId=', t?.nodeId)
+  return false
 }
 
-// 清理：按条件批量删除
+// 清理：按条件批量删除（同步后端）
 export function clearTasksBy(predicate) {
-  tasks = tasks.filter((t) => !predicate(t))
-  notify()
+  const removed = tasks.filter((t) => predicate(t))
+  if (removed.length > 0) {
+    tasks = tasks.filter((t) => !predicate(t))
+    notify()
+    batchDeleteTasks(removed.map((t) => t.id)).catch(() => {})
+  }
 }
-export const clearAllTasks = () => clearTasksBy(() => true)
+export function clearAllTasks() {
+  if (tasks.length > 0) {
+    tasks = []
+    notify()
+    clearAllTasksApi().catch(() => {})
+  }
+}
 
 export function useTasks() {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)

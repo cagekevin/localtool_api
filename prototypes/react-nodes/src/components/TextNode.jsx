@@ -15,6 +15,11 @@ import GeneratingOverlay from './base/GeneratingOverlay.jsx'
 import PromptLibraryButton from './base/PromptLibraryButton.jsx'
 import { useGenerate, useNodeResize } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
+import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
+import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
+import { chatCompletions } from './base/chatApi.js'
+import { useNodePrefs } from './base/nodePrefs.js'
+import { buildAllModels, resolveProviderModel } from './base/providerModels.js'
 
 /**
  * 文本节点（复刻原 Co.jsx / textNode）
@@ -29,7 +34,9 @@ export default function TextNode({ id, data, selected }) {
   const [autoSplit, setAutoSplit] = useState(data.autoSplit || false)
   const [expanded, setExpanded] = useState(data.expanded === undefined ? true : data.expanded)
   const [editingText, setEditingText] = useState(false)
-  const [selectedModel, setSelectedModel] = useState(data.selectedModel || 'gpt-4o-mini')
+  // 记住上次选择的模型（跨节点/跨会话）；初始用记忆值，无记忆回退 gpt-4o-mini
+  const { prefs: textPrefs, set: setTextPrefs } = useNodePrefs('textNode', { model: '' })
+  const [selectedModel, setSelectedModel] = useState(data.selectedModel || textPrefs.model || 'gpt-4o-mini')
   const [images, setImages] = useState(data.images || [])
   const textAreaRef = useRef(null)
   const fileRef = useRef(null)
@@ -44,12 +51,79 @@ export default function TextNode({ id, data, selected }) {
   //  - onInputResize：输入框手柄 → node.data.inputWidth/inputHeight（复刻官方）
   const { onMainBoxResize, onInputResize } = useNodeResize(id)
 
-  // 生成模拟（useGenerate 基座 hook；task 上报任务中心）
-  const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
-    onDone: () => setText('这是一段由 AI 生成的文本内容，用于演示文本节点的输出效果。'),
-    delay: 1800,
-    task: { nodeId: id, type: 'text', prompt: prompt || text || '文本生成' }
-  })
+  // 供应商配置（多 provider）：模型下拉聚合【所有 provider】的 chat_models（节点式选模型），
+  // 生成时按选中的 model 解析回对应 provider，经 /api/proxy 转发。
+  const { providers } = useProviders()
+  const primary = providers?.find((p) => p.isPrimary) || providers?.[0] || null
+  const models = buildAllModels(providers, 'chat')
+
+  // 挂载时确保供应商已加载（若未打开设置页，providers 为空 → 拉取主供应商；load 幂等）
+  React.useEffect(() => {
+    if (!providers || providers.length === 0) loadProviders().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // providers 加载后：若「未记忆模型」且节点没显式指定模型 → 默认用第一个 chat_model 的 key 并记忆
+  const defaultFromProvider = models[0]?.id
+  React.useEffect(() => {
+    if (!defaultFromProvider) return
+    if (textPrefs.model) return // 已有记忆，不覆盖
+    if (data.selectedModel) return // 节点显式指定，不覆盖
+    setSelectedModel(defaultFromProvider)
+    setTextPrefs({ model: defaultFromProvider })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultFromProvider])
+
+  // 生成 loading / error（useGenerate 只复用 loading/stop 管理，真实请求走 handleGenerate）
+  const { loading, setLoading, error, setError, stop: onStop } = useGenerate({})
+
+  // 真实文本生成：经 localTool /api/proxy → 选中的 provider /v1/chat/completions（节点式：可跨 provider 选模型）
+  const handleGenerate = async () => {
+    // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
+    const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
+    console.log('[TextNode] handleGenerate 触发, provider=', useProvider?.id, 'model=', modelId, '原始selected=', selectedModel)
+    const p = prompt || text || ''
+    if (!p.trim()) { console.log('[TextNode] 无内容，跳过'); setError('请输入提示词或文本'); return }
+    setLoading(true)
+    setError('')
+    const taskCtl = reportGenerate(id, 'text', p, { modelName: modelId })
+    taskCtl.progress(15)
+    try {
+      // 参考图：把连线上游/上传的图传给 AI（让 AI 看图反推提示词/理解图片）。
+      // chatApi 会转成 image_url 内容块（blob 自动转 data base64）。
+      const refUrls = refImages.map((img) => img.url)
+      console.log('[TextNode] 参考图 urls=', JSON.stringify(refUrls).slice(0, 400))
+      const r = await chatCompletions({
+        provider: useProvider,
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that outputs strict JSON.' },
+          { role: 'user', content: p }
+        ],
+        model: modelId,
+        images: refUrls
+      })
+      if (r.ok) {
+        setText(r.content)
+        taskCtl.done()
+      } else {
+        setError(r.error || '生成失败')
+        taskCtl.fail(r.error || '生成失败')
+      }
+    } catch (e) {
+      setError(e?.message || '生成失败')
+      taskCtl.fail(e?.message || '生成失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 任务中心「再来一次/刷新」→ 触发本节点重新生成（挂载注册，卸载注销）
+  const handleGenerateRef = useRef(handleGenerate)
+  React.useEffect(() => { handleGenerateRef.current = handleGenerate })
+  React.useEffect(() => {
+    registerTaskRetry(id, () => handleGenerateRef.current())
+    return () => unregisterTaskRetry(id)
+  }, [id])
 
   const uploadImage = (e) => {
     const f = e.target.files?.[0]
@@ -58,12 +132,6 @@ export default function TextNode({ id, data, selected }) {
   }
 
   const loadingIcon = <Loader2 size={12} className="animate-spin flex-shrink-0" style={{ color: 'rgb(210,2,7)' }} />
-  const models = [
-    { id: 'gpt-4o-mini', label: 'gpt-4o-mini', badge: 'builtin' },
-    { id: 'gpt-4o', label: 'gpt-4o', badge: 'builtin' },
-    { id: 'deepseek-v3', label: 'deepseek-v3', badge: 'builtin' },
-    { id: 'claude-3.5-sonnet', label: 'claude-3.5-sonnet', badge: 'builtin' }
-  ]
   const refImages = [...(connected.images || []), ...images.map((u, i) => ({ id: `img-${i}`, url: u, label: `图片${i + 1}` }))]
   const refTexts = connected.texts || []
 
@@ -213,15 +281,19 @@ export default function TextNode({ id, data, selected }) {
                 自动拆分
               </label>
 
-              {/* 模型选择（基座 ModelSelect） */}
-              <ModelSelect value={selectedModel} onChange={setSelectedModel} models={models} />
+              {/* 模型选择（基座 ModelSelect；选择即记住，跨节点复用） */}
+              <ModelSelect
+                value={selectedModel}
+                onChange={(m) => { setSelectedModel(m); setTextPrefs({ model: m }) }}
+                models={models}
+              />
 
               {/* 预设提示词：打开提示词库弹窗 → 使用后新建文本节点 */}
               <PromptLibraryButton category="text" />
             </div>
 
             {/* 生成 / 停止（基座 GenerateButton） */}
-            <GenerateButton loading={loading} onGenerate={onGenerate} onStop={onStop} showCost={false} />
+            <GenerateButton loading={loading} onGenerate={handleGenerate} onStop={onStop} showCost={false} />
           </div>
         </div>
 

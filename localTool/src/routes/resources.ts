@@ -315,3 +315,49 @@ export async function handleResourcesClear(req: IncomingMessage, res: ServerResp
     return json(res, { deleted: result.changes });
   }
 }
+
+/**
+ * 重命名一条资源（同步改磁盘文件名 + resources 表记录）。
+ * 仅支持 source='local-tool' 的本地文件型资源；保留原扩展名，只改文件名主体。
+ * 用法：POST /api/resources/rename?id=<id>&name=<新名>
+ */
+export async function handleResourcesRename(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  const id = url.searchParams.get('id');
+  const rawName = url.searchParams.get('name');
+  if (!id || !rawName) return sendError(res, 'Missing id or name', 400);
+
+  const db = await getDb();
+  const row = queryOne(db, 'SELECT * FROM resources WHERE id = ?', [id]) as Record<string, unknown> | undefined;
+  if (!row) return sendError(res, 'Resource not found', 404);
+  if (row.source !== 'local-tool' || row.type === 'folder') return sendError(res, '仅支持重命名本地文件', 400);
+
+  const folder = (row.folder as string) || '';
+  const oldName = row.name as string;
+  const ext = path.extname(oldName);
+  let base = String(rawName || '').trim();
+  if (!base) return sendError(res, 'Invalid name', 400);
+  // 用户可能带扩展名输入，去掉以统一保留原扩展名
+  if (path.extname(base)) base = base.slice(0, base.length - path.extname(base).length);
+  const newFileName = `${base}${ext}`;
+  if (!newFileName || newFileName === oldName) return json(res, { ok: true, id, url: row.url, name: oldName });
+
+  const uploadDir = getUploadDir();
+  const oldPath = path.join(uploadDir, folder, oldName);
+  const newPath = path.join(uploadDir, folder, newFileName);
+  if (!fs.existsSync(oldPath)) return sendError(res, 'Source file not found', 404);
+  if (fs.existsSync(newPath)) return sendError(res, '目标文件已存在', 409);
+
+  try {
+    fs.renameSync(oldPath, newPath);
+  } catch (e) {
+    return sendError(res, `Rename failed: ${(e as Error).message}`, 500);
+  }
+
+  // 同步 resources 表：旧记录删除，按新文件名重建（id/url 对齐 rescan 命名，避免重复）
+  const newId = `local-${folder}-${newFileName}`;
+  const newUrl = toAbsoluteFileUrl(`/files/${folder}/${newFileName}`);
+  run(db, 'DELETE FROM resources WHERE id = ?', [id]);
+  upsertResource(db, { ...resourceToRow(row), id: newId, url: newUrl, name: newFileName });
+  debouncedSaveDb();
+  return json(res, { ok: true, id: newId, url: newUrl, name: newFileName });
+}

@@ -15,6 +15,11 @@ import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
+import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
+import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
+import { generateVideo } from './base/videoApi.js'
+import { useNodePrefs } from './base/nodePrefs.js'
+import { buildAllModels, resolveProviderModel } from './base/providerModels.js'
 
 /**
  * 特惠视频节点（复刻原 As.jsx / discountVideoNode）
@@ -54,21 +59,86 @@ export default function DiscountVideoNode({ id, data, selected }) {
   ]
   const resOptions = ['480p', '720p', '1080p']
   const durationOptions = ['4', '6', '8', '10', '12', '15']
-  const models = [
-    { id: 'runway-gen3', label: 'runway-gen3', badge: 'builtin' },
-    { id: 'kling-1.5', label: 'kling-1.5', badge: 'builtin' },
-    { id: 'pika-2.0', label: 'pika-2.0', badge: 'builtin' },
-    { id: 'hailuo-01', label: 'hailuo-01', badge: 'builtin' }
-  ]
 
-  // 生成模拟（useGenerate 基座 hook；task 上报任务中心）
-  const { loading, setLoading, error, setError, start: onGenerate, stop: onStop } = useGenerate({
-    onDone: () => setVideoUrl('https://www.w3schools.com/html/mov_bbb.mp4'),
-    delay: 2200,
-    task: { nodeId: id, type: 'video', prompt, resultUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' }
-  })
+  // 供应商配置（多 provider）：模型下拉聚合【所有 provider】的 video_models（节点式选模型），
+  // 生成时按选中的 model 解析回对应 provider，经 /api/proxy 转发。
+  const { providers } = useProviders()
+  const primary = providers?.find((p) => p.isPrimary) || providers?.[0] || null
+  const models = buildAllModels(providers, 'video')
 
-  const totalCost = Math.round(0.5 * (parseInt(seconds) || 10))
+  // 记住上次选择的模型/比例/分辨率/时长（跨节点/跨会话）
+  const { prefs: vidPrefs, set: setVidPrefs } = useNodePrefs('discountVideoNode', { model: '', size: '16:9', resolution: '1080p', seconds: '10' })
+
+  // 挂载时确保供应商已加载
+  React.useEffect(() => {
+    if (!providers || providers.length === 0) loadProviders().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // providers 加载后：若「未记忆模型」且节点没显式指定模型 → 默认用第一个 video_model 的 key 并记忆
+  const defaultFromProvider = models[0]?.id
+  React.useEffect(() => {
+    if (!defaultFromProvider) return
+    if (vidPrefs.model) return
+    if (data.selectedModel) return
+    setSelectedModel(defaultFromProvider)
+    setVidPrefs({ model: defaultFromProvider })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultFromProvider])
+
+  // 生成 loading / error（useGenerate 只复用 loading/stop 管理，真实请求走 handleGenerate）
+  const { loading, setLoading, error, setError, stop: onStop } = useGenerate({})
+
+  // 真实视频生成：经 localTool /api/proxy → 选中的 provider /v1/videos/generations（节点式：可跨 provider 选模型）
+  const handleGenerate = async () => {
+    // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
+    const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
+    console.log('[DiscountVideoNode] handleGenerate 触发, provider=', useProvider?.id, 'model=', modelId, '原始selected=', selectedModel)
+    const p = prompt || ''
+    if (!p.trim()) { console.log('[DiscountVideoNode] 无提示词，跳过'); setError('请输入提示词'); return }
+    setLoading(true)
+    setError('')
+    const taskCtl = reportGenerate(id, 'video', p, { modelName: modelId })
+    taskCtl.progress(5)
+    const refUrls = connected.images.map((img) => img.url)
+    console.log('[DiscountVideoNode] 参考图 urls=', JSON.stringify(refUrls).slice(0, 400))
+    try {
+      const r = await generateVideo({
+        provider: useProvider,
+        prompt: p,
+        model: modelId,
+        size: ratio,
+        resolution,
+        seconds,
+        images: refUrls,
+      }, (pct) => taskCtl.progress(Math.max(10, Math.min(98, Math.round(pct)))))
+      if (r.ok) {
+        console.log('[DiscountVideoNode] 视频生成成功 url=', r.url)
+        setVideoUrl(r.url)
+        setVidPrefs({ model: selectedModel, size: ratio, resolution, seconds })
+        taskCtl.done(r.url)
+      } else {
+        console.error('[DiscountVideoNode] 视频生成失败 error=', r.error)
+        setError(r.error || '生成失败')
+        taskCtl.fail(r.error || '生成失败')
+      }
+    } catch (e) {
+      console.error('[DiscountVideoNode] 视频生成异常:', e?.message)
+      setError(e?.message || '生成失败')
+      taskCtl.fail(e?.message || '生成失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 任务中心「再来一次/刷新」→ 触发本节点重新生成（挂载注册，卸载注销）
+  const handleGenerateRef = useRef(handleGenerate)
+  React.useEffect(() => { handleGenerateRef.current = handleGenerate })
+  React.useEffect(() => {
+    registerTaskRetry(id, () => handleGenerateRef.current())
+    return () => unregisterTaskRetry(id)
+  }, [id])
+
   const onUpload = () => fileRef.current?.click()
 
   // hover 操作栏按钮
@@ -220,7 +290,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
                       <div className="text-[10px] text-gray-500 mb-2 px-1">比例</div>
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {ratioOptions.map((o) => (
-                          <button key={o.value} className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${ratio === o.value ? 'bg-[#444] text-white' : 'bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`} onClick={() => setRatio(o.value)}>{o.label}</button>
+                          <button key={o.value} className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${ratio === o.value ? 'bg-[#444] text-white' : 'bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`} onClick={() => { setRatio(o.value); setVidPrefs({ size: o.value }) }}>{o.label}</button>
                         ))}
                       </div>
                     </div>
@@ -228,7 +298,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
                       <div className="text-[10px] text-gray-500 mb-2 px-1">分辨率</div>
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {resOptions.map((r) => (
-                          <button key={r} className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${resolution === r ? 'bg-[#444] text-white' : 'bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`} onClick={() => setResolution(r)}>{r}</button>
+                          <button key={r} className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${resolution === r ? 'bg-[#444] text-white' : 'bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`} onClick={() => { setResolution(r); setVidPrefs({ resolution: r }) }}>{r}</button>
                         ))}
                       </div>
                     </div>
@@ -236,7 +306,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
                       <div className="text-[10px] text-gray-500 mb-2 px-1">时长 (秒)</div>
                       <div className="flex flex-wrap gap-1.5 px-1">
                         {durationOptions.map((d) => (
-                          <button key={d} type="button" className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${String(d) === seconds ? 'bg-[#444] text-white' : 'bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`} onClick={() => setSeconds(d)}>{d}s</button>
+                          <button key={d} type="button" className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${String(d) === seconds ? 'bg-[#444] text-white' : 'bg-[#1c1c1c] text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`} onClick={() => { setSeconds(d); setVidPrefs({ seconds: String(d) }) }}>{d}s</button>
                         ))}
                       </div>
                     </div>
@@ -254,11 +324,9 @@ export default function DiscountVideoNode({ id, data, selected }) {
             {/* 生成 / 停止（基座 GenerateButton） */}
             <GenerateButton
               loading={loading}
-              onGenerate={onGenerate}
+              onGenerate={handleGenerate}
               onStop={onStop}
               onRefresh={onStop}
-              cost={totalCost}
-              costColor="text-yellow-300"
             />
           </div>
         </div>

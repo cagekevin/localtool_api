@@ -16,6 +16,11 @@ import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
+import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
+import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
+import { generateImage } from './base/imageApi.js'
+import { useNodePrefs } from './base/nodePrefs.js'
+import { buildAllModels, resolveProviderModel } from './base/providerModels.js'
 
 /**
  * 生图节点（复刻原 bo.jsx / promptNode）
@@ -32,10 +37,12 @@ export default function PromptNode({ id, data, selected }) {
   const connected = useConnectedInputs(id)
   const [expanded, setExpanded] = useState(data.expanded === undefined ? true : data.expanded)
   const [prompt, setPrompt] = useState(data.prompt || '')
-  const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || 'Auto')
-  const [imageSize, setImageSize] = useState(data.imageSize || '1K')
+  // 记住上次选择的比例/尺寸/模型（跨节点/跨会话）；初始用记忆值，无记忆回退默认
+  const { prefs: imgPrefs, set: setImgPrefs } = useNodePrefs('promptNode', { model: '', aspectRatio: 'Auto', imageSize: '1K' })
+  const [aspectRatio, setAspectRatio] = useState(data.aspectRatio || imgPrefs.aspectRatio || 'Auto')
+  const [imageSize, setImageSize] = useState(data.imageSize || imgPrefs.imageSize || '1K')
   const [quality, setQuality] = useState(data.quality || 'auto')
-  const [selectedModel, setSelectedModel] = useState(data.selectedModel || '')
+  const [selectedModel, setSelectedModel] = useState(data.selectedModel || imgPrefs.model || '')
   const [apiFormat, setApiFormat] = useState(data.apiFormat || 'auto')
   const [count, setCount] = useState(data.count || 1)
   const [imageUrl, setImageUrl] = useState(data.imageUrl || '')
@@ -55,12 +62,84 @@ export default function PromptNode({ id, data, selected }) {
   // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
   const { onInputResize } = useNodeResize(id)
 
-  // 生成模拟（useGenerate 基座 hook；task 上报任务中心）
-  const { loading, error, start: onGenerate, stop: onStop } = useGenerate({
-    onDone: () => setImageUrl(`https://picsum.photos/seed/promptgen-${Date.now()}/512/512`),
-    delay: 2200,
-    task: { nodeId: id, type: 'image', prompt, resultUrl: 'https://picsum.photos/seed/taskimg/240/240' }
-  })
+  // 供应商配置（多 provider）：模型下拉聚合【所有 provider】的 image_models（节点式选模型），
+  // 生成时按选中的 model 解析回对应 provider，经 /api/proxy 转发。
+  const { providers } = useProviders()
+  const primary = providers?.find((p) => p.isPrimary) || providers?.[0] || null
+  const models = buildAllModels(providers, 'image')
+
+  // 挂载时确保供应商已加载
+  React.useEffect(() => {
+    if (!providers || providers.length === 0) loadProviders().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // providers 加载后：若「未记忆模型」且节点没显式指定模型 → 默认用第一个模型的 key 并记忆
+  const defaultFromProvider = models[0]?.id
+  React.useEffect(() => {
+    if (!defaultFromProvider) return
+    if (imgPrefs.model) return // 已有记忆，不覆盖
+    if (data.selectedModel) return // 节点显式指定，不覆盖
+    setSelectedModel(defaultFromProvider)
+    setImgPrefs({ model: defaultFromProvider })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultFromProvider])
+
+  // 生成 loading / error（useGenerate 只复用 loading/stop 管理，真实请求走 handleGenerate）
+  const { loading, setLoading, error, setError, stop: onStop } = useGenerate({})
+
+  // 真实生图：经 localTool /api/proxy → 选中的 provider /v1/images/generations（节点式：可跨 provider 选模型）
+  // 同步/异步由该 provider.image_mode 决定（API 设置页「图片生成模式」）。
+  const handleGenerate = async () => {
+    // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
+    const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
+    console.log('[PromptNode] handleGenerate 触发, provider=', useProvider?.id, 'model=', modelId, '原始selected=', selectedModel)
+    const p = prompt || ''
+    if (!p.trim()) { console.log('[PromptNode] 无提示词，跳过'); setError('请输入提示词'); return }
+    setLoading(true)
+    setError('')
+    const taskCtl = reportGenerate(id, 'image', p, { modelName: modelId })
+    taskCtl.progress(10)
+    const refUrls = refImages.map((img) => img.url)
+    console.log('[PromptNode] 参考图 refImages=', JSON.stringify(refImages).slice(0, 500), 'urls=', JSON.stringify(refUrls).slice(0, 500))
+    try {
+      const r = await generateImage({
+        provider: useProvider,
+        prompt: p,
+        model: modelId,
+        size: imageSize,
+        n: count,
+        aspectRatio,
+        // 图生图：把连线上游产出的参考图传下去（网关 image_urls 字段）
+        images: refUrls,
+      }, (pct) => taskCtl.progress(Math.max(15, Math.min(98, Math.round(pct)))))
+      if (r.ok) {
+        console.log('[PromptNode] 生图成功 url=', r.url)
+        setImageUrl(r.url)
+        // 记忆本次参数（模型/比例/尺寸），供新建节点复用
+        setImgPrefs({ model: selectedModel, aspectRatio, imageSize })
+        taskCtl.done(r.url)
+      } else {
+        console.error('[PromptNode] 生图失败 error=', r.error)
+        setError(r.error || '生成失败')
+        taskCtl.fail(r.error || '生成失败')
+      }
+    } catch (e) {
+      console.error('[PromptNode] 生图异常:', e?.message)
+      setError(e?.message || '生成失败')
+      taskCtl.fail(e?.message || '生成失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 任务中心「再来一次/刷新」→ 触发本节点重新生成（挂载注册，卸载注销）
+  const handleGenerateRef = useRef(handleGenerate)
+  React.useEffect(() => { handleGenerateRef.current = handleGenerate })
+  React.useEffect(() => {
+    registerTaskRetry(id, () => handleGenerateRef.current())
+    return () => unregisterTaskRetry(id)
+  }, [id])
 
   // 图片可选比例（含 1:3 / 3:1 极端竖/横比例，不含 1:2 / 2:1）
   const ratioOptions = ['Auto', '1:1', '16:9', '9:16', '3:2', '2:3', '4:3', '3:4', '21:9', '9:21', '1:3', '3:1']
@@ -70,12 +149,6 @@ export default function PromptNode({ id, data, selected }) {
     { value: 'low', label: '低质量' },
     { value: 'medium', label: '中质量' },
     { value: 'high', label: '高质量' }
-  ]
-  const models = [
-    { id: 'gpt-image-1', label: 'gpt-image-1', badge: 'builtin' },
-    { id: 'dall-e-3', label: 'dall-e-3', badge: 'builtin' },
-    { id: 'stable-diffusion-xl', label: 'stable-diffusion-xl', badge: 'builtin' },
-    { id: 'flux-1.1-pro', label: 'flux-1.1-pro', badge: 'builtin' }
   ]
   const formatOptions = [
     { label: '自动检测', value: 'auto' },
@@ -227,11 +300,11 @@ export default function PromptNode({ id, data, selected }) {
                   <div className="absolute bottom-full left-0 mb-1 w-56 bg-[#222] border border-[#333] rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                     <div>
                       <div className="text-[10px] text-gray-500 mb-2">画质</div>
-                      <div className="flex gap-1.5">{sizeOptions.map((s) => <button key={s} type="button" className={`flex-1 py-1.5 text-[11px] rounded-md border transition-colors ${imageSize === s ? 'bg-[#333] border-[#555] text-white' : 'bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]'}`} onClick={() => setImageSize(s)}>{s}</button>)}</div>
+                      <div className="flex gap-1.5">{sizeOptions.map((s) => <button key={s} type="button" className={`flex-1 py-1.5 text-[11px] rounded-md border transition-colors ${imageSize === s ? 'bg-[#333] border-[#555] text-white' : 'bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]'}`} onClick={() => { setImageSize(s); setImgPrefs({ imageSize: s }) }}>{s}</button>)}</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-gray-500 mb-2">比例</div>
-                      <div className="flex flex-wrap gap-1.5">{ratioOptions.map((r) => <button key={r} type="button" className={`px-3 py-1.5 text-[11px] rounded-md border transition-colors ${aspectRatio === r ? 'bg-[#333] border-[#555] text-white' : 'bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]'}`} onClick={() => setAspectRatio(r)}>{r}</button>)}</div>
+                      <div className="flex flex-wrap gap-1.5">{ratioOptions.map((r) => <button key={r} type="button" className={`px-3 py-1.5 text-[11px] rounded-md border transition-colors ${aspectRatio === r ? 'bg-[#333] border-[#555] text-white' : 'bg-[#1a1a1a] border-transparent text-gray-400 hover:bg-[#2a2a2a]'}`} onClick={() => { setAspectRatio(r); setImgPrefs({ aspectRatio: r }) }}>{r}</button>)}</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-gray-500 mb-2">渲染质量</div>
@@ -241,8 +314,14 @@ export default function PromptNode({ id, data, selected }) {
                 )}
               </div>
 
-              {/* 模型选择（基座 ModelSelect） */}
-              <ModelSelect value={selectedModel} onChange={setSelectedModel} models={models} costMap={costMap} placeholder="选择模型" />
+              {/* 模型选择（基座 ModelSelect；选择即记住，跨节点复用） */}
+              <ModelSelect
+                value={selectedModel}
+                onChange={(m) => { setSelectedModel(m); setImgPrefs({ model: m }) }}
+                models={models}
+                costMap={costMap}
+                placeholder="选择模型"
+              />
 
               {/* 请求格式 */}
               <div ref={formatMenuRef} className="relative nodrag flex items-center">
@@ -276,7 +355,7 @@ export default function PromptNode({ id, data, selected }) {
                   )}
                 </div>
               )}
-              <GenerateButton loading={loading} onGenerate={onGenerate} onStop={onStop} cost={count * 2} />
+              <GenerateButton loading={loading} onGenerate={handleGenerate} onStop={onStop} />
             </div>
           </div>
         </div>

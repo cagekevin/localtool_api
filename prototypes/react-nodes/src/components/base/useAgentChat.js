@@ -192,12 +192,15 @@ export function demoPlan(text, callTool) {
 /**
  * 主 hook。
  * @param {object} opts
- *  - agentKey:   助手标识（默认 canvas-assistant）
+ *  - agentKey:     助手标识（默认 canvas-assistant）
  *  - systemPrompt: 注入的 system 提示词（可叠加画布操作准则）
  *  - defaultModel: 默认模型名
+ *  - provider:     可选，AI 助手实际使用的供应商（来自 API 设置）。传了则经 /api/proxy
+ *                  转发到该供应商（保留 function calling + SSE），选的模型才真正生效；
+ *                  不传则回退走 localTool /api/agent/:id/chat（env 配的 LLM）。
  * @returns { messages, sending, error, model, setModel, send, stop, clear }
  */
-export function useAgentChat({ agentKey = 'canvas-assistant', systemPrompt = '', defaultModel = CHAT_MODEL } = {}) {
+export function useAgentChat({ agentKey = 'canvas-assistant', systemPrompt = '', defaultModel = CHAT_MODEL, provider = null } = {}) {
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
@@ -233,23 +236,38 @@ export function useAgentChat({ agentKey = 'canvas-assistant', systemPrompt = '',
   /** 单次 SSE 请求，返回 { role:'assistant', content, reasoning?, tool_calls? }（复刻官方 dr:2579-2778 的 v） */
   const roundTrip = useCallback(
     async (requestMessages, signal, onStream) => {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-          ...(CHAT_API_KEY ? { Authorization: `Bearer ${CHAT_API_KEY}` } : {})
-        },
-        body: JSON.stringify({
-          model,
-          messages: requestMessages,
-          tools: toolSchemas,
-          tool_choice: 'auto',
-          stream: true,
-          temperature: 0.6
-        }),
-        signal
-      })
+      const llmBody = {
+        model,
+        messages: requestMessages,
+        tools: toolSchemas,
+        tool_choice: 'auto',
+        stream: true,
+        temperature: 0.6
+      }
+      // 是否走「多 provider /api/proxy 转发」：provider 存在时（如魔搭，支持 function calling）
+      const useProxy = !!provider
+      const res = useProxy
+        ? await fetch('http://127.0.0.1:18080/api/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+            body: JSON.stringify({
+              url: (provider?.protocol === 'openai' ? 'openai://chat/completions' : (provider?.base_url || '').replace(/\/$/, '') + '/v1/chat/completions'),
+              providerId: provider?.id,
+              method: 'POST',
+              body: JSON.stringify(llmBody)
+            }),
+            signal
+          })
+        : await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'text/event-stream',
+              ...(CHAT_API_KEY ? { Authorization: `Bearer ${CHAT_API_KEY}` } : {})
+            },
+            body: JSON.stringify(llmBody),
+            signal
+          })
       if (!res.ok) {
         let msg = `调用失败 (${res.status})`
         try {
@@ -306,7 +324,7 @@ export function useAgentChat({ agentKey = 'canvas-assistant', systemPrompt = '',
       if (acc.toolCalls.length > 0) assistant.tool_calls = acc.toolCalls.filter((t) => t.function?.name)
       return assistant
     },
-    [endpoint, model, toolSchemas]
+    [endpoint, model, toolSchemas, provider]
   )
 
   /** 发送（复刻官方 dr:2786-2895 的 send：SSE + 多轮工具循环） */

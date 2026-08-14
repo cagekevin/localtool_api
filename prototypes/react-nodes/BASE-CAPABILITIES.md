@@ -133,11 +133,50 @@ showToast('处理中...', { duration: 0 })           // 0 = 不自动消失
 
 | 能力 | 文件 | 一句话 | 用法 |
 |------|------|--------|------|
-| **拖入/粘贴素材** | `useAssetDropPaste.js` | 拖入/粘贴图片/视频/音频/文本建素材节点 | `const { onDragOver, onDrop, onPaste } = useAssetDropPaste({ addNode, screenToFlowPosition })` |
+| **拖入/粘贴素材** | `useAssetDropPaste.js` | 拖入/粘贴图片/视频/音频/文本建素材节点；粘贴节点组 | `const { onDragOver, onDrop, onPaste } = useAssetDropPaste({ addNode, screenToFlowPosition, onPasteNodeGroup })` |
 | **全局粘贴监听** | `useGlobalPaste(onPaste)` | 挂 window paste | App 已接；其它画布要粘贴复用 |
 
-**映射规则（与官方一致）**：图片/视频/音频 → `imageNode`（ImageNode 自动识别类型展示）；文本 → `textNode`。
+**映射规则（与官方一致）**：图片/视频/音频 → `imageNode`（ImageNode 自动识别类型展示）；文本 → `textNode`；`mutiwindow-images` → 提取帧网格；`mutiwindow-nodes` → 调 `onPasteNodeGroup(json,pos)` 由宿主（App `pasteNodeGroup`）重建节点组。
 **注意**：这个 hook 会弹 toast（"已导入图片/视频/文本"），复用即自带反馈。
+
+## 四.1、剪贴板公共工具（复制/下载）★ 统一入口
+
+> **把「复制」能力集中，消除各处重复**。节点复制走 App（含连线），图片/文本/下载走本模块。
+
+| 能力 | 文件 | 一句话 | 用法 |
+|------|------|--------|------|
+| **复制图片到剪贴板** | `clipboard.js` `copyImageToClipboard(url)` | canvas→PNG 写 `image/png`（对齐官方 Ei），失败退化为复制链接 | `const {ok,msg} = await copyImageToClipboard(url)` |
+| **复制文本** | `clipboard.js` `copyText(text)` | clipboard.writeText | `copyText('你好')` |
+| **下载文件** | `clipboard.js` `downloadUrl(url,filename)` | fetch blob → a.download | `downloadUrl(resultUrl,'a.png')` |
+
+**已复用**：App「复制图片」（`copyNodeImage`）走 `copyImageToClipboard`。**待迁移**：`ImageBoxNode.copyImage`、各面板 `handleCopy`（复制链接）可逐步迁到本模块消除重复。
+
+## 四.2、画布复制/粘贴节点组 ★ 对齐官方 Ci/xi
+
+> **「复制」= 把选中节点（组）写入系统剪贴板 → 画布 Ctrl+V 重建**（含连线），非原地克隆。对齐官方 `H_.jsx` `Ci`（复制）/`xi`（粘贴）。
+
+| 能力 | 文件 | 一句话 |
+|------|------|--------|
+| **复制节点组** | `App.jsx` `copySelectedNodes(onlyId?)` | 选中节点序列化 `{type:'mutiwindow-nodes', nodes, edges, originalIds}` → clipboard；右键单节点时只复制它 |
+| **粘贴节点组** | `App.jsx` `pasteNodeGroup(json,pos)` | 解析 JSON → 算原组中心 → 以粘贴点为中心重建节点+边，整组选中 |
+| **复制节点图片** | `App.jsx` `copyNodeImage(nodeId)` | 图片节点（imageNode/promptNode）右键「复制图片」→ 图片本身进剪贴板（对齐官方 Ei） |
+
+**菜单**：`App.jsx` `nodeMenuItems`（复制 / [复制图片仅图片节点] / 删除）、`selectionMenuItems`（复制 / 删除）。
+
+## 四.3、左侧面板 + 资源系统（任务中心 / 生成 / 素材）★ 后端化，与本地文件一一对应
+
+> **左侧滑出面板**三 tab：任务中心 / 生成 / 素材。**生成**（读 `tasks`）与 **素材**（读 `migrated`+`materials`）都从 localTool `/api/resources` 拉取，与磁盘文件一一对应（rescan 收录），非 localStorage 假数据。两 tab 功能完全一致（拖拽建节点/预览/打开本地/新建文件夹/复制/重命名/删除/无限滚动）。
+
+| 能力 | 文件 | 一句话 |
+|------|------|--------|
+| **左侧面板** | `LeftPanel.jsx` | 收起态竖条 + 展开面板，三 tab 切换（点空白关闭） |
+| **生成视图** | `GeneratedView.jsx` | 读 `tasks` 目录：类型过滤 pill、无限滚动（20/页）、预览、拖拽建节点、⋯菜单（打开本地目录/新建文件夹）、卡片复制/重命名/删除、文件夹进入 |
+| **素材视图** | `AssetLibrary.jsx` | 读 `migrated`（全部/人物/场景/道具）+ `materials`：目录 pill、文件夹进入、上传落盘、无限滚动、预览、拖拽、重命名/复制/删除、⋯菜单 |
+| **资源 API** | `resourcesApi.js` | `fetchResources`（folder eqOrPrefix）/ `rescanResources` / `deleteResource` / `saveResource` / `renameResource` / `openLocalFolder` / `openFileDir` |
+| **任务中心下载** | `TaskCenter.jsx` `downloadResult` | 任务「下载结果」/缩略图下载 → 真实下载（fetch blob→a.download），非占位 toast |
+
+**后端**：`/api/resources`（GET 分页+filter）/ `rescan` / `delete` / `save` / `clear` / `rename`（`localTool/src/routes/resources.ts` + `index.ts`）；`/api/files/open`、`/api/files/open-dir`（打开本地文件夹）。
+**说明**：素材上传走 `POST /api/files/upload`（落盘当前目录）→ rescan 收录；重命名走 `/api/resources/rename`（同步改磁盘文件名 + resources 表）。
 
 ---
 

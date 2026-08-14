@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { Clock, FolderOpen, ChevronRight, X } from 'lucide-react'
+import { Clock, FolderOpen, Sparkles } from 'lucide-react'
 import TaskCenter from './TaskCenter.jsx'
+import GeneratedView from './GeneratedView.jsx'
 import AssetLibrary from './AssetLibrary.jsx'
 import { useTasks } from './taskStore.js'
 import { useAssets } from './assetStore.js'
 
-// 两个 tab 配置
+// 三个 tab 配置：任务中心 / 生成 / 素材（生成在中间）
 const TABS = [
   { key: 'tasks', label: '任务中心', icon: Clock },
-  { key: 'assets', label: '素材库', icon: FolderOpen }
+  { key: 'generated', label: '生成', icon: Sparkles },
+  { key: 'assets', label: '素材', icon: FolderOpen }
 ]
 
 /**
@@ -74,15 +76,8 @@ export default function LeftPanel() {
       {/* 展开态：滑出面板 */}
       {expanded && (
         <div ref={panelRef} className="fixed left-3 top-2 bottom-2 z-[800] w-[330px] bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-panel-in">
-          {/* 顶栏：收起箭头 + 标题 */}
+          {/* 顶栏：tab 切换（点空白即可关闭，无需多余按钮） */}
           <div className="h-[52px] border-b border-[#222] flex items-center px-3 gap-1 flex-shrink-0">
-            <button
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer border-none"
-              onClick={() => setExpanded(false)}
-              title="收起面板"
-            >
-              <ChevronRight size={18} />
-            </button>
             <div className="flex-1 flex gap-1">
               {TABS.map((tab) => {
                 const Icon = tab.icon
@@ -99,18 +94,11 @@ export default function LeftPanel() {
                 )
               })}
             </div>
-            <button
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer border-none"
-              onClick={() => setExpanded(false)}
-              title="关闭"
-            >
-              <X size={16} />
-            </button>
           </div>
 
           {/* 内容区 */}
           <div className="flex-1 min-h-0">
-            {activeTab === 'tasks' ? <TaskCenter /> : <AssetLibrary />}
+            {activeTab === 'tasks' ? <TaskCenter /> : activeTab === 'generated' ? <GeneratedView /> : <AssetLibrary />}
           </div>
         </div>
       )}

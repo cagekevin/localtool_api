@@ -15,6 +15,7 @@ import CanvasToolbar from './components/base/CanvasToolbar.jsx'
 import ArrangeConfirm from './components/base/ArrangeConfirm.jsx'
 import { useArrangeCanvas } from './components/base/useArrangeCanvas.js'
 import { useAssetDropPaste, useGlobalPaste } from './components/base/useAssetDropPaste.js'
+import { copyImageToClipboard } from './components/base/clipboard.js'
 import TextNode from './components/TextNode.jsx'
 import ImageNode from './components/ImageNode.jsx'
 import PromptNode from './components/PromptNode.jsx'
@@ -28,8 +29,7 @@ import ScriptBoxNode from './components/ScriptBoxNode.jsx'
 import GhostTargetNode from './components/GhostTargetNode.jsx'
 import AgentPanel from './components/AgentPanel.jsx'
 import LeftPanel from './components/base/LeftPanel.jsx'
-import ProjectSelector from './components/base/ProjectSelector.jsx'
-import { switchProject, loadCanvasState, saveCanvasState, getCurrentProject } from './components/base/projectStore.js'
+import { switchProject, loadCanvasState, saveCanvasState, getCurrentProject, initProjects } from './components/base/projectStore.js'
 import { logger } from './components/base/logger.js'
 import { useNodePosition } from './components/base/hooks.js'
 import CustomEdge from './components/CustomEdge.jsx'
@@ -42,7 +42,15 @@ import { paletteCategories, getNodesByCategory, defaultNodeData } from './compon
 import LodProvider from './components/base/LodProvider.jsx'
 import LodListener from './components/base/LodListener.jsx'
 import ToastContainer from './components/base/ToastContainer.jsx'
+import SettingsFrame from './components/base/settings/SettingsFrame.jsx'
+import AccountsSettings from './components/base/settings/sections/AccountsSettings.jsx'
+import TopNav from './components/base/TopNav.jsx'
 import { showToast } from './components/base/toastStore.js'
+import { getSetting, setSetting } from './components/base/appSettings.js'
+import { useLocalToolStatus } from './components/base/useLocalToolStatus.js'
+import LocalToolConnectModal from './components/base/LocalToolConnectModal.jsx'
+import EmptyCanvasGuide from './components/base/EmptyCanvasGuide.jsx'
+import { initTasks } from './components/base/taskStore.js'
 
 /* ======================================================================
  * 【区 1】常量与配置区
@@ -69,162 +77,72 @@ const edgeTypes = {
   default: CustomEdge
 }
 
-// 初始画布节点（演示用）
-const initialNodes = [
-  {
-    id: 'text-1',
-    type: 'textNode',
-    position: { x: 100, y: 60 },
-    data: {
-      label: '文本节点',
-      text: '双击这里可编辑文本内容，或点击下方生成按钮。',
-      prompt: '写一段关于春天的散文',
-      selectedModel: 'gpt-4o-mini'
-    }
-  },
-  {
-    id: 'prompt-1',
-    type: 'promptNode',
-    position: { x: 680, y: 60 },
-    data: {
-      label: '生图节点',
-      prompt: '赛博朋克风格的城市夜景',
-      selectedModel: 'gpt-image-1',
-      aspectRatio: 'Auto',
-      imageSize: '1K',
-      quality: 'auto',
-      apiFormat: 'auto',
-      count: 1,
-      expanded: true
-    },
-    // 复刻 bo.jsx:631 生图节点默认 420×420（width+height 同设，避免端口跑偏）
-    width: 420,
-    height: 420,
-    style: { width: 420, height: 420 }
-  },
-  {
-    id: 'discount-1',
-    type: 'discountVideoNode',
-    position: { x: 680, y: 640 },
-    data: {
-      label: '特惠视频',
-      prompt: '一只小猫在花园里追逐蝴蝶',
-      selectedModel: 'runway-gen3',
-      size: '16:9',
-      resolution: '1080p',
-      selectedSeconds: '10'
-    }
-  },
-  {
-    id: 'image-1',
-    type: 'imageNode',
-    position: { x: 760, y: 240 },
-    data: {
-      label: '图片节点',
-      demoImage: true,
-      imageUrl: 'https://picsum.photos/seed/imagedemo/420/300',
-      thumbnailUrl: 'https://picsum.photos/seed/imagedemo/420/300'
-    },
-    style: { width: 260, height: 200 }
-  },
-  {
-    id: 'script-1',
-    type: 'scriptBoxNode',
-    position: { x: 700, y: 1000 },
-    width: 900,
-    height: 640,
-    style: { width: 900, height: 640 },
-    data: {
-      label: '剧本盒子',
-      step: 1,
-      story: '小马想要找到一片更好的草地，老牛和松鼠决定陪它一起出发。',
-      // 统一风格字段名遵循职责铁律：globalStyle（不是 style）
-      globalStyle: '电影感',
-      styleChips: ['电影感', '水墨风', '皮克斯3D', '赛博朋克'],
-      shotCount: 'auto',
-      customCount: '',
-      shots: [],
-      assets: [],
-      // 配置字段（设置弹窗读写）
-      aspectRatio: '16:9',
-      customAspectRatio: '',
-      imageGlobalConstraint: '',
-      videoGlobalConstraint: '',
-      customGlobalConstraint: '',
-      customScriptPrompt: '',
-      customShotPrompt: '',
-      // 资产参考图模板必须是对象 {character, scene, prop}（不是数组）
-      customAssetTemplates: { character: '', scene: '', prop: '' },
-      // 资产生图模型设置
-      assetModelSettings: { globalModel: 'gpt-image-2-low', globalAspectRatio: '16:9', globalSize: '1K' },
-      // 全局约束数组（Ir 引擎读取）
-      globalConstraints: [],
-      // 模型（官方注入字段）
-      selectedModel: 'gpt-4o-mini',
-      textModel: 'gpt-4o-mini',
-      drawingModelForScript: 'gpt-image-2-low',
-      // 视频上传状态
-      videoUploadedAssets: {},
-      videoAssetUploadStatus: {},
-      videoAssetUploadErrors: {},
-      // 生成遮罩计时
-      genMask: false,
-      genSecs: 0
-    }
-  }
-]
-
-// 初始连线（演示用）
-const initialEdges = [
-  {
-    id: 'edge-text-image',
-    source: 'text-1',
-    target: 'image-1',
-    type: 'default',
-    animated: false
-  },
-  {
-    id: 'edge-image-prompt',
-    source: 'image-1',
-    target: 'prompt-1',
-    type: 'default',
-    animated: false
-  }
-]
-
 function Canvas() {
   /* ====================================================================
    * 【区 2】状态区
    * nodes / edges + ref 同步（供能力区取最新快照，避免闭包旧值）
    * ==================================================================== */
   // 项目系统（对齐官方 Vr.jsx）：画布状态按当前项目初始化/持久化。
-  // 默认项目（default）首次用内置演示画布；其余/已有项目从 canvas-state-v1-{projectId} 读快照。
-  // 注意：这里只做一次性惰性读取，不订阅 store（切换/新建由 onSwitch/onCreate 回调显式 setNodes）。
-  const initialCanvasRef = useRef(null)
-  if (initialCanvasRef.current === null) {
-    const currentProjectId = getCurrentProject().id
-    const saved = loadCanvasState(currentProjectId)
-    initialCanvasRef.current = saved && saved.nodes ? saved : { nodes: initialNodes, edges: initialEdges }
-  }
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialCanvasRef.current.nodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialCanvasRef.current.edges)
+  // 对齐官方：初始画布为空（官方 H_.jsx 空画布时显示「右键自由生成你的想象」引导）。
+  // 画布快照走 localTool KV（异步）：挂载后从 KV 读当前项目快照，有值（含空画布）则覆盖；
+  // 无快照（首次）保持空画布 → 触发 EmptyCanvasGuide 空状态引导（完整复刻官方）。
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；缩放/适配用 fitView/zoomIn/zoomOut
-  const { screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
+  // 异步加载当前项目画布快照（KV）
+  const [canvasLoaded, setCanvasLoaded] = React.useState(false)
+  React.useEffect(() => {
+    let cancelled = false
+    const projectId = getCurrentProject().id
+    loadCanvasState(projectId).then((saved) => {
+      if (cancelled) return
+      setCanvasLoaded(true)
+      if (saved && saved.nodes) {
+        setNodes(saved.nodes)
+        setEdges(saved.edges || [])
+      }
+      // 无 saved（首次）：保留演示画布
+    }).catch(() => { setCanvasLoaded(true) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // 画布 AI 助手面板开关（复刻官方 _Component40 的 open state；点右上角 AI 图标打开）
-  // 接真系统：可持久化到项目设置 KV（app_settings），本 state 是唯一数据源。
-  const [agentOpen, setAgentOpen] = React.useState(false)
+  // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；适配用 fitView
+  const { screenToFlowPosition, fitView } = useReactFlow()
+
+  // 画布 AI 助手面板开关（复刻官方 _Component40 的 open state），持久化到 app_settings
+  const [agentOpen, setAgentOpen] = React.useState(() => getSetting('agentOpen'))
+  React.useEffect(() => { setSetting('agentOpen', agentOpen) }, [agentOpen])
+
+  // 视图切换：canvas（画布）/ accounts（多开整页，复刻官方 V='accounts'）/ settings（独立设置框架：侧栏 + 舞台）
+  const [view, setView] = React.useState('canvas')
 
   // 小地图开关（复刻 H_.jsx:474 un/dn，默认关——用户要求默认不显示，点工具栏 Map 图标再开）。
-  // 仅当开启且节点数 <100 时显示 MiniMap（官方 De.length<100）。
-  // 接真系统：改为读项目设置持久化（localTool KV / app_settings）即可，本 state 是唯一数据源。
-  const [minimapOn, setMinimapOn] = React.useState(false)
+  // 仅当开启且节点数 <100 时显示 MiniMap（官方 De.length<100）。持久化到 app_settings。
+  const [minimapOn, setMinimapOn] = React.useState(() => getSetting('minimapOn'))
+  React.useEffect(() => { setSetting('minimapOn', minimapOn) }, [minimapOn])
 
   // 缩放性能模式开关（复刻 H_.jsx:79 ge，官方默认 true：性能模式默认开启）。
-  // 抉择：默认开对齐官方，让缩小视图时天然触发 LOD 降级（节点隐藏图片/视频）。
-  // 接真系统：官方此值从 app_settings 读入（Vr.jsx ei），改为持久化即可。
-  const [performanceMode, setPerformanceMode] = React.useState(true)
+  // 从 app_settings 读入（对齐官方 Vr.jsx ei 从 app_settings 读），持久化刷新不丢。
+  const [performanceMode, setPerformanceMode] = React.useState(() => getSetting('performanceMode'))
+  React.useEffect(() => { setSetting('performanceMode', performanceMode) }, [performanceMode])
+
+  // ── localTool 连接检测 + 全屏提醒（完整复刻官方 Vr.jsx L35/L95-106/L3274-3280）──
+  const { status: localTool, checkConnection } = useLocalToolStatus()
+  // 全屏提醒开关（对齐官方 rt）与「用户已关闭」标记（对齐官方 st，关闭后不再自动弹，直到重连）
+  const [connectWarn, setConnectWarn] = React.useState(false)
+  const [warnDismissed, setWarnDismissed] = React.useState(false)
+  // 官方 3s 延迟后判定是否弹提醒：未连接且用户未主动关闭 → 弹；已连接 → 关
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!localTool.isConnected && !warnDismissed) {
+        setConnectWarn(true)
+      } else if (localTool.isConnected) {
+        setConnectWarn(false)
+      }
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [localTool.isConnected, warnDismissed])
 
   // 整理后「是否保留」快照（复刻 H_.jsx:134 tt/nt，null = 无弹窗）。
   // 存「排列前」的 nodes/edges 快照，「还原」= 整体写回（见 revertArrange）。
@@ -256,23 +174,27 @@ function Canvas() {
     }
   )
 
-  // 切换项目：保存当前画布快照 → 切换 → 加载目标项目快照 → 重置历史（对齐官方 Vr.jsx）
+  // 切换项目：保存当前画布快照（KV）→ 切换 → 异步加载目标项目快照 → 重置历史（对齐官方 Vr.jsx）
   const handleSwitchProject = useCallback(
     (targetId) => {
-      saveCanvasState(getCurrentProject().id, nodesRef.current, edgesRef.current)
+      saveCanvasState(getCurrentProject().id, nodesRef.current, edgesRef.current).catch(() => {})
       switchProject(targetId)
-      const saved = loadCanvasState(targetId)
-      const next = saved && saved.nodes ? saved : { nodes: [], edges: [] }
-      setNodes(next.nodes)
-      setEdges(next.edges)
+      setNodes([])
+      setEdges([])
+      loadCanvasState(targetId).then((saved) => {
+        const next = saved && saved.nodes ? saved : { nodes: [], edges: [] }
+        setNodes(next.nodes)
+        setEdges(next.edges || [])
+      }).catch(() => {})
       history.clear?.()
       logger.info('项目', 'switch', { targetId })
     },
     [setNodes, setEdges, history]
   )
 
-  // 新建项目：清空画布（store 已在 ProjectSelector 中创建并切换到新项目）
+  // 新建项目：先保存当前画布快照（KV，对齐官方切走前自动持久化）→ 清空画布（store 已在 ProjectSelector 中创建并切换到新项目）
   const handleCreateProject = useCallback(() => {
+    saveCanvasState(getCurrentProject().id, nodesRef.current, edgesRef.current).catch(() => {})
     setNodes([])
     setEdges([])
     history.clear?.()
@@ -283,6 +205,12 @@ function Canvas() {
   const menu = useContextMenu()
   // 统一新建节点落点（公共 base）：posAtMenu 右键位置 / posAtCenter 视图中央
   const { posAtMenu, posAtCenter } = useNodePosition()
+
+  // 后端化初始化：任务中心从 /api/tasks 加载历史任务；项目系统从 /api/projects 加载项目（对齐官方）
+  React.useEffect(() => {
+    initTasks()
+    initProjects()
+  }, [])
 
   // LOD 视口缩放等级（基座 LodListener/LodProvider）
   const [lodLevel, setLodLevel] = React.useState(0)
@@ -375,6 +303,102 @@ function Canvas() {
     history.record({ nodes: nextNodes, edges: edgesRef.current })
   }, [setNodes, history])
 
+  // 复制选中节点组到系统剪贴板（对齐官方 Ci，H_.jsx:9966-10024）。
+  // 格式 {type:'mutiwindow-nodes', nodes, edges, originalIds}，data 去掉函数与运行时字段，
+  // 粘贴时（onPaste）解析 JSON 重建节点组（含连线），与官方完全一致。
+  const copySelectedNodes = useCallback(async (onlyId) => {
+    let t = nodesRef.current.filter((n) => n.selected)
+    // 若右键的是某个 node 且不在选中集合内，则只复制该节点（对齐官方 Ci:9971）
+    if (onlyId && !t.some((n) => n.id === onlyId)) {
+      const single = nodesRef.current.find((n) => n.id === onlyId)
+      if (single) t = [single]
+    }
+    if (t.length === 0) return
+    // 只复制「选中节点之间互连」的边（对齐官方 Ci:9982-9988）
+    const innerEdges = edgesRef.current.filter(
+      (e) => t.some((n) => n.id === e.source) && t.some((n) => n.id === e.target)
+    )
+    const payload = {
+      type: 'mutiwindow-nodes',
+      nodes: t.map((n) => {
+        const data = { ...n.data }
+        Object.keys(data).forEach((k) => { if (typeof data[k] === 'function') delete data[k] })
+        delete data.loading
+        delete data.progress
+        delete data.errorMessage
+        delete data.imageUrlRef
+        delete data.imageUrlThumbRef
+        delete data.imageUrlUploaded
+        return { ...n, data }
+      }),
+      edges: innerEdges,
+      originalIds: t.map((n) => n.id)
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload))
+      showToast(`已复制 ${t.length} 个节点`)
+    } catch {
+      showToast('复制失败，请检查浏览器权限', { type: 'error' })
+    }
+  }, [])
+
+  // 复制节点图片本身到剪贴板（对齐官方 Ei，H_.jsx:10044）：与「复制节点」不同，
+  // 这是把图片以 image/png 写进剪贴板，可粘到微信/PS 等其它软件。复用公共 clipboard.copyImageToClipboard。
+  const copyNodeImage = useCallback(async (nodeId) => {
+    const node = nodesRef.current.find((n) => n.id === nodeId)
+    const imgUrl = node?.data?.imageUrl || node?.data?.url
+    if (!imgUrl) { showToast('该节点没有图片', { type: 'warning' }); return }
+    const res = await copyImageToClipboard(imgUrl)
+    showToast(res.msg, { type: res.ok ? 'success' : 'error' })
+  }, [])
+
+  // 粘贴节点组（对齐官方 xi，H_.jsx:9635-9789）：解析 mutiwindow-nodes 重建节点+边，
+  // 以粘贴点 pos 为中心整体落下。返回是否处理了 mutiwindow-nodes。
+  const pasteNodeGroup = useCallback(async (jsonStr, pos) => {
+    let t
+    try {
+      t = JSON.parse(jsonStr)
+    } catch {
+      return false
+    }
+    if (!t || t.type !== 'mutiwindow-nodes') return false
+    const e = t.nodes || []
+    if (e.length === 0) return false
+    const n = t.edges || []
+    // 计算原节点组包围盒中心，使整组以粘贴点为中心落下（对齐官方 xi:9673-9686）
+    const o = Math.min(...e.map((x) => x.position?.x ?? 0))
+    const s = Math.min(...e.map((x) => x.position?.y ?? 0))
+    const c = Math.max(...e.map((x) => (x.position?.x ?? 0) + (x.measured?.width || 300)))
+    const l = Math.max(...e.map((x) => (x.position?.y ?? 0) + (x.measured?.height || 300)))
+    const u = (o + c) / 2
+    const d = (s + l) / 2
+    const f = new Map()
+    const p = e.map((x) => {
+      const id = `${x.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+      f.set(x.id, id)
+      const data = JSON.parse(JSON.stringify(x.data || {}))
+      return { ...x, id, position: { x: pos.x + (x.position?.x ?? 0) - u, y: pos.y + (x.position?.y ?? 0) - d }, selected: true, data }
+    })
+    const m = (n || []).map((x) => ({
+      ...x,
+      id: `e-${f.get(x.source)}-${f.get(x.target)}`,
+      source: f.get(x.source),
+      target: f.get(x.target),
+      selected: true,
+      type: 'default'
+    }))
+    const beforeNodes = nodesRef.current
+    const beforeEdges = edgesRef.current
+    // 旧节点取消选中，新节点/边并入（对齐官方 xi:9751-9766）
+    const nextNodes = beforeNodes.map((x) => ({ ...x, selected: false })).concat(p)
+    const nextEdges = beforeEdges.map((x) => ({ ...x, selected: false })).concat(m)
+    setNodes(nextNodes)
+    setEdges(nextEdges)
+    history.record({ nodes: nextNodes, edges: nextEdges })
+    showToast(`已粘贴 ${p.length} 个节点`)
+    return true
+  }, [setNodes, setEdges, history])
+
   // 整理画布（复刻 H_.jsx:10985 Ui / Ctrl+L）：
   // 先存排列前快照 → dagre 布局写回 → 弹「是否保留整理结果」确认。
   // 整理画布（复刻 H_.jsx:10985 Ui / Ctrl+L）。
@@ -423,9 +447,39 @@ function Canvas() {
     setArrangeSnapshot(null)
   }, [])
 
-  // 缩放控制（复刻 H_.jsx:12051-12067）。zoomIn/zoomOut 是 @xyflow 内置方法，带 300ms 平滑。
-  const zoomInStep = useCallback(() => zoomIn({ duration: 300 }), [zoomIn])
-  const zoomOutStep = useCallback(() => zoomOut({ duration: 300 }), [zoomOut])
+  // 清理缓存（复刻官方 Ki 语义的「原型本地版」）：
+  // 遍历节点，把 data 里体积超过阈值的内联 dataURL 大资源（图片/视频/缩略图）置空释放，
+  // 减轻内存负担（官方转 /files/ 本地 URL；原型无后端，改为释放超大内联数据）。
+  // 阈值 100KB；只清 data:image|data:video 前缀的字段；不可变局部更新（原则 3）。
+  const DATAURL_THRESHOLD = 100 * 1024
+  const CLEAN_FIELDS = ['imageUrl', 'videoUrl', 'thumbnailUrl']
+  const handleClearCache = useCallback(() => {
+    let clearedCount = 0
+    let clearedBytes = 0
+    let changed = false
+    const next = nodesRef.current.map((n) => {
+      const d = n.data || {}
+      const patches = {}
+      for (const f of CLEAN_FIELDS) {
+        const v = d[f]
+        if (typeof v === 'string' && v.startsWith('data:') && v.length > DATAURL_THRESHOLD) {
+          patches[f] = ''
+          clearedCount++
+          clearedBytes += v.length
+        }
+      }
+      if (Object.keys(patches).length === 0) return n
+      changed = true
+      return { ...n, data: { ...d, ...patches } }
+    })
+    if (!changed) {
+      showToast('没有需要清理的大内联资源', { type: 'info' })
+      return
+    }
+    setNodes(next)
+    history.record({ nodes: next, edges: edgesRef.current })
+    showToast(`已清理 ${clearedCount} 个大内联资源（约 ${(clearedBytes / 1024).toFixed(0)}KB）`, { type: 'success' })
+  }, [setNodes, history])
 
   /* ====================================================================
    * 素材拖入 / 粘贴（复刻 H_.jsx:10201-10350 onDragOver ki / onDrop Ai + handlePaste）
@@ -433,7 +487,8 @@ function Canvas() {
    * ==================================================================== */
   const { onDragOver, onDrop, onPaste } = useAssetDropPaste({
     addNode: (type, pos, data) => addNode(type, pos, data),
-    screenToFlowPosition
+    screenToFlowPosition,
+    onPasteNodeGroup: pasteNodeGroup
   })
   // 全局粘贴监听（文档级）
   useGlobalPaste(onPaste)
@@ -473,15 +528,29 @@ function Canvas() {
     ]
   }
 
-  // 单选节点菜单：复制 / 删除（复刻 H_.jsx:12573-12617）
+  // 单选节点菜单：复制 / [复制图片] / 删除（复刻 H_.jsx:12573-12617）
+  // 「复制」对齐官方：把节点（组）写入系统剪贴板，用户 Ctrl+V 粘贴重建。
+  // 「复制图片」仅图片类节点（imageNode/promptNode）有：把图片本身复制到剪贴板（对齐官方 Ei，H_.jsx:12603）。
   const nodeMenuItems = (state) => {
     const node = nodesRef.current.find((n) => n.id === state.nodeId)
     if (!node) return []
-    return [
-      { key: 'duplicate', icon: <Copy size={16} className="text-gray-300" />, label: '复制节点', onClick: () => addNode(node.type, { x: (node.position?.x || 0) + 40, y: (node.position?.y || 0) + 40 }, node.data || {}) },
+    const isImageLike = node.type === 'imageNode' || node.type === 'promptNode'
+    const items = [
+      { key: 'duplicate', icon: <Copy size={16} className="text-gray-300" />, label: '复制', onClick: () => copySelectedNodes(node.id) }
+    ]
+    if (isImageLike) {
+      items.push({
+        key: 'copyImage',
+        icon: <ImageIcon size={16} className="text-gray-300" />,
+        label: '复制图片',
+        onClick: () => copyNodeImage(node.id)
+      })
+    }
+    items.push(
       { type: 'divider' },
       { key: 'delete', icon: <Trash2 size={16} className="text-red-400" />, label: '删除', danger: true, onClick: () => deleteNode(node.id) }
-    ]
+    )
+    return items
   }
 
   // 从「连接」状态建下游节点：在 dropPosition 建节点 + 自动连线，并清掉 ghost（复刻官方 di + a()）
@@ -512,8 +581,15 @@ function Canvas() {
     [menu.state, buildFromConnection, addNode, posAtMenu]
   )
 
-  // 多选菜单：删除
+  // 多选菜单：复制 / 删除（对齐官方多选右键：复制选中节点组到剪贴板，粘贴时重建）
   const selectionMenuItems = () => [
+    {
+      key: 'duplicate',
+      icon: <Copy size={16} className="text-gray-300" />,
+      label: '复制',
+      onClick: () => copySelectedNodes()
+    },
+    { type: 'divider' },
     {
       key: 'delete',
       icon: <Trash2 size={16} className="text-red-400" />,
@@ -712,7 +788,29 @@ function Canvas() {
    * ==================================================================== */
   return (
     <LodProvider value={{ lodLevel, viewportMoving: false, nodeCount: nodes.length, handleFollowLimit: 60, edgeFxLimit: 50 }}>
-      <div ref={menu.containerRef} className="relative" style={{ width: '100%', height: '100vh' }}>
+      {/* 顶层：flex 纵向布局（复刻官方 Vr.jsx L3274 flex h-screen flex-col） */}
+      <div className="flex flex-col h-screen bg-[#0d0c0c] font-sans text-gray-200">
+        {/* 本地引擎未连接全屏提醒（完整复刻官方 Vr.jsx L3274-3280 挂载 _cmp_Tr） */}
+        <LocalToolConnectModal
+          isVisible={connectWarn}
+          onClose={() => {
+            setConnectWarn(false)
+            setWarnDismissed(true) // 对齐官方 ct(true)：用户关闭后不再自动弹，直到重连
+          }}
+          onRetry={checkConnection}
+        />
+        {/* 顶部导航栏：Logo + 画布/多开 pill tab + 项目选择器 + 右侧设置/AI 助手 */}
+        <TopNav
+          view={view}
+          onNavigate={setView}
+          onSwitchProject={handleSwitchProject}
+          onCreateProject={handleCreateProject}
+          agentOpen={agentOpen}
+          onToggleAgent={() => setAgentOpen((v) => !v)}
+        />
+
+        {/* 内容区：画布为基座，多开/设置整页覆盖（官方 visible/invisible 覆盖层形态） */}
+        <div ref={menu.containerRef} className="relative flex-1 min-h-0">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -778,63 +876,59 @@ function Canvas() {
           <LodListener onLodChange={setLodLevel} enablePerformanceMode={performanceMode} />
         </ReactFlow>
 
-        {/* 画布 AI 助手入口（右上角，复刻官方打开方式） */}
-        <div className="absolute top-3 right-3 z-[950] pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => setAgentOpen((v) => !v)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors shadow-lg border ${agentOpen ? 'bg-[#2a2a2a] text-white border-[#444]' : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#2a2a2a] hover:text-white border-[#333]'}`}
-            title={agentOpen ? '关闭 AI 助手' : '打开 AI 助手'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
-              <circle cx="12" cy="12" r="4" />
-            </svg>
-            {agentOpen ? '关闭' : 'AI 助手'}
-          </button>
-        </div>
-
-        {/* 画布 AI 助手面板（复刻官方 _Component40；open 时右侧浮出） */}
-        <AgentPanel
-          agentKey="canvas-assistant"
-          open={agentOpen}
-          onClose={() => setAgentOpen(false)}
-          systemPrompt={''}
-        />
-
-        {/* 顶部中央项目选择器（对齐官方 project-selector；切换/新建时保存与加载画布快照） */}
-        <ProjectSelector onSwitch={handleSwitchProject} onCreate={handleCreateProject} />
-
-        {/* 左侧滑出面板：任务中心 + 素材库（fixed 覆盖层，不依赖画布容器） */}
-        <LeftPanel />
-
-        {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
-        {/* 抉择：工具栏 + 确认弹窗叠在一个 absolute 容器（left-3 bottom-3），弹窗 absolute bottom-full 挂在工具栏上方 */}
-        <div className="absolute left-3 bottom-3 z-[900] pointer-events-auto">
-          <div className="relative">
-            {/* 整理后「是否保留」确认弹窗（复刻 H_.jsx:11993） */}
-            <ArrangeConfirm
-              snapshot={arrangeSnapshot}
-              onRevert={revertArrange}
-              onKeep={keepArrange}
+        {/* 画布专属覆盖层：仅画布视图渲染（对齐官方 V 视图互斥，避免叠到设置/多开上） */}
+        {view === 'canvas' && (
+          <>
+            {/* 画布空状态引导「右键自由生成你的想象」（完整复刻官方 H_.jsx L12622：画布加载完成且无节点时显示） */}
+            {canvasLoaded && nodes.length === 0 && (
+              <EmptyCanvasGuide onAdd={(type) => addNode(type, posAtCenter(), defaultNodeData(type))} />
+            )}
+            {/* 画布 AI 助手面板（复刻官方 _Component40；open 时右侧浮出）；设置/AI 助手按钮已在顶部导航栏右侧 */}
+            <AgentPanel
+              agentKey="canvas-assistant"
+              open={agentOpen}
+              onClose={() => setAgentOpen(false)}
+              systemPrompt={''}
             />
-            {/* 占位按钮 onRun/onClearCache 未传：接真系统时在 App 传入（见 CanvasToolbar 注释） */}
+
+            {/* 左侧滑出面板：任务中心 + 素材库（fixed 覆盖层，不依赖画布容器） */}
+            <LeftPanel />
+
+            {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
+            {/* 抉择：工具栏 + 确认弹窗叠在一个 absolute 容器（left-3 bottom-3），弹窗 absolute bottom-full 挂在工具栏上方 */}
+            <div className="absolute left-3 bottom-3 z-[900] pointer-events-auto">
+              <div className="relative">
+                {/* 整理后「是否保留」确认弹窗（复刻 H_.jsx:11993） */}
+                <ArrangeConfirm
+                  snapshot={arrangeSnapshot}
+                  onRevert={revertArrange}
+                  onKeep={keepArrange}
+                />
+                {/* 占位按钮 onRun/onClearCache 未传：接真系统时在 App 传入（见 CanvasToolbar 注释） */}
             <CanvasToolbar
               minimapOn={minimapOn}
               onToggleMinimap={() => setMinimapOn((v) => !v)}
               onArrange={arrangeCanvas}
               onFitView={() => fitView({ padding: 0.2, duration: 800 })}
-              onZoomIn={zoomInStep}
-              onZoomOut={zoomOutStep}
               zoomPercent={zoomPercent}
               performanceMode={performanceMode}
               onTogglePerformance={() => setPerformanceMode((v) => !v)}
+              onClearCache={handleClearCache}
+              localToolConnected={localTool.isConnected}
             />
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* 右键菜单（基座 ContextMenu，挂载于画布外层） */}
-        <ContextMenu state={menu.state} items={menuItems} onClose={menu.close} containerRef={menu.containerRef} />
+            {/* 右键菜单（基座 ContextMenu，挂载于画布外层） */}
+            <ContextMenu state={menu.state} items={menuItems} onClose={menu.close} containerRef={menu.containerRef} />
+          </>
+        )}
+
+        {/* 多开整页：覆盖画布（复刻官方 V='accounts'，含新建表单+环境网格+⋮菜单） */}
+        {view === 'accounts' && <AccountsSettings />}
+        {/* 设置层：覆盖画布（官方 Vr.jsx 形态），右上角齿轮常驻可切换 */}
+        {view === 'settings' && <SettingsFrame />}
+        </div>
       </div>
     </LodProvider>
   )

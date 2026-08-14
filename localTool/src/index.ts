@@ -16,12 +16,14 @@ import { json, sendError } from './utils/helpers.js';
 import { handleKvGet, handleKvSet, handleKvDelete } from './routes/kv.js';
 import { handleUpload, handleRead, handleThumbnail, handleMkdir, handleMove, handleOpen, handleOpenDir, handleList } from './routes/files.js';
 import { handleTasksGet, handleTasksSave, handleTasksBatchSave, handleTasksDelete, handleTasksBatchDelete, handleTasksClear } from './routes/tasks.js';
-import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, handleResourcesDelete, handleResourcesClear, handleResourcesRescan } from './routes/resources.js';
+import { handleResourcesGet, handleResourcesSave, handleResourcesBatchSave, handleResourcesDelete, handleResourcesClear, handleResourcesRescan, handleResourcesRename } from './routes/resources.js';
 import { handleStatus, handleProxy, handleJianyingSend, handleGatewayTask } from './routes/system.js';
+import { handleProjectsGet, handleProjectsSave } from './routes/projects.js';
 import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handleModels } from './routes/platform.js';
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport, handleAdminKvList, handleAdminClearCache } from './routes/admin.js';
 import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
 import { handleAgentChat } from './routes/agentChat.js';
+import { handleProvidersGet, handleProvidersPut, handleProviderTest, handleProviderFetchModels } from './routes/providers.js';
 // catch-all 兜底透传：未命中本地具名路由的请求原样转发官方（详见 routes/passthrough.ts 文件头）
 // 这是「改 dist base 指向 18080」的硬前置——否则未接管的 /api/* 会直接 404。
 import { handlePassthrough } from './routes/passthrough.js';
@@ -75,6 +77,7 @@ const SILENT_LOG_PATHS = new Set([
   '/api/resources/rescan',
   '/api/tasks',
   '/api/proxy',
+  '/api/providers',
 ]);
 
 // ── 端口冲突检测 ──
@@ -269,6 +272,14 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return await handleTasksClear(req, res);
     }
 
+    // ── Projects ──
+    if (pathname === '/api/projects' && method === 'GET') {
+      return await handleProjectsGet(req, res);
+    }
+    if (pathname === '/api/projects/save' && method === 'POST') {
+      return await handleProjectsSave(req, res);
+    }
+
     // ── Resources ──
     if (pathname === '/api/resources' && method === 'GET') {
       return await handleResourcesGet(req, res, url);
@@ -287,6 +298,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
     if (pathname === '/api/resources/rescan' && method === 'POST') {
       return await handleResourcesRescan(req, res);
+    }
+    if (pathname === '/api/resources/rename' && method === 'POST') {
+      return await handleResourcesRename(req, res, url);
     }
 
     // ── 代理 ──
@@ -343,6 +357,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
     if (pathname === '/api/official/entitlements/invalidate' && method === 'POST') {
       return await handleOfficialInvalidate(req, res);
+    }
+
+    // ── 多供应商（docs/providers）──
+    if (pathname === '/api/providers' && method === 'GET') {
+      return await handleProvidersGet(req, res);
+    }
+    if (pathname === '/api/providers' && method === 'PUT') {
+      return await handleProvidersPut(req, res);
+    }
+    if (pathname === '/api/providers/test-connection' && method === 'POST') {
+      return await handleProviderTest(req, res);
+    }
+    if (/^\/api\/providers\/[^/]+\/fetch-models$/.test(pathname) && method === 'POST') {
+      const m = pathname.match(/^\/api\/providers\/([^/]+)\/fetch-models$/);
+      return await handleProviderFetchModels(req, res, m ? m[1] : '');
     }
 
     // ── 管理 ──
@@ -501,6 +530,7 @@ async function main(): Promise<void> {
     console.log('    剪映:   /api/jianying/send');
     console.log('    平台:   /plugin/manifest.json  /api/workflow-apps/by-project/:id');
     console.log('    内置:   /public/platform/builtin  /public/platform/models');
+    console.log('    供应:   /api/providers  /api/providers/test-connection  /api/providers/:id/fetch-models');
     console.log('    权益:   /api/user/info  /api/user/model-entitlements');
     console.log('           /api/agent/:id/vip-check  /api/official/entitlements/invalidate');
     console.log('    画布:   /  (dist/ 静态托管)');

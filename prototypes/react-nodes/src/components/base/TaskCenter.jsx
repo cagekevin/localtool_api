@@ -124,7 +124,11 @@ export default function TaskCenter() {
                 moreOpen={moreOpenId === t.id}
                 onToggleMore={() => setMoreOpenId(moreOpenId === t.id ? null : t.id)}
                 onCopy={() => copyPrompt(t)}
-                onRetry={() => { retryTask(t.id); setMoreOpenId(null); showToast('已重新排队', { type: 'info' }) }}
+                onRetry={() => {
+                  const ok = retryTask(t.id)
+                  setMoreOpenId(null)
+                  showToast(ok ? '已重新生成' : '找不到对应节点，请在画布上重新生成', { type: ok ? 'info' : 'warning' })
+                }}
                 onRemove={() => { removeTask(t.id); setMoreOpenId(null); showToast('已删除', { type: 'success' }) }}
               />
             ))}
@@ -152,6 +156,30 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
   const isActive = task.status === 'running' || task.status === 'pending'
   const isCompleted = task.status === 'completed'
 
+  // 真实下载任务结果（fetch blob → a.download，可控文件名）
+  const downloadResult = async (e) => {
+    if (e?.stopPropagation) e.stopPropagation()
+    if (!task.resultUrl) { showToast('没有可下载的结果', { type: 'warning' }); return }
+    try {
+      const res = await fetch(task.resultUrl)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      const objUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objUrl
+      const ext = task.type === 'video' ? '.mp4' : task.type === 'text' ? '.txt' : '.png'
+      a.download = `${task.modelName || 'task'}_${Date.now()}${ext}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objUrl)
+      showToast('已开始下载', { type: 'success' })
+    } catch (err) {
+      console.warn('[TaskCenter] 下载失败:', err?.message)
+      showToast('下载失败', { type: 'error' })
+    }
+  }
+
   return (
     <div className="px-1.5 py-2 flex flex-col gap-2 border-b border-[#222] last:border-b-0">
       {/* 第一行：状态圆点+文案 · 类型+模型 | 操作 */}
@@ -178,7 +206,7 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
             </button>
             {moreOpen && (
               <div className="absolute right-0 top-full mt-1 bg-[#222] border border-[#333] rounded-lg shadow-xl p-1 z-30 w-40 nowheel nopan nodrag">
-                {isCompleted && <MenuBtn icon={Download} label="下载结果" onClick={() => showToast('已开始下载', { type: 'info' })} />}
+                {isCompleted && <MenuBtn icon={Download} label="下载结果" onClick={downloadResult} />}
                 <MenuBtn icon={RefreshCw} label="再来一次" onClick={onRetry} />
                 <MenuBtn icon={Copy} label="复制任务信息" onClick={onCopy} />
                 <div className="h-[1px] bg-[#333] my-1" />
@@ -220,7 +248,7 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
           ) : (
             <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${task.resultUrl})` }} />
           )}
-          <button className="absolute top-1 right-1 w-6 h-6 rounded-md bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none" onClick={(e) => { e.stopPropagation(); showToast('已下载', { type: 'success' }) }}>
+          <button className="absolute top-1 right-1 w-6 h-6 rounded-md bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none" onClick={downloadResult} title="下载结果">
             <Download size={12} />
           </button>
         </div>

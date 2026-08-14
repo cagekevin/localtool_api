@@ -20,9 +20,10 @@ import { showToast } from './toastStore.js'
  * @param {Object} opts
  * @param {Function} opts.addNode      建节点：addNode(type, pos, data)
  * @param {Function} opts.screenToFlowPosition  屏幕坐标 → 画布坐标
+ * @param {Function} opts.onPasteNodeGroup  粘贴节点组（mutiwindow-nodes）回调：onPasteNodeGroup(json, pos) → boolean
  * @returns {{ onDragOver, onDrop, onPaste }} 挂到 ReactFlow 的事件 + 供 window paste 监听
  */
-export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
+export function useAssetDropPaste({ addNode, screenToFlowPosition, onPasteNodeGroup }) {
   // 记录最近一次鼠标位置（视口坐标）：粘贴时优先落在鼠标处，无鼠标则回退到视图中心。
   // paste 事件本身不带 clientX/Y，官方也是用「当前视口位置」建节点；这里用 mousemove 追踪
   // 更贴近用户预期（在哪儿右键/停留就在哪儿粘贴），对齐 H_.jsx 用视口坐标建节点的思路。
@@ -78,6 +79,30 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
     (e) => {
       e.preventDefault()
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+
+      // 素材库素材拖入（AssetLibrary 写 application/x-yimao-asset）：用素材 url 建节点
+      const assetRaw = e.dataTransfer?.getData('application/x-yimao-asset')
+      if (assetRaw) {
+        try {
+          const asset = JSON.parse(assetRaw)
+          if (asset?.url) {
+            // 文字素材 → textNode（把 data:text 内容解码成文本）；图片/视频/音频 → imageNode
+            if (asset.type === 'text') {
+              let content = asset.text || ''
+              if (!content && asset.url.startsWith('data:text')) {
+                try { content = decodeURIComponent(asset.url.slice(asset.url.indexOf(',') + 1)) } catch { content = asset.name || '' }
+              }
+              addNode('textNode', pos, { text: content, label: asset.name || '文字素材' })
+              showToast(`已添加文字素材「${asset.name || '文字素材'}」`)
+            } else {
+              addNode('imageNode', pos, { imageUrl: asset.url, label: asset.name || '素材' })
+              showToast(`已添加素材「${asset.name || '素材'}」`)
+            }
+            return
+          }
+        } catch { /* 非法数据忽略 */ }
+      }
+
       const files = e.dataTransfer?.files
       if (!files || files.length === 0) {
         // 拖入 URL 文本（非文件）：图片类 URL → imageNode，其它 → textNode
@@ -118,10 +143,16 @@ export function useAssetDropPaste({ addNode, screenToFlowPosition }) {
           e.preventDefault()
           item.getAsString((text) => {
             if (text && text.trim()) {
-              // 内部节点 JSON：mutiwindow-nodes 跳过；mutiwindow-images → 建 imageNode 网格（复刻官方 H_.jsx:9790-9828）
+              // 内部节点 JSON：mutiwindow-nodes → 重建节点组（对齐官方 xi）；mutiwindow-images → 建 imageNode 网格（复刻官方 H_.jsx:9790-9828）
               try {
                 const parsed = JSON.parse(text)
-                if (parsed?.type === 'mutiwindow-nodes') return
+                if (parsed?.type === 'mutiwindow-nodes') {
+                  // 粘贴节点组（含连线），交由宿主（App）解析重建
+                  if (typeof onPasteNodeGroup === 'function') {
+                    onPasteNodeGroup(text, pos)
+                  }
+                  return
+                }
                 if (parsed?.type === 'mutiwindow-images' && Array.isArray(parsed.images)) {
                   const images = parsed.images
                   if (images.length === 0) return

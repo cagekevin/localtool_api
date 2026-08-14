@@ -1,16 +1,15 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Upload, FileText, Music, Trash2, Play, Image as ImageIcon, Copy, FolderOpen, FolderPlus, MoreVertical, ChevronLeft, Pencil } from 'lucide-react'
+import { FolderOpen, Image as ImageIcon, Play, FileText, Music, Copy, Trash2, FolderPlus, ChevronLeft, MoreVertical, Pencil } from 'lucide-react'
 import { useLocalToolStatus } from './useLocalToolStatus.js'
 import { fetchResources, rescanResources, deleteResource, renameResource, openLocalFolder, openFileDir, relativePathFromUrl } from './resourcesApi.js'
 import { showToast } from './toastStore.js'
 
-// 目录 pill（folder 前缀对齐本地磁盘 migrated/materials 结构，与后端 /api/resources 一一对应）
-const FOLDER_PILLS = [
-  { key: 'all', label: '全部', folder: 'migrated' },
-  { key: 'character', label: '人物', folder: 'migrated/人物' },
-  { key: 'scene', label: '场景', folder: 'migrated/场景' },
-  { key: 'prop', label: '道具', folder: 'migrated/道具' },
-  { key: 'materials', label: '素材池', folder: 'materials' },
+// 类型过滤 pill（沿用素材库 AssetLibrary 的小圆按钮形式）
+const TYPE_FILTERS = [
+  { key: 'all', label: '全部' },
+  { key: 'image', label: '图片' },
+  { key: 'video', label: '视频' },
+  { key: 'text', label: '文本' },
 ]
 
 const TYPE_BADGE = {
@@ -39,8 +38,8 @@ function isAudio(type, url) {
   return type === 'audio' || (type && type.startsWith('audio')) || /\.(flac|mp3|wav|ogg|m4a|aac|opus|wma|aiff)(\?|$)/i.test(url || '')
 }
 
-// 文字素材单元格：默认展示文件内容（前几行）
-function TextAssetCell({ url, name }) {
+// 文字资源单元格：默认展示文件内容（前几行）
+function TextResourceCell({ url, name }) {
   const [text, setText] = useState('')
   useEffect(() => {
     let alive = true
@@ -59,7 +58,7 @@ function TextAssetCell({ url, name }) {
   )
 }
 
-// 文字素材预览：完整展示文件内容
+// 文字预览：完整展示文件内容
 function TextPreview({ url, name }) {
   const [text, setText] = useState('')
   useEffect(() => {
@@ -70,6 +69,7 @@ function TextPreview({ url, name }) {
   return (
     <div className="w-[360px] max-w-[90vw] bg-[#1f1f1f] rounded-xl p-5">
       <div className="flex items-center gap-2 mb-3">
+        <FileText size={18} className="text-yellow-400" />
         <span className="text-sm text-[#ddd] m-0">{name}</span>
       </div>
       <pre className="text-xs text-[#aaa] whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar m-0">
@@ -80,79 +80,76 @@ function TextPreview({ url, name }) {
 }
 
 /**
- * 素材库 tab —— 与本地磁盘文件一一对应（从 localTool /api/resources 读取 migrated/materials 目录，rescan 收录），
- * 目录 pill 沿用本原型小圆按钮形式，无限滚动（每次 20 个）。
- * 顶部「⋯」菜单含「打开本地目录」「新建文件夹」（对齐官方素材 tab）。
- * 上传文件真实落盘到后端 /api/files/upload；删除走 /api/resources/delete。预览/拖拽建节点保留。
+ * 生成 tab —— 对齐官方资源面板「生成」(generated) 视图的数据逻辑（Vr.jsx ft()/kr() + Un.jsx），
+ * 过滤用本原型素材库的小圆按钮（pill）形式，无限滚动（每次 20 个），无收藏、无分页按钮。
+ * 预览交互与素材库 AssetLibrary 一致：文字默认展示内容、图片点击大图、视频点击大图播放。
+ *
+ * 官方逻辑（逐条对齐）：
+ *  - 数据：GET /api/resources?filters={folder:{eqOrPrefix:'tasks'}}（AI 生成结果落盘 tasks 目录，rescan 收录）
+ *  - 打开面板先 rescan 一次（官方 Xa(true) → Pr rescan + kr 拉取），保证最新生成结果出现
+ *  - 类型过滤 pill：全部/图片/视频/文本
+ *  - 顶部「打开本地存储目录」按钮 → GET /api/files/open?subfolder=tasks
+ *  - 文件夹可进入（tasks 子目录）；卡片悬停：打开目录/复制/删除
+ * UI 采用本原型暗色风格（过滤 pill 沿用素材库形式），数据逻辑与官方一致。
  */
-export default function AssetLibrary() {
+export default function GeneratedView() {
   const { status } = useLocalToolStatus()
   const connected = status.isConnected
 
-  const [folder, setFolder] = useState('migrated') // 当前目录前缀路径（migrated 为「全部」根）
-  const [preview, setPreview] = useState(null)
   const [items, setItems] = useState([])
   const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [preview, setPreview] = useState(null) // 点击大图/视频/文字/音频预览
+
+  const [typeFilter, setTypeFilter] = useState('all') // all/image/video/text
+  const [folder, setFolder] = useState('tasks') // 当前目录（eqOrPrefix 前缀），初始 tasks
   const [creating, setCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false) // 「⋯」更多操作菜单
   const [renameTarget, setRenameTarget] = useState(null) // 正在重命名的资源
   const [renameName, setRenameName] = useState('')
   const [menuItemId, setMenuItemId] = useState(null) // 卡片「⋯」菜单打开的卡片 id
 
-  const fileInputRef = useRef(null)
-  const [dragOver, setDragOver] = useState(false)
   const scrollRef = useRef(null)
+  // 用 ref 记录「当前已加载页」，避免滚动监听闭包拿到旧 page
   const pageRef = useRef(1)
   const loadingRef = useRef(false)
   const resetTokenRef = useRef(0)
 
-  const currentFolder = folder || 'migrated' // 当前目录前缀（用于拉取/打开本地/上传落点）
-  // 返回上一级（在子目录时）
-  const back = useCallback(() => {
-    const parts = folder.split('/')
-    parts.pop()
-    setFolder(parts.length > 0 ? parts.join('/') : 'migrated')
-  }, [folder])
-
-  // 重置并加载第一页（目录变化时先 rescan，保证与磁盘一致）
+  // 重置并加载第一页（目录/类型变化时）
   const reset = useCallback(async (rescan = false) => {
     if (!connected) return
     const token = ++resetTokenRef.current
     setLoading(true)
+    setPage(1)
     pageRef.current = 1
     try {
       if (rescan) await rescanResources()
-      const data = await fetchResources({ folder: currentFolder, page: 1, pageSize: PAGE_SIZE })
-      if (token !== resetTokenRef.current) return
+      const data = await fetchResources({ folder, page: 1, pageSize: PAGE_SIZE, type: typeFilter === 'all' ? undefined : typeFilter })
+      if (token !== resetTokenRef.current) return // 已被更新的请求覆盖
       setItems(data.items || [])
       setTotal(data.total || 0)
+      setTotalPages(data.totalPages || 1)
       setHasMore((data.items || []).length < (data.total || 0))
     } catch (e) {
-      console.warn('[AssetLibrary] 加载失败（localTool 未连？）:', e?.message)
+      console.warn('[GeneratedView] 加载失败（localTool 未连？）:', e?.message)
       if (token === resetTokenRef.current) setItems([])
     } finally {
       if (token === resetTokenRef.current) setLoading(false)
     }
-  }, [connected, currentFolder])
+  }, [connected, folder, typeFilter])
 
-  // 首次挂载 + 目录变化 → 重置到第 1 页并 rescan
-  useEffect(() => {
-    if (!connected) return
-    reset(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, currentFolder])
-
-  // 加载下一页并追加（无限滚动）
+  // 加载下一页并追加
   const loadMore = useCallback(async () => {
     if (!connected || loadingRef.current || !hasMore) return
     loadingRef.current = true
     setLoading(true)
     const next = pageRef.current + 1
     try {
-      const data = await fetchResources({ folder: currentFolder, page: next, pageSize: PAGE_SIZE })
+      const data = await fetchResources({ folder, page: next, pageSize: PAGE_SIZE, type: typeFilter === 'all' ? undefined : typeFilter })
       if (data.page > 1) {
         setItems((prev) => {
           const seen = new Set(prev.map((x) => x.id))
@@ -160,48 +157,33 @@ export default function AssetLibrary() {
         })
       }
       pageRef.current = data.page || next
+      setPage(data.page || next)
       setTotal(data.total || 0)
+      setTotalPages(data.totalPages || 1)
       setHasMore((data.items || []).length > 0 && data.page < (data.totalPages || 1))
-    } catch { /* 忽略下一页失败 */ } finally {
+    } catch {
+      // 加载下一页失败不打断，保留已加载内容
+    } finally {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [connected, currentFolder, hasMore])
+  }, [connected, folder, typeFilter, hasMore])
 
+  // 首次挂载 + 过滤/目录变化 → 重置到第 1 页并 rescan
+  useEffect(() => {
+    if (!connected) return
+    reset(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, folder, typeFilter])
+
+  // 滚动接近底部时加载下一页（无限滚动）
   const onScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) loadMore()
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) {
+      loadMore()
+    }
   }, [loadMore])
-
-  // 上传文件到后端（落盘当前目录 + rescan 收录）
-  const handleFiles = useCallback(async (files) => {
-    if (!connected) return showToast('请先连接本地引擎', { type: 'warning' })
-    const list = Array.from(files)
-    if (list.length === 0) return
-    let ok = 0
-    for (const f of list) {
-      try {
-        const fd = new FormData()
-        fd.append('subfolder', currentFolder)
-        fd.append('file', f, f.name)
-        const res = await fetch(`http://127.0.0.1:18080/api/files/upload`, { method: 'POST', body: fd })
-        if (res.ok) ok++
-      } catch { /* 单个失败继续 */ }
-    }
-    if (ok > 0) {
-      showToast(`已上传 ${ok} 个素材`, { type: 'success' })
-      reset(true) // rescan 后刷新，保证与磁盘一致
-    } else {
-      showToast('上传失败', { type: 'error' })
-    }
-  }, [connected, currentFolder, reset])
-
-  const onDrop = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files)
-  }
 
   const handleDelete = async (item) => {
     setItems((list) => list.filter((x) => x.id !== item.id))
@@ -215,7 +197,7 @@ export default function AssetLibrary() {
 
   const handleOpenLocal = () => {
     if (!connected) return showToast('请先连接本地引擎', { type: 'warning' })
-    openLocalFolder(currentFolder)
+    openLocalFolder(folder === 'tasks' ? 'tasks' : folder)
       .then((r) => showToast(`已在文件管理器中打开: ${r.path}`, { type: 'success' }))
       .catch(() => showToast('打开本地目录失败', { type: 'error' }))
   }
@@ -242,6 +224,7 @@ export default function AssetLibrary() {
     if (!name) { setRenameTarget(null); return }
     try {
       const res = await renameResource(renameTarget.id, name)
+      // 更新本地列表（id/url/name 已变）
       setItems((list) => list.map((x) => (x.id === renameTarget.id ? { ...x, id: res.id, url: res.url, name: res.name } : x)))
       textCache.delete(renameTarget.url)
       showToast('重命名成功', { type: 'success' })
@@ -252,14 +235,14 @@ export default function AssetLibrary() {
     setRenameName('')
   }
 
-  // 新建文件夹（对齐官方 → POST /api/files/mkdir）
+  // 新建文件夹（对齐官方 S.createFolder → POST /api/files/mkdir）
   const createFolder = async (name) => {
     if (!name || !connected) return false
     try {
       const res = await fetch(`http://127.0.0.1:18080/api/files/mkdir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder: `${currentFolder}/${name}` }),
+        body: JSON.stringify({ folder: folder === 'tasks' ? `tasks/${name}` : `${folder}/${name}` }),
       })
       if (res.ok) {
         reset(true)
@@ -269,8 +252,16 @@ export default function AssetLibrary() {
     return false
   }
 
+  const back = useCallback(() => {
+    const parts = folder.split('/')
+    parts.pop()
+    const parent = parts.length > 0 ? parts.join('/') : 'tasks'
+    setFolder(parent)
+  }, [folder])
+
+  // 拖到画布建节点（与素材库一致）：图片/视频/音频 → imageNode，文字 → textNode
   const onDragStart = (e, a) => {
-    // 素材拖到画布：写自定义 MIME，画布 onDrop 按 type 建节点（text→textNode，其它→imageNode）
+    if (a.type === 'folder') return
     const text = textCache.get(a.url)
     e.dataTransfer.setData('application/x-yimao-asset', JSON.stringify({ url: a.url, name: a.name, type: a.type, text }))
     e.dataTransfer.effectAllowed = 'copy'
@@ -283,26 +274,27 @@ export default function AssetLibrary() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden relative" onDragOver={(e) => { e.preventDefault(); setDragOver(true) }} onDragLeave={() => setDragOver(false)} onDrop={onDrop}>
-      {/* 顶部：目录 pill + 「⋯」菜单（打开本地目录 / 新建文件夹） */}
+    <div className="h-full flex flex-col overflow-hidden relative">
+      {/* 顶部：类型过滤 pill（文件操作收进右侧「⋯」菜单，保持简洁） */}
       <div className="px-2.5 pt-2.5 flex items-center gap-1.5 flex-shrink-0 relative">
         <div className="flex gap-1.5 flex-wrap items-center flex-1">
-          {/* 返回上一级（进入子文件夹后可回退） */}
-          {folder !== 'migrated' && (
+          {folder !== 'tasks' && (
             <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-[#ccc] hover:bg-[#2a2a2a] cursor-pointer border-none bg-[#1f1f1f]" onClick={back} title="返回上级">
               <ChevronLeft size={12} /> {folder.split('/').pop()}
             </button>
           )}
-          {FOLDER_PILLS.map((f) => (
+          {TYPE_FILTERS.map((f) => (
             <button
               key={f.key}
-              className={`px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer border-none ${folder === f.folder ? 'bg-white text-[#141414] font-medium' : 'bg-[#1f1f1f] text-[#999] hover:text-[#ddd]'}`}
-              onClick={() => setFolder(f.folder)}
+              className={`px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer border-none ${typeFilter === f.key ? 'bg-white text-[#141414] font-medium' : 'bg-[#1f1f1f] text-[#999] hover:text-[#ddd]'}`}
+              onClick={() => setTypeFilter(f.key)}
             >
               {f.label}
             </button>
           ))}
         </div>
+
+        {/* 「⋯」更多操作菜单：打开本地目录 / 新建文件夹 */}
         <div className="relative flex-shrink-0">
           <button
             className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer border-none ${menuOpen ? 'bg-[#2a2a2a] text-white' : 'text-[#666] hover:text-[#ccc] hover:bg-[#242424]'}`}
@@ -313,10 +305,26 @@ export default function AssetLibrary() {
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1 bg-[#1c1c1c] border border-[#333] rounded-lg shadow-xl p-1 z-30 w-40 nowheel nopan nodrag">
-              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left" onClick={() => { setMenuOpen(false); handleOpenLocal() }} title="打开本地存储目录">
+              <button
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left"
+                onClick={() => {
+                  setMenuOpen(false)
+                  handleOpenLocal()
+                }}
+                title="打开本地存储目录"
+              >
                 <FolderOpen size={13} /> 打开本地目录
               </button>
-              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left" onClick={() => { setMenuOpen(false); if (!connected) return showToast('请先连接本地引擎', { type: 'warning' }); setCreating(true); setNewFolderName('新建文件夹') }} title="新建文件夹">
+              <button
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left"
+                onClick={() => {
+                  setMenuOpen(false)
+                  if (!connected) return showToast('请先连接本地引擎', { type: 'warning' })
+                  setCreating(true)
+                  setNewFolderName('新建文件夹')
+                }}
+                title="新建文件夹"
+              >
                 <FolderPlus size={13} /> 新建文件夹
               </button>
             </div>
@@ -371,19 +379,12 @@ export default function AssetLibrary() {
         </div>
       )}
 
-      {/* 上传区 */}
-      <div className="px-2.5 pt-2 flex-shrink-0">
-        <button
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-[#333] text-[12px] text-[#888] hover:border-[#555] hover:text-[#ccc] transition-colors cursor-pointer bg-[#161616]/50"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Upload size={14} /> 上传素材 / 拖入文件
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/*,video/*,audio/*,text/*,.txt,.md,.json,.csv,.srt" multiple className="hidden" onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = '' }} />
-      </div>
-
-      {/* 素材网格（无限滚动） */}
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto custom-scrollbar px-2.5 pb-2.5 mt-2">
+      {/* 网格（无限滚动） */}
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="flex-1 overflow-y-auto custom-scrollbar px-2.5 pb-2.5 mt-2"
+      >
         {!connected ? (
           <div className="h-full flex items-center justify-center text-[#666] text-sm">请先连接本地引擎</div>
         ) : loading && items.length === 0 ? (
@@ -391,8 +392,8 @@ export default function AssetLibrary() {
         ) : items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-[#666] text-sm gap-2">
             <div className="text-4xl opacity-40">📦</div>
-            <p className="m-0">该目录暂无素材</p>
-            <p className="text-xs text-[#555] m-0">上传文件后会落盘到本地并出现在这里</p>
+            <p className="m-0">暂无生成资源</p>
+            <p className="text-xs text-[#555] m-0">在画布上生成图片/视频后会自动出现在这里</p>
           </div>
         ) : (
           <>
@@ -406,11 +407,11 @@ export default function AssetLibrary() {
                   <div
                     key={a.id}
                     draggable={!isFolder}
-                    onDragStart={(e) => { if (!isFolder) onDragStart(e, a) }}
-                    className={`group relative aspect-square bg-[#1a1a1a] rounded-xl overflow-hidden transition-colors ${isFolder ? 'border border-[#333] cursor-pointer hover:border-[#4a4a4a]' : 'border border-[#242424] cursor-grab active:cursor-grabbing hover:border-[#3a3a3a]'}`}
+                    onDragStart={(e) => onDragStart(e, a)}
+                    className={`group relative aspect-square bg-[#151414] rounded-xl overflow-hidden transition-colors ${isFolder ? 'border border-[#333] cursor-pointer hover:border-[#4a4a4a]' : 'border border-[#242424] hover:border-[#3a3a3a] cursor-grab active:cursor-grabbing'}`}
                     onClick={() => {
-                      if (isFolder) setFolder(currentFolder === 'migrated' ? `migrated/${a.name}` : `${currentFolder}/${a.name}`)
-                      else setPreview(a)
+                      if (isFolder) setFolder(folder === 'tasks' ? `tasks/${a.name}` : `${folder}/${a.name}`)
+                      else setPreview(a) // 图片/视频/文字/音频 → 点击大图预览
                     }}
                   >
                     {isFolder ? (
@@ -418,13 +419,13 @@ export default function AssetLibrary() {
                         <FolderOpen size={30} strokeWidth={1.2} />
                         <span className="text-[10px] font-medium text-center px-1 break-all leading-tight m-0">{a.name}</span>
                       </div>
-                    ) : a.type === 'text' ? (
-                      <TextAssetCell url={a.url} name={a.name} />
                     ) : audio ? (
                       <div className="w-full h-full bg-[#111] flex flex-col items-center justify-center gap-1.5 p-2">
                         <Music size={22} className="text-green-400" />
                         <span className="text-[9px] text-[#888] text-center break-all leading-tight m-0">{a.name}</span>
                       </div>
+                    ) : a.type === 'text' ? (
+                      <TextResourceCell url={a.url} name={a.name} />
                     ) : a.type === 'video' || (a.type && a.type.startsWith('video')) ? (
                       <div className="w-full h-full flex items-center justify-center relative">
                         {a.url ? <video src={a.url} className="w-full h-full object-cover" muted /> : <Play size={20} className="text-[#666]" />}
@@ -440,7 +441,7 @@ export default function AssetLibrary() {
                       </div>
                     )}
 
-                    {/* 类型角标（文件夹/文字不显示黄色图标） */}
+                    {/* 类型角标（文字不显示，避免黄色图标干扰） */}
                     {!isFolder && a.type !== 'text' && (
                       <span className={`absolute top-1 left-1 w-4 h-4 rounded flex items-center justify-center ${badge.cls}`}>
                         <BadgeIcon size={9} />
@@ -483,14 +484,7 @@ export default function AssetLibrary() {
         )}
       </div>
 
-      {/* 拖入高亮 */}
-      {dragOver && (
-        <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-400/50 rounded-lg flex items-center justify-center pointer-events-none z-10">
-          <span className="text-blue-300 text-sm">松开以上传素材</span>
-        </div>
-      )}
-
-      {/* 点击大图/视频/文字/音频预览 */}
+      {/* 点击大图/视频/文字/音频预览（与素材库一致） */}
       {preview && (
         <div className="absolute inset-0 z-20 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
           <div className="max-w-full max-h-full flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>

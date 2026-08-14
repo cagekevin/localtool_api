@@ -7,6 +7,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable, Transform } from 'node:stream';
 import { createGunzip, createInflate, createBrotliDecompress } from 'node:zlib';
 import { json, parseJsonBody, readRawBody, sendError } from '../utils/helpers.js';
+import { resolveProviderTarget, type ResolvedTarget } from './providers.js';
+import { fetchWithProxy } from '../utils/netProxy.js';
 
 const VERSION = '1.4.2';
 const PORT = Number(process.env.PORT) || 18080;
@@ -132,34 +134,6 @@ function createSSEParserTransform(): Transform {
   });
 }
 
-// ── SSE 流式透传（wait 同步分支复用）：网关 wait 模式现返回 SSE 流（progress + 结果），
-// 需不缓冲逐块 pipe 给前端图片节点，否则 fetchRes.json() 会把 SSE 当 JSON 解析失败。
-// 返回是否成功进入流式透传（content-type 不是 text/event-stream 时返回 false，由调用方回退 json）。
-function pipeSseStream(res: ServerResponse, fetchRes: Response, logMethod: string, logUrl: string): boolean {
-  const ct = fetchRes.headers.get('content-type') || '';
-  if (!ct.includes('text/event-stream')) return false;
-  const streamHeaders: Record<string, string> = {};
-  const streamSkip = new Set(['transfer-encoding', 'connection', 'keep-alive', 'content-encoding', 'content-length']);
-  fetchRes.headers.forEach((value, key) => {
-    if (!streamSkip.has(key)) streamHeaders[key] = value;
-  });
-  streamHeaders['content-type'] = 'text/event-stream';
-  res.writeHead(fetchRes.status, streamHeaders);
-  let bodyStream = Readable.fromWeb(fetchRes.body as any);
-  const ce = fetchRes.headers.get('content-encoding') || '';
-  if (ce === 'gzip' || ce === 'x-gzip') bodyStream = bodyStream.pipe(createGunzip());
-  else if (ce === 'deflate') bodyStream = bodyStream.pipe(createInflate());
-  else if (ce === 'br') bodyStream = bodyStream.pipe(createBrotliDecompress());
-  const sseParser = createSSEParserTransform();
-  bodyStream.on('error', (err: Error) => {
-    console.error(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | stream error | ${err.message}`);
-    if (!res.writableEnded) res.destroy();
-  });
-  bodyStream.pipe(sseParser).pipe(res);
-  console.log(`[proxy:stream] ${new Date().toISOString().replace('T',' ').slice(0,19)} | ${logMethod} ${logUrl} | ${fetchRes.status} | started`);
-  return true;
-}
-
 // GET /api/status ──
 export async function handleStatus(_req: IncomingMessage, res: ServerResponse): Promise<void> {
   return json(res, {
@@ -176,12 +150,15 @@ export async function handleProxy(req: IncomingMessage, res: ServerResponse): Pr
   const contentType = req.headers['content-type'] || '';
 
   // 形态 ①：FormData/Blob body + X-Proxy-* 头
+  // 供应商分派：前端用 X-Proxy-Provider 头携带 providerId（不消费 body 流，安全）
   const proxyUrl = req.headers['x-proxy-url'] as string | undefined;
   if (proxyUrl) {
-    return handleProxyFormData(req, res, proxyUrl);
+    const providerId = req.headers['x-proxy-provider'] as string | undefined;
+    const resolved = resolveProviderTarget(proxyUrl, providerId);
+    return handleProxyFormData(req, res, resolved.url, resolved.authHeader);
   }
 
-  // 形态 ②：JSON body {url, method, headers, body, cookie}
+  // 形态 ②：JSON body {url, method, headers, body, cookie, providerId}
   if (contentType.includes('application/json')) {
     return handleProxyJson(req, res);
   }
@@ -189,7 +166,7 @@ export async function handleProxy(req: IncomingMessage, res: ServerResponse): Pr
   return sendError(res, 'Invalid proxy request: missing X-Proxy-Url header or JSON body', 400);
 }
 
-async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, targetUrl: string): Promise<void> {
+async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, targetUrl: string, authHeader?: string): Promise<void> {
   const _proxyStart = Date.now();
   const method = (req.headers['x-proxy-method'] as string) || 'POST';
 
@@ -208,6 +185,11 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
     headers['Cookie'] = cookie;
   }
 
+  // 供应商分派：openai 协议注入 Bearer key（apimart 协议 authHeader 为 undefined，保持原行为）
+  if (authHeader) {
+    headers['Authorization'] = authHeader;
+  }
+
   // 读取原始 body 并 pipe
   const body = await readRawBody(req);
   if (body.length > 0) {
@@ -215,42 +197,9 @@ async function handleProxyFormData(req: IncomingMessage, res: ServerResponse, ta
   }
 
   try {
-    // 异步生成转同步：注入 ?wait=1 请求网关同步返回（网关原生双模）
-    // videos / video/generations 路径已移出本 pattern：普通视频节点与 sd2Video 前端均为「异步提交 + 轮询」设计，
-    // 注入 wait=1 会强制同步返回、且返回结构错位，导致前端取不到 task_id 去轮询（见 daily/12-视频生成失败）。
-    const ASYNC_PATTERN = /\/(images\/(generations|edits)|draw\/completions)/;
-    if (ASYNC_PATTERN.test(targetUrl)) {
-      let waitUrl = targetUrl;
-      try {
-        const u = new URL(targetUrl);
-        u.searchParams.set('wait', '1');
-        waitUrl = u.toString();
-      } catch { /* 无法解析则保持原样 */ }
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-      try {
-        const fetchRes = await fetch(waitUrl, {
-          method,
-          headers,
-          body: body.length > 0 ? body as unknown as BodyInit : undefined,
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        // 网关 wait 模式现返回 SSE 流（progress + 结果），须流式透传；否则回退 JSON 同步返回
-        if (pipeSseStream(res, fetchRes, method, targetUrl)) return;
-        const result = await fetchRes.json();
-        return json(res, result);
-      } catch (e: any) {
-        clearTimeout(timeout);
-        if (e.name === 'AbortError') {
-          sendError(res, `Proxy request timed out (${PROXY_TIMEOUT_MS / 1000}s)`, 504);
-        } else {
-          sendError(res, `Proxy request failed: ${e.message}`, 502);
-        }
-        return;
-      }
-    }
-
+    // 同步/异步交给前端决定：前端在 URL 已带 ?wait=1 → 网关同步 SSE 返回；
+    // 不带 → 网关异步提交返回 task_id，前端自行轮询。localTool 不再强制注入 wait（见 daily/15）。
+    // 网关同步模式经下方通用 SSE 流式透传分支逐块 pipe，无需在此特判。
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
@@ -354,11 +303,24 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
   // "Unknown or disabled model / channel"（www.1mao.cc 不认识 seedance-2.0-fast）。
   // 修复：检测到目标 host 是 localTool 自身 18080 且路径以 /api/v1/gateway/ 开头时，
   // 重写到 apimart-gateway 9004 并去掉 /api 前缀（apimart 路由无 /api，见 main.py /v1/gateway/*）。
-  body.url = rewriteSelfGatewayUrl(body.url, PORT);
+  body.url = rewriteSelfGatewayUrl(body.url!, PORT);
+
+  // ── 供应商分派（docs/api-接入）──
+  // 前端 JSON 形态用 body.providerId 携带供应商；resolveProviderTarget 负责：
+  //   - 无 providerId → url 不变（兼容现有调用）
+  //   - openai 协议 + `openai://<path>` → 拼成 `${base}/v1/<path>` 并注入 Bearer key
+  //   - apimart 协议 → url 原样透传（Lovart 走网关自身鉴权）
+  const resolved = resolveProviderTarget(body.url, (body as any).providerId);
+  body.url = resolved.url;
 
   const headers: Record<string, string> = { ...body.headers };
   if (body.cookie) {
     headers['Cookie'] = body.cookie;
+  }
+
+  // 供应商分派：openai 协议注入 Bearer key（apimart 协议 authHeader 为 undefined，保持原行为）
+  if (resolved.authHeader) {
+    headers['Authorization'] = resolved.authHeader;
   }
 
   let fetchBody: string | undefined = (typeof body.body === 'string' && body.body) || undefined;
@@ -373,47 +335,18 @@ async function handleProxyJson(req: IncomingMessage, res: ServerResponse): Promi
       } catch { /* 解析失败保持原样 */ }
     }
 
-    // 异步生图/生视转同步：注入 wait:true，网关原生同步返回
-    // videos / video/generations 路径移出：避免破坏视频节点与 sd2Video 的异步轮询（见 daily/12）
-    if (body.url && /\/(images\/(generations|edits)|draw\/completions)/.test(body.url)) {
-      if (fetchBody) {
-        try {
-          const p = JSON.parse(fetchBody);
-          p.wait = true;
-          fetchBody = JSON.stringify(p);
-        } catch { /* parse failed, keep original */ }
-      }
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-      try {
-        const fetchRes = await fetch(body.url, {
-          method: body.method || 'POST',
-          headers,
-          body: fetchBody,
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        // 网关 wait 模式现返回 SSE 流（progress + 结果），须流式透传；否则回退 JSON 同步返回
-        if (pipeSseStream(res, fetchRes, body.method || 'POST', body.url)) return;
-        const result = await fetchRes.json();
-        return json(res, result);
-      } catch (e: any) {
-        clearTimeout(timeout);
-        if (e.name === 'AbortError') {
-          sendError(res, `Proxy request timed out (${PROXY_TIMEOUT_MS / 1000}s)`, 504);
-        } else {
-          sendError(res, `Proxy request failed: ${e.message}`, 502);
-        }
-        return;
-      }
-    }
+    // 同步/异步交给前端决定：前端请求体已带 wait / 或 URL 已带 ?wait=1 → 网关同步 SSE 返回；
+    // 不带 → 网关异步提交返回 task_id，前端自行轮询。localTool 不再强制注入 wait（见 daily/15）。
+    // 网关同步模式经通用 SSE 流式透传分支（下方）逐块 pipe，无需在此特判。
   }
 
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
-    const fetchRes = await fetch(body.url, {
+    // 用 fetchWithProxy：外部 https provider（如魔搭 api-inference.modelscope.cn 本机直连被拒）
+    // 需走代理；本地目标（127.0.0.1:9004 Lovart）fetchWithProxy 自动直连，不影响现有链路。
+    const fetchRes = await fetchWithProxy(body.url, {
       method: body.method || 'POST',
       headers,
       body: fetchBody,

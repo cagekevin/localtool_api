@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react'
-import { Zap, Sparkles, Coins } from 'lucide-react'
+import { Coins } from 'lucide-react'
 import { useOutsideClick } from './hooks.js'
 
 /**
- * 模型 badge 元信息：根据 badge 类型返回文案与样式类。
- * 'scheduled' → 调度（蓝）｜'third' → 三方（灰）｜'builtin' → 内置（白）
+ * 模型 badge 元信息：
+ * - 'scheduled' → 调度（蓝）｜'third' → 三方（灰）｜'builtin'/空 → 内置（白）
+ * - 其它字符串 → 直接作为标签（供应商自定义名，如 API 设置里起的名字）
  */
 function badgeMeta(badge) {
   if (badge === 'scheduled') return { label: '调度', className: 'border-blue-400 text-blue-300' }
   if (badge === 'third') return { label: '三方', className: 'border-gray-500 text-gray-300' }
+  if (badge && badge !== 'builtin') return { label: badge, className: 'border-white/30 text-white/90' }
   return { label: '内置', className: 'border-white/30 text-white/90' }
 }
 
@@ -49,7 +51,7 @@ export default function ModelSelect({
         type="button"
         className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
-        title={value ? `${value}（内置）` : '选择模型'}
+        title={value ? `${value}（${selectedBadge.label}）` : '选择模型'}
       >
         <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${selectedBadge.className}`}>
           {selectedBadge.label}
@@ -62,14 +64,6 @@ export default function ModelSelect({
           className="absolute bottom-full left-0 mb-1 min-w-[17rem] w-max max-w-[29rem] bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 block max-h-60 overflow-y-auto custom-scrollbar nowheel nopan nodrag"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="text-[10px] text-blue-300 mb-1 px-1 flex items-center justify-between">
-            <span className="flex items-center gap-1"><Zap size={10} className="w-2.5 h-2.5" strokeWidth={2.5} />模型调度</span>
-            <span className="ml-auto text-white/90 hover:text-white cursor-pointer transition-colors">配置 ›</span>
-          </div>
-          <div className="text-[10px] text-blue-300 mb-1 px-1 flex items-center gap-1">
-            <Sparkles size={10} />内置模型
-            <span className="ml-auto text-white/90 hover:text-white cursor-pointer whitespace-nowrap">详情 ›</span>
-          </div>
           {models.map((m) => {
             const selected = value === m.id
             const itemBadge = badgeMeta(m.badge || 'builtin')

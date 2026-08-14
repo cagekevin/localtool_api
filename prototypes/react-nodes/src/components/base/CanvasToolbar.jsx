@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Play, LayoutGrid, Map, Maximize, Minus, Plus, RefreshCw, Zap } from 'lucide-react'
+import { LayoutGrid, Map, Maximize, RefreshCw, Zap } from 'lucide-react'
 
 /**
  * 左下角工具栏（复刻 H_.jsx:12013-12094 bottom-left 工具栏）。
@@ -18,38 +18,32 @@ import { Play, LayoutGrid, Map, Maximize, Minus, Plus, RefreshCw, Zap } from 'lu
  *  - 性能模式 → Zap（闪电，激活黄高亮）
  * 视觉与官方「表达同一动作」即可，不追求逐像素一致（用户确认过不必 100%）。
  *
- * 【占位按钮说明（抉择）】
- * onRun（运行工作流）、onClearCache（清理缓存）当前是**占位**（props 可选、App 暂不传
- * 实际逻辑）。原型未接后端，故这两颗按钮点了暂无动作。接真系统时在 App.jsx 里传对应
- * 处理函数即可：
- *  - onRun        → 按连线拓扑从所有起点依次触发节点生成（官方 ti() 工作流执行）
- *  - onClearCache → 把节点 data 里的内联大资源转成 /files/ 本地 URL（官方 Ki 清理）
+ * 【onClearCache 说明】
+ * 已由 App 传入真实逻辑（释放节点 data 里超过阈值的内联 dataURL 大资源，原型本地版）。
+ * 官方 Ki 是把内联大资源转成 /files/ 本地 URL；原型无后端，改为释放超大内联数据，接真后再转 URL。
+ * 说明：原「运行工作流（onRun）」按钮已按需求移除。
  *
  * @param {Object} props
  * @param {boolean} props.minimapOn      小地图开关（激活白高亮）
  * @param {Function} props.onToggleMinimap
  * @param {Function} props.onArrange      整理画布（dagre 自动排版）
  * @param {Function} props.onFitView      适合视图（fitView）
- * @param {Function} props.onZoomIn       放大
- * @param {Function} props.onZoomOut      缩小
  * @param {number} props.zoomPercent      当前缩放百分比（整型）
  * @param {boolean} props.performanceMode 缩放性能模式开关（激活黄高亮）
  * @param {Function} props.onTogglePerformance
- * @param {Function} [props.onClearCache] 清理缓存（原型暂为占位，接真系统再传）
- * @param {Function} [props.onRun]        运行整个工作流（原型暂为占位，接真系统再传）
+ * @param {Function} [props.onClearCache] 清理缓存（App 传入：释放节点内大 dataURL 资源）
+ * @param {boolean} [props.localToolConnected] 本地引擎是否连接（左上角第一个对号/断开按钮）
  */
 export default function CanvasToolbar({
   minimapOn,
   onToggleMinimap,
   onArrange,
   onFitView,
-  onZoomIn,
-  onZoomOut,
   zoomPercent,
   performanceMode,
   onTogglePerformance,
   onClearCache,
-  onRun,
+  localToolConnected,
 }) {
   // 缩放%按钮可点击回到 100%
   const zoomPercentText = useMemo(() => `${zoomPercent}%`, [zoomPercent])
@@ -63,15 +57,23 @@ export default function CanvasToolbar({
     <div className="flex items-center gap-2">
       {/* 主工具组 */}
       <div className="flex items-center rounded-full px-1 py-0.5">
+        {/* 本地引擎连接状态（第一个；大小与其他按钮一致）。已连接=绿勾，未连接=红× */}
         <button
           type="button"
-          onClick={onRun}
-          className={`${baseBtn} text-green-400`}
-          title="运行整个工作流（从所有起点依次执行）"
+          className={`${baseBtn} ${localToolConnected ? 'text-emerald-400 hover:text-emerald-300' : 'text-red-400 hover:text-red-300'}`}
+          title={localToolConnected ? '本地引擎已连接' : '本地引擎未连接'}
         >
-          <Play size={16} />
+          {localToolConnected ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          )}
         </button>
-        {divider}
         <button type="button" onClick={onArrange} className={baseBtn} title="整理画布">
           <LayoutGrid size={16} />
         </button>
@@ -103,20 +105,13 @@ export default function CanvasToolbar({
         >
           <Zap size={16} />
         </button>
-        {divider}
-        <button type="button" onClick={onZoomOut} className={`p-1.5 rounded-full transition-colors text-gray-400 hover:text-white hover:bg-[#333]`}>
-          <Minus size={14} />
-        </button>
         <button
           type="button"
           onClick={onFitView}
-          className="text-xs text-white font-medium min-w-[36px] text-center cursor-default select-none"
+          className="text-xs text-gray-400 font-medium min-w-[36px] text-center cursor-default select-none"
           title="点击适配视图"
         >
           {zoomPercentText}
-        </button>
-        <button type="button" onClick={onZoomIn} className={`p-1.5 rounded-full transition-colors text-gray-400 hover:text-white hover:bg-[#333]`}>
-          <Plus size={14} />
         </button>
       </div>
     </div>

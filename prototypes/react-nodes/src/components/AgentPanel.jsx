@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAgentChat } from './base/useAgentChat.js'
+import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import AgentMessage from './AgentMessage.jsx'
 
 /**
@@ -70,11 +71,34 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
   const [width, setWidth] = useState(loadWidth)
   const [dragging, setDragging] = useState(false)
 
-  // 对话状态（替代官方 dr）
+  // 供应商配置（多 provider）：AI 助手需要「支持 function calling」的模型才能操作画布。
+  // 优先用魔搭（modelscope，OpenAI 兼容且支持 tools）；找不到再回退主供应商 chat_models；最后内置兜底。
+  const { providers } = useProviders()
+  const primary = providers?.find((p) => p.isPrimary) || providers?.[0] || null
+  // AI 助手实际使用的 provider：优先 modelscope（支持 tools），否则主供应商
+  const agentProvider = useMemo(
+    () => providers?.find((p) => p.id === 'modelscope') || primary || null,
+    [providers, primary]
+  )
+  // 模型列表：优先 AI 助手 provider（魔搭）的 chat_models；无则回退内置列表
+  const agentModels = useMemo(() => {
+    const fromProvider = (agentProvider?.chat_models || []).map((m) => m.id || m.label || m).filter(Boolean)
+    return fromProvider.length > 0 ? fromProvider : (AGENT_MODELS.length > 0 ? AGENT_MODELS : DEFAULT_MODELS)
+  }, [agentProvider])
+
+  // 挂载时确保供应商已加载（若未打开设置页，providers 为空 → 拉取主供应商；load 幂等）
+  useEffect(() => {
+    if (!providers || providers.length === 0) loadProviders().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 对话状态（替代官方 dr）；默认模型用 AI 助手 provider（魔搭）第一个 chat_model。
+  // 传 provider 让 useAgentChat 经 /api/proxy 转发到该供应商（保留 function calling 画布操作）。
   const { messages, sending, error, model, setModel, send, stop, clear } = useAgentChat({
     agentKey,
     systemPrompt,
-    defaultModel: AGENT_MODELS[0]
+    defaultModel: agentModels[0],
+    provider: agentProvider
   })
 
   // 输入 + 图片
@@ -317,7 +341,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                     <circle cx="12" cy="5" r="2" />
                     <path d="M12 7v4" />
                   </svg>
-                  <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">内置</span>
+                  <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
                   <span className="truncate">{model}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${modelOpen ? 'rotate-180' : ''}`}>
                     <polyline points="6 9 12 15 18 9" />
@@ -325,9 +349,9 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                 </button>
                 {modelOpen && (
                   <div className="absolute bottom-full left-0 mb-1 w-[260px] max-h-[280px] overflow-y-auto bg-[#1a1a1a] border border-[#333] rounded-lg shadow-2xl z-50 py-1 custom-scrollbar">
-                    {AGENT_MODELS.length === 0 ? (
+                    {agentModels.length === 0 ? (
                       <div className="px-3 py-2 text-xs text-gray-500 text-center">暂无可用模型</div>
-                    ) : AGENT_MODELS.map((id) => (
+                    ) : agentModels.map((id) => (
                       <button
                         key={id}
                         type="button"
@@ -335,7 +359,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                         className={`w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors ${id === model ? 'bg-[#333] text-white' : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`}
                         title={id}
                       >
-                        <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">内置</span>
+                        <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
                         <span className="flex-1 truncate font-mono">{id}</span>
                       </button>
                     ))}

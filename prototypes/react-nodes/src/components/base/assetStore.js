@@ -82,15 +82,17 @@ function genId() {
   return 'asset_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7)
 }
 
-// 判断文件类型（图片/视频/音频/其他）
+// 判断文件类型（图片/视频/音频/文字/其他）
 export function detectAssetType(file) {
   const type = file?.type || ''
   if (type.startsWith('image/')) return 'image'
   if (type.startsWith('video/')) return 'video'
   if (type.startsWith('audio/')) return 'audio'
+  if (type.startsWith('text/')) return 'text' // .txt/.md/.json 等文本文件
   if (/\.(png|jpe?g|gif|webp|svg)$/i.test(file?.name || '')) return 'image'
   if (/\.(mp4|webm|mov|mkv)$/i.test(file?.name || '')) return 'video'
   if (/\.(mp3|wav|ogg|m4a)$/i.test(file?.name || '')) return 'audio'
+  if (/\.(txt|md|markdown|json|log|csv|srt)$/i.test(file?.name || '')) return 'text'
   return 'image'
 }
 
