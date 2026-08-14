@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import {
   FileText, Plus, Copy, ChevronDown, ChevronUp, Loader2,
-  Sparkles, AlertCircle, Link as LinkIcon
+  AlertCircle, Link as LinkIcon
 } from 'lucide-react'
 import NodeShell from './base/NodeShell.jsx'
 import HoverToolbar from './base/HoverToolbar.jsx'
@@ -11,7 +11,9 @@ import ModelSelect from './base/ModelSelect.jsx'
 import PromptInput from './base/PromptInput.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import FullscreenModal from './base/FullscreenModal.jsx'
-import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
+import GeneratingOverlay from './base/GeneratingOverlay.jsx'
+import PromptLibraryButton from './base/PromptLibraryButton.jsx'
+import { useGenerate, useNodeResize } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 
 /**
@@ -27,16 +29,12 @@ export default function TextNode({ id, data, selected }) {
   const [autoSplit, setAutoSplit] = useState(data.autoSplit || false)
   const [expanded, setExpanded] = useState(data.expanded === undefined ? true : data.expanded)
   const [editingText, setEditingText] = useState(false)
-  const [showPresetMenu, setShowPresetMenu] = useState(false)
   const [selectedModel, setSelectedModel] = useState(data.selectedModel || 'gpt-4o-mini')
   const [images, setImages] = useState(data.images || [])
   const textAreaRef = useRef(null)
   const fileRef = useRef(null)
   const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
   const wrapperRef = useRef(null) // NodeShell 根 div ref（主框手柄拖拽改整体尺寸）
-  const presetMenuRef = useRef(null) // 预设提示词菜单容器（点击外部关闭）
-  // 预设菜单打开时点击外部自动关闭（公共 hook）
-  useOutsideClick(presetMenuRef, showPresetMenu, () => setShowPresetMenu(false))
   // 全屏编辑状态（复刻 Co.jsx:33,35 的 m/y → 主框/输入框全屏）
   const [fullscreenText, setFullscreenText] = useState(false)
   const [fullscreenPrompt, setFullscreenPrompt] = useState(false)
@@ -100,7 +98,10 @@ export default function TextNode({ id, data, selected }) {
       <div
         className="relative flex flex-col w-full flex-1 min-h-0"
         onClick={(e) => {
-          if (!editingText && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+          // 点击节点主体切换抽屉（新建默认收起、初始默认展开，都可点开/收起）。
+          // 排除按钮/输入框避免误触；textarea 非编辑时只读（readOnly），单击可切换抽屉，
+          // 编辑靠双击触发（onDoubleClick 进 editingText），互不冲突。
+          if (!editingText && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLInputElement)) {
             setExpanded((v) => !v)
           }
         }}
@@ -122,10 +123,7 @@ export default function TextNode({ id, data, selected }) {
           }}
         >
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#1a1a1a]/70 z-10">
-              <Loader2 size={20} className="animate-spin" style={{ color: 'rgb(210,2,7)' }} />
-              <span className="ml-2 text-xs text-gray-400">生成中...</span>
-            </div>
+            <GeneratingOverlay label="生成中..." category="text" />
           )}
           {error ? (
             <div className="text-red-400 text-xs p-2 border border-red-500/30 rounded bg-red-500/10 flex items-start gap-2">
@@ -217,23 +215,8 @@ export default function TextNode({ id, data, selected }) {
               {/* 模型选择（基座 ModelSelect） */}
               <ModelSelect value={selectedModel} onChange={setSelectedModel} models={models} />
 
-              {/* 预设提示词（ref 绑在外层 relative，使「按钮 + 菜单」都在 ref 内，
-                  点按钮不会误关，点外部才关） */}
-              <div ref={presetMenuRef} className="relative nodrag flex items-center">
-                <div className="w-[1px] h-3 bg-[#444] mr-1.5" />
-                <button className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowPresetMenu((v) => !v) }} title="预设提示词">
-                  <Sparkles size={10} className="text-blue-400" />
-                  <span>预设</span>
-                </button>
-                {showPresetMenu && (
-                  <div className="absolute bottom-full left-0 mb-1 bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 w-56 nowheel nopan nodrag" onClick={(e) => e.stopPropagation()}>
-                    <div className="text-[10px] text-gray-500 px-1 pb-1">选择预设</div>
-                    {['爆款标题', '小红书文案', '种草笔记'].map((p) => (
-                      <div key={p} role="button" className="px-2 py-1.5 text-[11px] rounded-md text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200 cursor-pointer" onClick={() => { setPrompt((prev) => (prev ? `${prev}, ${p}` : p)); setShowPresetMenu(false) }}>{p}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* 预设提示词：打开提示词库弹窗 → 使用后新建文本节点 */}
+              <PromptLibraryButton category="text" />
             </div>
 
             {/* 生成 / 停止（基座 GenerateButton） */}

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import {
-  Clapperboard, Plus, Expand, Download, Trash2, Loader2, Play,
-  AlertCircle, Settings, Sparkles, Link as LinkIcon, RefreshCw, Coins
+  Clapperboard, Plus, Expand, Download, Trash2, Play,
+  AlertCircle, Settings, Link as LinkIcon, RefreshCw, Coins
 } from 'lucide-react'
 import NodeShell from './base/NodeShell.jsx'
 import HoverToolbar from './base/HoverToolbar.jsx'
@@ -9,6 +9,8 @@ import ExpandablePanel from './base/ExpandablePanel.jsx'
 import GenerateButton from './base/GenerateButton.jsx'
 import ModelSelect from './base/ModelSelect.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
+import GeneratingOverlay from './base/GeneratingOverlay.jsx'
+import PromptLibraryButton from './base/PromptLibraryButton.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
@@ -141,10 +143,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
             </>
           )}
           {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#121212]/80 gap-2 z-10">
-              <Loader2 size={28} className="animate-spin" style={{ color: 'rgb(210,2,7)' }} />
-              <span className="text-xs text-gray-300">生成中... 45%</span>
-            </div>
+            <GeneratingOverlay label="生成中..." backgroundUrl={videoUrl} category="video" />
           )}
           {!videoUrl && !loading && !error && (
             <div className="flex flex-col items-center justify-center absolute inset-0 bg-[#151515] pointer-events-none">
@@ -247,17 +246,8 @@ export default function DiscountVideoNode({ id, data, selected }) {
               {/* 模型选择（基座 ModelSelect） */}
               <ModelSelect value={selectedModel} onChange={setSelectedModel} models={models} />
 
-              {/* 预设提示词 */}
-              <div className="relative nodrag flex items-center">
-                <div className="w-[1px] h-3 bg-[#444] mr-1.5" />
-                <button
-                  className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
-                  title="预设提示词"
-                >
-                  <Sparkles size={10} className="text-blue-400" />
-                  <span>预设</span>
-                </button>
-              </div>
+              {/* 预设提示词：打开提示词库弹窗 → 使用后新建文本节点 */}
+              <PromptLibraryButton category="video" />
             </div>
 
             {/* 生成 / 停止（基座 GenerateButton） */}

@@ -12,6 +12,9 @@ dist/
 # 运行时日志
 *.log
 
+# 回归测试生成的临时样式（react-image-crop 等，非源码）
+.regression-entry.css
+
 # 系统文件
 .DS_Store
 Thumbs.db

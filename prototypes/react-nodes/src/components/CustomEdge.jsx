@@ -36,7 +36,6 @@ export default function CustomEdge({
   }
 
   const active = !!selected || !!relatedToSelected // 触发特效（comet + 加亮）
-  const isSelected = !!selected
   const mpathId = `cust-edge-mpath-${id}`
 
   return (
@@ -62,8 +61,8 @@ export default function CustomEdge({
       {/* 彗星流光（仅激活时渲染） */}
       {active && <Comet pathRef={mpathId} edgeId={id} isActive={true} />}
 
-      {/* 删除按钮（选中时显示在连线中点） */}
-      {isSelected && (
+      {/* 删除按钮（选中节点联动或点选连线时，显示在连线中点） */}
+      {active && (
         <EdgeLabelRenderer>
           <div
             style={{

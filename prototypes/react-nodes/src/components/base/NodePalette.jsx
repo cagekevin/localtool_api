@@ -66,7 +66,11 @@ export const getPaletteNode = (type) => paletteNodes.find((n) => n.type === type
 export const getNodesByCategory = (cat) => paletteNodes.filter((n) => n.cat === cat)
 
 // 便捷：默认节点 data（用于右键菜单 / 面板快速添加）
-export const defaultNodeData = (type) => getPaletteNode(type)?.data || {}
+// 统一兜底 expanded:false → 新建节点输入框默认收起（子项可在 palette 的 data 里显式传 expanded:true 覆盖）
+export const defaultNodeData = (type) => ({
+  expanded: false,
+  ...(getPaletteNode(type)?.data || {})
+})
 
 // 已复刻节点的类型集合
 export const builtinNodeTypes = paletteNodes.filter((n) => n.builtin).map((n) => n.type)

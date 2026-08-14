@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import {
   Image as ImageIcon, Plus, ZoomIn, Crop, Pencil, Send, Download, Link as LinkIcon,
-  Loader2, AlertCircle, X, Sparkles, Coins, Zap
+  AlertCircle, X, Coins, Zap
 } from 'lucide-react'
 import NodeShell from './base/NodeShell.jsx'
 import HoverToolbar from './base/HoverToolbar.jsx'
@@ -10,6 +10,8 @@ import GenerateButton from './base/GenerateButton.jsx'
 import ModelSelect from './base/ModelSelect.jsx'
 import PromptInput from './base/PromptInput.jsx'
 import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
+import GeneratingOverlay from './base/GeneratingOverlay.jsx'
+import PromptLibraryButton from './base/PromptLibraryButton.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
@@ -59,8 +61,8 @@ export default function PromptNode({ id, data, selected }) {
     delay: 2200
   })
 
-  // 图片可选比例（去掉 1:3 / 3:1 / 2:1 / 1:2 等极端竖/横比例，保留常用档）
-  const ratioOptions = ['Auto', '1:1', '16:9', '9:16', '3:2', '2:3', '4:3', '3:4', '21:9', '9:21']
+  // 图片可选比例（含 1:3 / 3:1 极端竖/横比例，不含 1:2 / 2:1）
+  const ratioOptions = ['Auto', '1:1', '16:9', '9:16', '3:2', '2:3', '4:3', '3:4', '21:9', '9:21', '1:3', '3:1']
   const sizeOptions = ['1K', '2K', '4K']
   const qualityOptions = [
     { value: 'auto', label: '自动' },
@@ -150,12 +152,7 @@ export default function PromptNode({ id, data, selected }) {
             />
           )}
           {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0d0c0c]/70 z-10">
-              <Loader2 size={28} className="animate-spin" style={{ color: 'rgb(210,2,7)' }} />
-              <span className="text-xs text-gray-300 flex items-center gap-2">
-                <Sparkles size={12} className="text-yellow-300" /> 生图中...
-              </span>
-            </div>
+            <GeneratingOverlay label="生图中..." backgroundUrl={imageUrl} category="image" />
           )}
           {error && !loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-red-500 z-10 bg-[#1a1a1a] p-4 text-center">
@@ -260,14 +257,8 @@ export default function PromptNode({ id, data, selected }) {
                 )}
               </div>
 
-              {/* 预设 */}
-              <div className="relative nodrag flex items-center">
-                <div className="w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" />
-                <button className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer" title="预设提示词">
-                  <Sparkles size={10} className="text-blue-400" />
-                  <span>预设</span>
-                </button>
-              </div>
+              {/* 预设：打开提示词库弹窗 → 使用后新建文本节点 */}
+              <PromptLibraryButton category="image" />
             </div>
 
             {/* 批量 xN + 生成/停止 */}
