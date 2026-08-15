@@ -1,6 +1,7 @@
 import React from 'react'
 import ProjectSelector from './ProjectSelector.jsx'
 import { showToast } from './toastStore.js'
+import { sGet, sSet } from './storageAdapter.js'
 
 /**
  * 顶部导航栏（复刻官方 Vr.jsx L3281 `Component806`，h-16）。
@@ -37,10 +38,10 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
   ]
 
   const readLS = (k) => {
-    try { return localStorage.getItem(k) } catch { return null }
+    try { return sGet(k) } catch { return null }
   }
   const writeLS = (k, v) => {
-    try { localStorage.setItem(k, v) } catch { /* ignore */ }
+    try { sSet(k, v) } catch { /* ignore */ }
   }
 
   const handleCloudUpload = () => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAgentChat } from './base/useAgentChat.js'
 import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import AgentMessage from './AgentMessage.jsx'
+import { sGet, sSet } from './base/storageAdapter.js'
 
 /**
  * ════════════════════════════════════════════════════════════════
@@ -59,7 +60,7 @@ const DEFAULT_WIDTH = 380
 /** 面板宽度（localStorage 记忆，复刻官方 yr()） */
 function loadWidth() {
   try {
-    const t = localStorage.getItem(PANEL_WIDTH_KEY)
+    const t = sGet(PANEL_WIDTH_KEY)
     const n = t ? Number(t) : NaN
     if (Number.isFinite(n)) return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n))
   } catch { /* ignore */ }
@@ -121,7 +122,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
 
   // 宽度持久化 + 通知
   useEffect(() => {
-    try { localStorage.setItem(PANEL_WIDTH_KEY, String(width)) } catch { /* ignore */ }
+    try { sSet(PANEL_WIDTH_KEY, String(width)) } catch { /* ignore */ }
   }, [width])
   useEffect(() => {
     if (open) onWidthChange?.(width)

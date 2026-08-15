@@ -5,6 +5,7 @@ import NodeTitle from './NodeTitle.jsx'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
 import { showToast } from './base/toastStore.js'
+import { sSet } from './base/storageAdapter.js'
 
 /**
  * 视频抽帧节点（复刻官方 ec.jsx / videoExtractNode）。
@@ -300,7 +301,7 @@ export default function VideoExtractNode({ id, data, selected }) {
     try {
       const payload = JSON.stringify({ type: 'mutiwindow-images', images: [img] })
       try { await navigator.clipboard.writeText(payload) }
-      catch { localStorage.setItem('mutiwindow-clipboard', payload) }
+      catch { sSet('mutiwindow-clipboard', payload) }
       showToast('已复制当前帧，请在空白处粘贴 (Ctrl+V)')
     } catch { showToast('复制失败') }
   }
@@ -310,7 +311,7 @@ export default function VideoExtractNode({ id, data, selected }) {
     try {
       const payload = JSON.stringify({ type: 'mutiwindow-images', images: extractedImages })
       try { await navigator.clipboard.writeText(payload) }
-      catch { localStorage.setItem('mutiwindow-clipboard', payload) }
+      catch { sSet('mutiwindow-clipboard', payload) }
       showToast(`已复制 ${extractedImages.length} 张图片`)
     } catch { showToast('复制失败') }
   }

@@ -10,6 +10,7 @@
  * 数据变更一律新引用，绝不原地修改（useSyncExternalStore 依赖引用变化触发渲染）。
  */
 import { useSyncExternalStore } from 'react'
+import { sGet, sSet } from '../storageAdapter.js'
 
 const STORAGE_KEY = 'yimao_accounts'
 
@@ -48,12 +49,12 @@ const DEFAULT_ENVS = [
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sGet(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed
     }
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ENVS)) } catch { /* ignore */ }
+    try { sSet(STORAGE_KEY, JSON.stringify(DEFAULT_ENVS)) } catch { /* ignore */ }
     return DEFAULT_ENVS
   } catch {
     return DEFAULT_ENVS
@@ -90,7 +91,7 @@ export function useAccounts() {
 
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.envs))
+    sSet(STORAGE_KEY, JSON.stringify(state.envs))
   } catch { /* ignore */ }
 }
 

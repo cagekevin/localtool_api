@@ -14,6 +14,8 @@
  *  - POST /api/kv/delete?key=<key> → { ok: true }（删不存在也 ok）
  *  - 错误体 { error: "<英文message>" }
  */
+import { sGet, sSet, sRemove } from './storageAdapter.js'
+
 const API_BASE = 'http://127.0.0.1:18080'
 
 // 画布类 key 前缀（对齐官方 Ar.CANVAS_STATE_PREFIX，localTool KV 侧会带此前缀）
@@ -49,25 +51,24 @@ export function isKvKey(key) {
   return typeof key === 'string' && key.startsWith(CANVAS_STATE_PREFIX)
 }
 
-/** 统一读取：KV 前缀 → localTool KV；否则 localStorage。返回解析后的值或 null。 */
+/** 统一读取：KV 前缀 → localTool KV；否则 chrome.storage(插件)/localStorage。返回解析后的值或 null。 */
 export async function storageGet(key) {
   if (isKvKey(key)) return kvGet(key)
-  try {
-    const raw = localStorage.getItem(key)
-    return raw === null ? null : JSON.parse(raw)
-  } catch { return null }
+  const raw = sGet(key)
+  if (raw === null) return null
+  try { return JSON.parse(raw) } catch { return raw }
 }
 
-/** 统一写入：KV 前缀 → localTool KV；否则 localStorage。 */
+/** 统一写入：KV 前缀 → localTool KV；否则 chrome.storage(插件)/localStorage。 */
 export async function storageSet(key, value) {
   if (isKvKey(key)) return kvSet(key, value)
-  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* ignore */ }
+  sSet(key, typeof value === 'string' ? value : JSON.stringify(value))
   return { ok: true }
 }
 
-/** 统一删除：KV 前缀 → localTool KV；否则 localStorage。 */
+/** 统一删除：KV 前缀 → localTool KV；否则 chrome.storage(插件)/localStorage。 */
 export async function storageDelete(key) {
   if (isKvKey(key)) return kvDelete(key)
-  try { localStorage.removeItem(key) } catch { /* ignore */ }
+  sRemove(key)
   return { ok: true }
 }

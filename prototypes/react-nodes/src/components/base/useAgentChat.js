@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCanvasAgentTools } from './useCanvasAgentTools.js'
+import { sGet, sSet } from './storageAdapter.js'
 
 /**
  * ════════════════════════════════════════════════════════════════
@@ -54,7 +55,7 @@ const historyKey = (agentKey) => `agent_history_${agentKey || 'canvas-assistant'
 /** 从 localStorage 读历史（官方 nr(n)，原型本地版） */
 function loadHistory(agentKey) {
   try {
-    const raw = localStorage.getItem(historyKey(agentKey))
+    const raw = sGet(historyKey(agentKey))
     const arr = raw ? JSON.parse(raw) : []
     return Array.isArray(arr) ? arr : []
   } catch {
@@ -65,7 +66,7 @@ function loadHistory(agentKey) {
 /** 保存历史到 localStorage（官方 ir(n)，原型本地版） */
 function saveHistory(agentKey, messages) {
   try {
-    localStorage.setItem(historyKey(agentKey), JSON.stringify(messages))
+    sSet(historyKey(agentKey), JSON.stringify(messages))
   } catch {
     /* 忽略写失败 */
   }

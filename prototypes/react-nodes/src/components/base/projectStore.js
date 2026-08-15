@@ -10,6 +10,7 @@
 import { useSyncExternalStore } from 'react'
 import { storageGet, storageSet, storageDelete, CANVAS_STATE_PREFIX } from './kvStore.js'
 import { fetchProjects, saveProjects } from './projectsApi.js'
+import { sGet, sSet } from './storageAdapter.js'
 
 const PROJECTS_KEY = 'projects'
 const LAST_OPENED_KEY = 'lastOpenedProject'
@@ -21,7 +22,7 @@ const listeners = new Set()
 
 function loadJSON(key, fallback) {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = sGet(key)
     return raw ? JSON.parse(raw) : fallback
   } catch {
     return fallback
@@ -30,7 +31,7 @@ function loadJSON(key, fallback) {
 
 function saveJSON(key, val) {
   try {
-    localStorage.setItem(key, JSON.stringify(val))
+    sSet(key, JSON.stringify(val))
   } catch {
     /* ignore */
   }

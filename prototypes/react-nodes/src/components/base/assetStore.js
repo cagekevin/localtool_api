@@ -16,6 +16,7 @@
  * 素材列表改为 GET /api/resources?folder=xxx，UI 不变。
  */
 import { useSyncExternalStore } from 'react'
+import { sGet, sSet } from './storageAdapter.js'
 
 const STORAGE_KEY = 'yimao_asset_library'
 const listeners = new Set()
@@ -32,11 +33,11 @@ const DEFAULT_ASSETS = [
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sGet(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
     // 首次：seed 演示素材
     const seeded = DEFAULT_ASSETS.map((a) => ({ ...a, ts: Date.now() }))
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)) } catch { /* ignore */ }
+    try { sSet(STORAGE_KEY, JSON.stringify(seeded)) } catch { /* ignore */ }
     return seeded
   } catch {
     return DEFAULT_ASSETS
@@ -58,7 +59,7 @@ export const FOLDERS = [
 
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(assets))
+    sSet(STORAGE_KEY, JSON.stringify(assets))
   } catch {
     /* ignore */
   }

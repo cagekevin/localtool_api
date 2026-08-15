@@ -10,6 +10,7 @@
  *   saveAndNotify(list)  —— 保存后广播 'yimao:presetsChanged'，方便跨节点同步
  *   recordRecent(id) / getRecent()
  */
+import { sGet, sSet } from './storageAdapter.js'
 
 const STORAGE_KEY = 'yimao_preset_prompts'
 const RECENT_KEY = 'yimao_preset_recent'
@@ -31,7 +32,7 @@ export const DEFAULT_PRESETS = [
 // 读取本地 JSON（容错）
 function readJSON(key, fallback) {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = sGet(key)
     if (!raw) return fallback
     const val = JSON.parse(raw)
     return Array.isArray(val) ? val : fallback
@@ -42,7 +43,7 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, val) {
   try {
-    localStorage.setItem(key, JSON.stringify(val))
+    sSet(key, JSON.stringify(val))
   } catch {
     // 忽略（隐私模式等）
   }
