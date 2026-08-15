@@ -7,7 +7,7 @@
  * 断档背景：节点生成成功只把 resultUrl 存进任务中心(SQLite)，未落盘 tasks 目录，
  * 导致生成面板空。这里补上落盘：data:/blob → multipart file；http → fileUrl(幂等下载)。
  */
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 const SUBFOLDER = 'tasks'
 
 // 类型 → 扩展名（生成面板按扩展名分类展示）

@@ -14,6 +14,10 @@ import { sGet, sSet } from '../storageAdapter.js'
 
 const STORAGE_KEY = 'yimao_accounts'
 
+// 演示环境占位常量（浏览器端/空态时 seed 的测试站点地址与头像，统一避免散落硬编码）
+export const TEST_SITE_URL = 'http://localhost:3000'
+export const TEST_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=test'
+
 // 登录态 Cookie 白名单（即梦/字节系，复刻官方 `ma`）
 export const LOGIN_COOKIE_WHITELIST = [
   'sid_tt', 'sid_guard', 'uid_tt', 'ttwid', 'n_mh', 'odin_tt',
@@ -31,8 +35,8 @@ const DEFAULT_ENVS = [
     id: 'env_demo_1',
     name: '即梦小号',
     siteName: '开发测试网',
-    siteUrl: 'http://localhost:3000',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=test',
+    siteUrl: TEST_SITE_URL,
+    avatar: TEST_AVATAR,
     isFavorite: false,
     cookies: [{ name: 'test', value: '123' }],
   },
@@ -40,8 +44,8 @@ const DEFAULT_ENVS = [
     id: 'env_demo_2',
     name: '即梦主号',
     siteName: '开发测试网',
-    siteUrl: 'http://localhost:3000',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=test',
+    siteUrl: TEST_SITE_URL,
+    avatar: TEST_AVATAR,
     isFavorite: false,
     cookies: [{ name: 'test', value: '456' }],
   },
@@ -225,7 +229,7 @@ export async function saveEnvironment(auto = false) {
     } else {
       // 浏览器端降级：写测试数据（官方行为）
       siteName = '开发测试网'
-      siteUrl = 'http://localhost:3000'
+      siteUrl = TEST_SITE_URL
       avatar = dicebear('test')
       cookies = [{ name: 'test', value: '123' }]
     }

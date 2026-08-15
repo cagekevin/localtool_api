@@ -3,6 +3,7 @@ import { Upload, FileText, Music, Trash2, Play, Image as ImageIcon, Copy, Folder
 import { useLocalToolStatus } from './useLocalToolStatus.js'
 import { fetchResources, rescanResources, deleteResource, renameResource, openLocalFolder, openFileDir, relativePathFromUrl } from './resourcesApi.js'
 import { showToast } from './toastStore.js'
+import { API_BASE } from './apiBase.js'
 
 // 目录 pill（folder 前缀对齐本地磁盘 migrated/materials 结构，与后端 /api/resources 一一对应）
 const FOLDER_PILLS = [
@@ -185,7 +186,7 @@ export default function AssetLibrary() {
         const fd = new FormData()
         fd.append('subfolder', currentFolder)
         fd.append('file', f, f.name)
-        const res = await fetch(`http://127.0.0.1:18080/api/files/upload`, { method: 'POST', body: fd })
+        const res = await fetch(`${API_BASE}/api/files/upload`, { method: 'POST', body: fd })
         if (res.ok) ok++
       } catch { /* 单个失败继续 */ }
     }
@@ -256,7 +257,7 @@ export default function AssetLibrary() {
   const createFolder = async (name) => {
     if (!name || !connected) return false
     try {
-      const res = await fetch(`http://127.0.0.1:18080/api/files/mkdir`, {
+      const res = await fetch(`${API_BASE}/api/files/mkdir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder: `${currentFolder}/${name}` }),

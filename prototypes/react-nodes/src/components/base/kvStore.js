@@ -15,8 +15,7 @@
  *  - 错误体 { error: "<英文message>" }
  */
 import { sGet, sSet, sRemove } from './storageAdapter.js'
-
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 // 画布类 key 前缀（对齐官方 Ar.CANVAS_STATE_PREFIX，localTool KV 侧会带此前缀）
 export const CANVAS_STATE_PREFIX = 'canvas-state-v1-'

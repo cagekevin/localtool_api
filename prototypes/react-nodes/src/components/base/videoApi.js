@@ -11,8 +11,7 @@
  * 网关契约：body { model, prompt, size(如 16:9), image_urls(参考图可选) }。
  */
 import { resolveRefImages } from './refImage.js'
-
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 /** 目标端点：openai 用伪协议；apimart 用 base_url + /v1/{path}。 */
 function buildTargetUrl(provider, path) {

@@ -10,7 +10,7 @@
  *  - GET  /api/files/open?subfolder=xxx       → 打开本地目录（顶部「打开本地存储目录」按钮）
  *  - GET  /api/files/open-dir?filepath=xxx    → 打开某文件所在目录（卡片「打开目录」按钮）
  */
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 /** 分页查询资源（folder eqOrPrefix 匹配：'tasks' 会命中 tasks 及其子目录 tasks/xxx） */
 export async function fetchResources({ folder, page = 1, pageSize = 60, type } = {}) {

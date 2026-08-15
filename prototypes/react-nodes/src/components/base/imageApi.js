@@ -9,8 +9,7 @@
  *  - async：提交返回 [{status:"submitted", task_id}] → 轮询 GET /v1/tasks/{id} 到 completed
  */
 import { resolveRefImages } from './refImage.js'
-
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 /** 目标端点：openai 用伪协议；apimart 用 base_url + /v1/{path}。 */
 function buildTargetUrl(provider, path) {

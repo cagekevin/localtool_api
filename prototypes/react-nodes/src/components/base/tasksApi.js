@@ -13,7 +13,7 @@
  * 只落 task_id/node_id/prompt/result_url/... 等持久化字段。status 是运行时态，每次 upsert
  * 都传最新值，前端内存仍以 useTasks 为准；后端只保证「刷新/重启后历史还在」。
  */
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 /** 读任务列表（分页），返回 { items, total } */
 export async function fetchTasks({ page = 1, pageSize = 200, keyword = '' } = {}) {

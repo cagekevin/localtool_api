@@ -2,7 +2,7 @@
  * localTool API 封装（供应商管理）。
  * 数据层唯一发请求的地方；store/组件不直接 fetch。
  */
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from '../apiBase.js'
 
 async function request(path, { method = 'GET', body } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {

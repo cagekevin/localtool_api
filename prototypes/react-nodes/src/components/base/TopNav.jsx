@@ -18,6 +18,10 @@ import { sGet, sSet } from './storageAdapter.js'
  *  - agentOpen        AI 助手面板开关
  *  - onToggleAgent    切换 AI 助手回调
  */
+
+// 演示头像占位（TopNav 多处共用，统一避免散落硬编码）
+const AVATAR_URL = 'https://api.dicebear.com/9.x/thumbs/svg?seed=yimao'
+
 export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProject, agentOpen, onToggleAgent }) {
   const tabs = [
     { key: 'canvas', label: '画布' },
@@ -135,7 +139,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
             title="用户信息"
           >
             <img
-              src="https://api.dicebear.com/9.x/thumbs/svg?seed=yimao"
+              src={AVATAR_URL}
               alt="avatar"
               className="w-full h-full rounded-full object-cover"
               draggable={false}
@@ -145,7 +149,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
           <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-edge rounded-xl shadow-2xl opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-float overflow-hidden flex flex-col">
             {/* 头部：头像 + 昵称 */}
             <div className="p-4 border-b border-edge flex items-center gap-3">
-              <img src="https://api.dicebear.com/9.x/thumbs/svg?seed=yimao" alt="avatar" className="w-10 h-10 rounded-full object-cover border border-edge-muted" draggable={false} />
+              <img src={AVATAR_URL} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-edge-muted" draggable={false} />
               <div className="flex flex-col">
                 <div className="text-white font-bold text-sm truncate">一毛用户</div>
                 <div className="text-gray-400 text-xs">未绑定手机号</div>

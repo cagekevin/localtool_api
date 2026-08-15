@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCanvasAgentTools } from './useCanvasAgentTools.js'
 import { sGet, sSet } from './storageAdapter.js'
+import { API_BASE } from './apiBase.js'
 
 /**
  * ════════════════════════════════════════════════════════════════
@@ -232,7 +233,7 @@ export function useAgentChat({ agentKey = 'canvas-assistant', systemPrompt = '',
   }, [agentKey])
 
   // 组装端点：默认走 localTool /api/agent/{agentKey}/chat；env 可覆盖
-  const endpoint = CHAT_BASE_URL || `http://127.0.0.1:18080/api/agent/${encodeURIComponent(agentKey)}/chat`
+  const endpoint = CHAT_BASE_URL || `${API_BASE}/api/agent/${encodeURIComponent(agentKey)}/chat`
 
   /** 单次 SSE 请求，返回 { role:'assistant', content, reasoning?, tool_calls? }（复刻官方 dr:2579-2778 的 v） */
   const roundTrip = useCallback(
@@ -248,7 +249,7 @@ export function useAgentChat({ agentKey = 'canvas-assistant', systemPrompt = '',
       // 是否走「多 provider /api/proxy 转发」：provider 存在时（如魔搭，支持 function calling）
       const useProxy = !!provider
       const res = useProxy
-        ? await fetch('http://127.0.0.1:18080/api/proxy', {
+        ? await fetch(`${API_BASE}/api/proxy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
             body: JSON.stringify({

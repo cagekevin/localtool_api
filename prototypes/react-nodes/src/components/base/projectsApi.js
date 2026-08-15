@@ -5,7 +5,7 @@
  *  - GET  /api/projects          → { projects:[{id,name,createdAt}], lastOpened }
  *  - POST /api/projects/save     body { projects:[{id,name}], lastOpened }  → { ok:true }（全量覆盖）
  */
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 /** 读项目列表 + 当前项目 */
 export async function fetchProjects() {

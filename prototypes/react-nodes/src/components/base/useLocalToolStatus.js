@@ -16,8 +16,8 @@
  * 原型无此开关，默认 false（即始终启用连接检测）。
  */
 import { useState, useCallback, useEffect } from 'react'
+import { API_BASE } from './apiBase.js'
 
-const API_BASE = 'http://127.0.0.1:18080'
 const DEFAULT_PORT = 18080
 const POLL_CONNECTED_MS = 15000 // 已连接：15s 轮询一次（官方 Wl）
 const POLL_DISCONNECTED_MS = 5000 // 未连接：5s 轮询一次（官方 Ul）

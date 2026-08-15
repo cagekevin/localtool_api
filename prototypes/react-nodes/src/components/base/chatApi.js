@@ -10,7 +10,7 @@
  */
 import { resolveRefImages, toImageContentBlocks } from './refImage.js'
 
-const API_BASE = 'http://127.0.0.1:18080'
+import { API_BASE } from './apiBase.js'
 
 /** 目标端点：openai 用伪协议让 localTool 拼 base+key；apimart 用 base_url 原样透传。 */
 function buildTargetUrl(provider) {

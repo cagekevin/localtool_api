@@ -3,6 +3,7 @@ import { FolderOpen, Image as ImageIcon, Play, FileText, Music, Copy, Trash2, Fo
 import { useLocalToolStatus } from './useLocalToolStatus.js'
 import { fetchResources, rescanResources, deleteResource, renameResource, openLocalFolder, openFileDir, relativePathFromUrl } from './resourcesApi.js'
 import { showToast } from './toastStore.js'
+import { API_BASE } from './apiBase.js'
 
 // 类型过滤 pill（沿用素材库 AssetLibrary 的小圆按钮形式）
 const TYPE_FILTERS = [
@@ -216,7 +217,7 @@ export default function GeneratedView() {
   const createFolder = async (name) => {
     if (!name || !connected) return false
     try {
-      const res = await fetch(`http://127.0.0.1:18080/api/files/mkdir`, {
+      const res = await fetch(`${API_BASE}/api/files/mkdir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder: folder === 'tasks' ? `tasks/${name}` : `${folder}/${name}` }),
