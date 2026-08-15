@@ -137,7 +137,7 @@ export default function GeneratingOverlay({ label = '生成中...', backgroundUr
   const tip = pool[tipIdx]?.text ?? ''
 
   return (
-    <div className="absolute inset-0 z-10 flex items-center overflow-hidden bg-[#0d0c0c]">
+    <div className="absolute inset-0 z-10 flex items-center overflow-hidden bg-canvas">
       {/* 官方 Ti 内联动画 keyframes */}
       <style>{`
         @keyframes npbSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

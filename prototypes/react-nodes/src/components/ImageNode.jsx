@@ -194,7 +194,7 @@ export default function ImageNode({ id, data, selected }) {
                     <img src={posterUrl} alt="video poster" loading="lazy" decoding="async"
                       draggable={false} className="w-full h-full object-contain cursor-pointer rounded-lg" />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#151515]">
+                    <div className="absolute inset-0 flex items-center justify-center bg-surface-muted">
                       <Video size={32} className="text-gray-700" />
                     </div>
                   )}
@@ -218,14 +218,14 @@ export default function ImageNode({ id, data, selected }) {
           )}
           {/* 音频 */}
           {type === 'audio' && !hideMedia.includes('audio') && (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-[#1a1a1a] p-2 gap-2">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-2 gap-2">
               <Music size={24} className="text-blue-500 mb-2" />
               <audio src={url} controls className="w-full max-w-[200px] h-8" />
             </div>
           )}
           {/* 文本文件 */}
           {type === 'text' && (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-[#1a1a1a] p-2">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-2">
               <FileText size={24} className="text-gray-400 mb-2" />
               <span className="text-[10px] text-gray-500">文本/数据文件</span>
             </div>
@@ -233,10 +233,10 @@ export default function ImageNode({ id, data, selected }) {
           {/* 空态 */}
           {type === 'empty' && (
             <div
-              className="flex flex-col items-center justify-center absolute inset-0 bg-[#151515] hover:bg-[#1a1a1a] transition-colors cursor-pointer group"
+              className="flex flex-col items-center justify-center absolute inset-0 bg-surface-muted hover:bg-surface transition-colors cursor-pointer group"
               onClick={(e) => { e.stopPropagation(); fileRef.current?.click() }}
             >
-              <div className="w-12 h-12 rounded-xl bg-[#222] border border-dashed border-[#444] group-hover:border-blue-500/50 flex flex-col items-center justify-center transition-all">
+              <div className="w-12 h-12 rounded-xl bg-surface-1 border border-dashed border-edge-muted group-hover:border-blue-500/50 flex flex-col items-center justify-center transition-all">
                 <ImageIcon size={20} className="text-gray-600 group-hover:text-blue-500/80 transition-colors" />
               </div>
             </div>
@@ -257,7 +257,7 @@ export default function ImageNode({ id, data, selected }) {
 
     {/* 查看大图（复刻官方 onDoubleClick → onZoom 全屏看大图） */}
     <FullscreenModal open={zoomView} title="查看大图" onClose={() => setZoomView(false)}>
-      <div className="w-full h-full flex items-center justify-center bg-[#0d0c0c]">
+      <div className="w-full h-full flex items-center justify-center bg-canvas">
         <img src={displayUrl} alt="大图" className="max-w-full max-h-full object-contain" draggable={false} />
       </div>
     </FullscreenModal>

@@ -795,7 +795,7 @@ function Canvas() {
   return (
     <LodProvider value={{ lodLevel, viewportMoving: false, nodeCount: nodes.length, handleFollowLimit: 60, edgeFxLimit: 50 }}>
       {/* 顶层：flex 纵向布局（复刻官方 Vr.jsx L3274 flex h-screen flex-col） */}
-      <div className="flex flex-col h-screen bg-[#0d0c0c] font-sans text-gray-200">
+      <div className="flex flex-col h-screen bg-canvas font-sans text-gray-200">
         {/* 本地引擎未连接全屏提醒（完整复刻官方 Vr.jsx L3274-3280 挂载 _cmp_Tr） */}
         <LocalToolConnectModal
           isVisible={connectWarn}
@@ -870,7 +870,7 @@ function Canvas() {
                 zoomable
                 maskColor="#0d0c0c80"
                 nodeColor="#444"
-                className="!bg-[#222] !m-0 !relative !bottom-0 !left-0 shadow-2xl rounded overflow-hidden border border-[#333] pointer-events-auto"
+                className="!bg-surface-1 !m-0 !relative !bottom-0 !left-0 shadow-2xl rounded overflow-hidden border border-edge pointer-events-auto"
               />
             </div>
           )}

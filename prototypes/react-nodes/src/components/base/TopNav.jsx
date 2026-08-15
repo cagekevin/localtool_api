@@ -5,7 +5,7 @@ import { showToast } from './toastStore.js'
 /**
  * 顶部导航栏（复刻官方 Vr.jsx L3281 `Component806`，h-16）。
  *  - 左侧：Logo（猫猫画布，点击回画布）+ hover 官网入口
- *  - 中央：pill tab 组（bg-[#151414] rounded-full p-1）：「画布」/「多开」激活态 bg-white text-black
+ *  - 中央：pill tab 组（bg-surface-deep rounded-full p-1）：「画布」/「多开」激活态 bg-white text-black
  *  - 项目选择器：紧跟 tab 组「多开」右边（官方 L3308）
  *  - 右侧（官方 Component805）：设置按钮（齿轮，L3489）+ AI 助手按钮（同一条水平线）
  *
@@ -79,7 +79,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
   }
 
   return (
-    <header className="bg-[#0d0c0c] flex items-center justify-between px-4 relative z-topnav flex-shrink-0 h-16 pt-2 pb-2">
+    <header className="bg-canvas flex items-center justify-between px-4 relative z-topnav flex-shrink-0 h-16 pt-2 pb-2">
       {/* 左侧：Logo */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2 cursor-pointer relative group/logo" onClick={() => onNavigate('canvas')} title="返回画布">
@@ -93,10 +93,10 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
           </svg>
           <div className="text-white font-bold text-lg italic tracking-wider">猫猫画布</div>
           {/* hover 官网入口 */}
-          <div className="absolute left-0 top-full mt-2 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl opacity-0 invisible group-hover/logo:opacity-100 group-hover/logo:visible transition-all duration-300 delay-500 z-50 overflow-hidden whitespace-nowrap p-1">
+          <div className="absolute left-0 top-full mt-2 bg-surface border border-edge rounded-lg shadow-xl opacity-0 invisible group-hover/logo:opacity-100 group-hover/logo:visible transition-all duration-300 delay-500 z-50 overflow-hidden whitespace-nowrap p-1">
             <div
               onClick={(e) => { e.stopPropagation(); window.open('https://www.1mao.cc', '_blank') }}
-              className="text-sm text-gray-300 hover:text-white hover:bg-[#333] px-3 py-2 rounded-md flex items-center gap-2 cursor-pointer"
+              className="text-sm text-gray-300 hover:text-white hover:bg-surface-hover-strong px-3 py-2 rounded-md flex items-center gap-2 cursor-pointer"
             >
               访问官网 (1mao.cc)
             </div>
@@ -104,7 +104,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
         </div>
 
         {/* 中央 pill tab 组 */}
-        <nav className="flex items-center bg-[#151414] rounded-full p-1">
+        <nav className="flex items-center bg-surface-deep rounded-full p-1">
           {tabs.map((t) => {
             const isActive = view === t.key
             return (
@@ -130,7 +130,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
         <div className="relative group/avatar">
           <button
             type="button"
-            className="relative flex items-center justify-center w-8 h-8 rounded-full text-sm bg-[#333] transition-all border-2 border-transparent hover:border-gray-500 cursor-pointer border-none overflow-hidden"
+            className="relative flex items-center justify-center w-8 h-8 rounded-full text-sm bg-surface-hover-strong transition-all border-2 border-transparent hover:border-gray-500 cursor-pointer border-none overflow-hidden"
             title="用户信息"
           >
             <img
@@ -141,22 +141,22 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
             />
           </button>
           {/* hover 用户菜单（复刻官方 Component797，含「同步设置」区块） */}
-          <div className="absolute right-0 top-full mt-2 w-64 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-float overflow-hidden flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-edge rounded-xl shadow-2xl opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-float overflow-hidden flex flex-col">
             {/* 头部：头像 + 昵称 */}
-            <div className="p-4 border-b border-[#333] flex items-center gap-3">
-              <img src="https://api.dicebear.com/9.x/thumbs/svg?seed=yimao" alt="avatar" className="w-10 h-10 rounded-full object-cover border border-[#444]" draggable={false} />
+            <div className="p-4 border-b border-edge flex items-center gap-3">
+              <img src="https://api.dicebear.com/9.x/thumbs/svg?seed=yimao" alt="avatar" className="w-10 h-10 rounded-full object-cover border border-edge-muted" draggable={false} />
               <div className="flex flex-col">
                 <div className="text-white font-bold text-sm truncate">一毛用户</div>
                 <div className="text-gray-400 text-xs">未绑定手机号</div>
               </div>
             </div>
             {/* 同步设置区块（复刻官方 Component788：上传云端 / 从云端下载） */}
-            <div className="p-2 border-b border-[#333]">
+            <div className="p-2 border-b border-edge">
               <div className="px-2 py-1 text-xs text-gray-500 font-bold">同步设置</div>
               <button
                 type="button"
                 onClick={handleCloudUpload}
-                className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded-md flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
+                className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded-md flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                 上传云端
@@ -164,7 +164,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
               <button
                 type="button"
                 onClick={handleCloudDownload}
-                className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-[#333] hover:text-white rounded-md flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
+                className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded-md flex items-center gap-2 transition-colors cursor-pointer border-none bg-transparent"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                 从云端下载
@@ -177,7 +177,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
         <button
           type="button"
           onClick={() => onNavigate(view === 'settings' ? 'canvas' : 'settings')}
-          className={`relative text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-[#252525] cursor-pointer border-none bg-transparent ${view === 'settings' ? 'bg-[#252525] text-white' : ''}`}
+          className={`relative text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-surface-active cursor-pointer border-none bg-transparent ${view === 'settings' ? 'bg-surface-active text-white' : ''}`}
           title="设置"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -190,7 +190,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
         <button
           type="button"
           onClick={onToggleAgent}
-          className={`relative text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-[#252525] cursor-pointer border-none bg-transparent ${agentOpen ? 'bg-[#252525] text-white' : ''}`}
+          className={`relative text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-surface-active cursor-pointer border-none bg-transparent ${agentOpen ? 'bg-surface-active text-white' : ''}`}
           title={agentOpen ? '关闭 AI 助手' : '打开 AI 助手'}
         >
           {/* 机器人图标 */}

@@ -231,7 +231,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
   if (!open) return null
 
   const AI_ICON = (
-    <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2a2a2a] to-[#1a1a1a] border border-[#333] flex items-center justify-center">
+    <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2a2a2a] to-[#1a1a1a] border border-edge flex items-center justify-center">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
         <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
         <circle cx="12" cy="12" r="4" />
@@ -240,7 +240,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
   )
 
   return (
-    <div className={`absolute top-0 right-0 bottom-0 bg-[#151414] border-l border-[#2a2a2a] flex flex-col z-30 shadow-2xl ${dragging ? 'select-none' : ''}`} style={{ width }}>
+    <div className={`absolute top-0 right-0 bottom-0 bg-surface-deep border-l border-edge-faint flex flex-col z-30 shadow-2xl ${dragging ? 'select-none' : ''}`} style={{ width }}>
       {/* 宽度拖拽手柄 */}
       <div
         onMouseDown={startDrag}
@@ -249,7 +249,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
       />
 
       {/* 顶部标题栏 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-edge-faint">
         <div className="flex items-center gap-2">
           {AI_ICON}
           <div>
@@ -258,13 +258,13 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={handleClear} disabled={sending || messages.length === 0} className="p-1.5 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed" title="清空对话">
+          <button type="button" onClick={handleClear} disabled={sending || messages.length === 0} className="p-1.5 text-gray-400 hover:text-white hover:bg-surface-hover rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed" title="清空对话">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
           </button>
-          <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md transition-colors" title="关闭">
+          <button type="button" onClick={onClose} className="p-1.5 text-gray-400 hover:text-white hover:bg-surface-hover rounded-md transition-colors" title="关闭">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -281,11 +281,11 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
             <div className="text-gray-600 mb-3 leading-relaxed">说一句话，我就能在画布上帮你创建节点、连接数据流、触发图片/文本/视频生成，还能批量整理、聚焦视口、撤销重做。</div>
             <div className="text-gray-600">试试说：</div>
             <div className="mt-2 space-y-1 text-gray-500">
-              <div className="bg-[#0d0c0c] border border-[#2a2a2a] rounded-md px-3 py-2">「帮我生成一张赛博朋克风格的猫咪图」</div>
-              <div className="bg-[#0d0c0c] border border-[#2a2a2a] rounded-md px-3 py-2">「把选中的节点改成 9:16」</div>
-              <div className="bg-[#0d0c0c] border border-[#2a2a2a] rounded-md px-3 py-2">「把文本节点连到生图节点并生成」</div>
-              <div className="bg-[#0d0c0c] border border-[#2a2a2a] rounded-md px-3 py-2">「把所有生图节点锁定，并聚焦到第一个」</div>
-              <div className="bg-[#0d0c0c] border border-[#2a2a2a] rounded-md px-3 py-2">「撤销刚才的操作」</div>
+              <div className="bg-canvas border border-edge-faint rounded-md px-3 py-2">「帮我生成一张赛博朋克风格的猫咪图」</div>
+              <div className="bg-canvas border border-edge-faint rounded-md px-3 py-2">「把选中的节点改成 9:16」</div>
+              <div className="bg-canvas border border-edge-faint rounded-md px-3 py-2">「把文本节点连到生图节点并生成」</div>
+              <div className="bg-canvas border border-edge-faint rounded-md px-3 py-2">「把所有生图节点锁定，并聚焦到第一个」</div>
+              <div className="bg-canvas border border-edge-faint rounded-md px-3 py-2">「撤销刚才的操作」</div>
             </div>
           </div>
         )}
@@ -304,18 +304,18 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
       </div>
 
       {/* 输入区 */}
-      <div className="px-3 py-3 border-t border-[#2a2a2a]">
-        <div className="bg-[#0d0c0c] border border-[#333] rounded-lg focus-within:border-blue-500 transition-colors">
+      <div className="px-3 py-3 border-t border-edge-faint">
+        <div className="bg-canvas border border-edge rounded-lg focus-within:border-blue-500 transition-colors">
           {(attachments.length > 0 || uploading) && (
             <div className="flex flex-wrap gap-2 px-2 pt-2">
               {attachments.map((a, i) => (
-                <span key={i} className="relative w-12 h-12 rounded-md overflow-hidden border border-[#333] group">
+                <span key={i} className="relative w-12 h-12 rounded-md overflow-hidden border border-edge group">
                   <img src={a.localUrl || a.url} alt="" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => removeAttachment(i)} className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-black text-white text-[10px] flex items-center justify-center rounded-bl-md" title="移除">×</button>
                 </span>
               ))}
               {uploading && (
-                <span className="w-12 h-12 rounded-md border border-[#333] bg-[#1a1a1a] flex items-center justify-center">
+                <span className="w-12 h-12 rounded-md border border-edge bg-surface flex items-center justify-center">
                   <span className="w-4 h-4 border-2 border-gray-600 border-t-gray-300 rounded-full animate-spin" />
                 </span>
               )}
@@ -331,11 +331,11 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
             className="w-full bg-transparent text-gray-200 text-sm px-3 py-2 resize-none focus:outline-none disabled:opacity-60"
             style={{ minHeight: '60px', maxHeight: '160px' }}
           />
-          <div className="flex items-center justify-between px-1.5 py-1.5 border-t border-[#2a2a2a]">
+          <div className="flex items-center justify-between px-1.5 py-1.5 border-t border-edge-faint">
             <div className="flex items-center gap-1">
               {/* 模型切换 */}
               <span ref={modelRef} className="relative">
-                <button type="button" onClick={() => setModelOpen(!modelOpen)} disabled={sending} className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-200 hover:bg-[#1a1a1a] rounded transition-colors disabled:opacity-50 max-w-[200px]" title="切换模型">
+                <button type="button" onClick={() => setModelOpen(!modelOpen)} disabled={sending} className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-200 hover:bg-surface rounded transition-colors disabled:opacity-50 max-w-[200px]" title="切换模型">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="10" rx="2" />
                     <circle cx="12" cy="5" r="2" />
@@ -348,7 +348,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                   </svg>
                 </button>
                 {modelOpen && (
-                  <div className="absolute bottom-full left-0 mb-1 w-[260px] max-h-[280px] overflow-y-auto bg-[#1a1a1a] border border-[#333] rounded-lg shadow-2xl z-50 py-1 custom-scrollbar">
+                  <div className="absolute bottom-full left-0 mb-1 w-[260px] max-h-[280px] overflow-y-auto bg-surface border border-edge rounded-lg shadow-2xl z-50 py-1 custom-scrollbar">
                     {agentModels.length === 0 ? (
                       <div className="px-3 py-2 text-xs text-gray-500 text-center">暂无可用模型</div>
                     ) : agentModels.map((id) => (
@@ -356,7 +356,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                         key={id}
                         type="button"
                         onClick={() => { setModel(id); setModelOpen(false) }}
-                        className={`w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors ${id === model ? 'bg-[#333] text-white' : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`}
+                        className={`w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors ${id === model ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`}
                         title={id}
                       >
                         <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
@@ -373,7 +373,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={!isVision || uploading || sending}
-                className={`p-1.5 rounded transition-colors ${isVision ? 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1a1a]' : 'text-gray-600 cursor-not-allowed'} disabled:cursor-not-allowed`}
+                className={`p-1.5 rounded transition-colors ${isVision ? 'text-gray-400 hover:text-gray-200 hover:bg-surface' : 'text-gray-600 cursor-not-allowed'} disabled:cursor-not-allowed`}
                 title={isVision ? '上传参考图' : `当前模型不支持视觉，请切换到 ${VISION_MODELS[0]} 等`}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -389,7 +389,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
               </button>
             ) : (
-              <button type="button" onClick={handleSend} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer ${input.trim() || attachments.length > 0 ? 'bg-white hover:bg-gray-200 text-black' : 'bg-[#2a2a2a] text-gray-500 cursor-not-allowed'}`} title="发送">
+              <button type="button" onClick={handleSend} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer ${input.trim() || attachments.length > 0 ? 'bg-white hover:bg-gray-200 text-black' : 'bg-surface-hover text-gray-500 cursor-not-allowed'}`} title="发送">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="19" x2="12" y2="5" />
                   <polyline points="5 12 12 5 19 12" />

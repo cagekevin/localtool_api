@@ -83,10 +83,10 @@ const PromptInput = forwardRef(function PromptInput(
 
         {showMention && (
           <div
-            className="absolute bottom-[calc(100%+4px)] left-0 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-suggest flex flex-col overflow-hidden h-[300px] nopan"
+            className="absolute bottom-[calc(100%+4px)] left-0 w-72 bg-surface-1 border border-edge-muted rounded-lg shadow-2xl z-suggest flex flex-col overflow-hidden h-[300px] nopan"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a]">
+            <div className="flex items-center justify-between p-2 border-b border-edge bg-surface">
               <span className="text-xs text-gray-300 font-bold flex items-center gap-2">选择素材引用</span>
               <button className="text-gray-500 hover:text-white p-1" onClick={() => setShowMention(false)}>
                 <X size={12} />
@@ -103,13 +103,13 @@ const PromptInput = forwardRef(function PromptInput(
                   {all.map((item) => (
                     <div
                       key={item.id}
-                      className="aspect-square bg-[#111] rounded border border-[#333] hover:border-blue-500 cursor-pointer overflow-hidden relative group flex flex-col"
+                      className="aspect-square bg-surface-black rounded border border-edge hover:border-blue-500 cursor-pointer overflow-hidden relative group flex flex-col"
                       onClick={() => insert(item.name)}
                     >
                       {item.url ? (
                         <img src={item.url} className="w-full h-full object-cover" alt="" />
                       ) : (
-                        <div className="w-full h-full bg-[#222] flex flex-col items-center justify-center p-1 text-center">
+                        <div className="w-full h-full bg-surface-1 flex flex-col items-center justify-center p-1 text-center">
                           <LinkIcon size={16} className="text-blue-400 opacity-80 mb-1" />
                           <span className="text-[8px] text-gray-400 truncate w-full">{item.label}</span>
                         </div>

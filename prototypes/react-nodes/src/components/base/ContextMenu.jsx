@@ -66,7 +66,7 @@ export default function ContextMenu({ state, items, onClose, containerRef }) {
   return (
     <div
       ref={menuRef}
-      className="absolute z-dropdown bg-[#1c1c1e] border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 flex flex-col min-w-[208px]"
+      className="absolute z-dropdown bg-surface-menu border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 flex flex-col min-w-[208px]"
       style={{ top: pos.top, left: pos.left }}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
@@ -111,7 +111,7 @@ function renderItems(items, onClose) {
               经过中间 8px gap 时仍算 hover（group-hover/sub），子菜单不会收起。
               这是官方防抖的常用技巧，删掉会出现"鼠标一过 gap 子菜单就消失"。 */}
           <div
-            className={`absolute left-full top-0 ml-2 bg-[#1c1c1e] border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 min-w-[200px] z-dropdown hidden group-hover/sub:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
+            className={`absolute left-full top-0 ml-2 bg-surface-menu border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 min-w-[200px] z-dropdown hidden group-hover/sub:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
           >
             {renderItems(item.submenu, onClose)}
           </div>
@@ -133,7 +133,7 @@ function renderItems(items, onClose) {
           </button>
           {/* 分组子菜单（工具面板）：同样 group-hover 展开 + before 桥防抖（见上一条注释） */}
           <div
-            className={`absolute left-full top-0 ml-2 bg-[#1c1c1e] border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 w-[300px] z-dropdown hidden group-hover/tools:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
+            className={`absolute left-full top-0 ml-2 bg-surface-menu border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 w-[300px] z-dropdown hidden group-hover/tools:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
           >
             <div className="grid grid-cols-2 gap-0.5">
               {item.items.map((child) => (
@@ -171,7 +171,7 @@ function renderItems(items, onClose) {
         }}
         className={`w-full text-left px-3.5 py-2 text-sm rounded-xl flex items-center gap-2.5 justify-between transition-colors ${
           item.danger
-            ? 'text-red-400 hover:bg-[#333]'
+            ? 'text-red-400 hover:bg-surface-hover-strong'
             : 'text-gray-200 hover:bg-white/10 hover:text-white'
         } ${item.disabled ? 'opacity-40 pointer-events-none' : ''}`}
       >

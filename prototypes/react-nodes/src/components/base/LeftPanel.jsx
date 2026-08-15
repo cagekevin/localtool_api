@@ -49,7 +49,7 @@ export default function LeftPanel() {
     <>
       {/* 收起态：左侧竖条工具栏 */}
       {!expanded && (
-        <div className="fixed left-3 top-1/2 -translate-y-1/2 z-sidebar flex flex-col items-center gap-1.5 bg-[#191919]/90 backdrop-blur border border-[#2a2a2a] rounded-xl px-1.5 py-2 shadow-lg">
+        <div className="fixed left-3 top-1/2 -translate-y-1/2 z-sidebar flex flex-col items-center gap-1.5 bg-[#191919]/90 backdrop-blur border border-edge-faint rounded-xl px-1.5 py-2 shadow-lg">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.key
@@ -57,7 +57,7 @@ export default function LeftPanel() {
             return (
               <button
                 key={tab.key}
-                className={`relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer border-none ${isActive ? 'bg-[#2a2a2a] text-white' : 'text-[#888] hover:text-white hover:bg-[#242424]'}`}
+                className={`relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer border-none ${isActive ? 'bg-surface-hover text-white' : 'text-muted hover:text-white hover:bg-surface-subtle'}`}
                 title={tab.label}
                 onClick={() => openTab(tab.key)}
               >
@@ -75,9 +75,9 @@ export default function LeftPanel() {
 
       {/* 展开态：滑出面板 */}
       {expanded && (
-        <div ref={panelRef} className="fixed left-3 top-2 bottom-2 z-sidebar w-[330px] bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-panel-in">
+        <div ref={panelRef} className="fixed left-3 top-2 bottom-2 z-sidebar w-[330px] bg-input border border-edge-faint rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-panel-in">
           {/* 顶栏：tab 切换（点空白即可关闭，无需多余按钮） */}
-          <div className="h-[52px] border-b border-[#222] flex items-center px-3 gap-1 flex-shrink-0">
+          <div className="h-[52px] border-b border-edge-subtle flex items-center px-3 gap-1 flex-shrink-0">
             <div className="flex-1 flex gap-1">
               {TABS.map((tab) => {
                 const Icon = tab.icon
@@ -85,7 +85,7 @@ export default function LeftPanel() {
                 return (
                   <button
                     key={tab.key}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-[34px] rounded-lg text-[13px] transition-colors cursor-pointer border-none ${isActive ? 'bg-[#222] text-white font-medium' : 'text-[#888] hover:text-[#ccc] hover:bg-[#1e1e1e]'}`}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-[34px] rounded-lg text-[13px] transition-colors cursor-pointer border-none ${isActive ? 'bg-surface-1 text-white font-medium' : 'text-muted hover:text-body hover:bg-surface-faint'}`}
                     onClick={() => setActiveTab(tab.key)}
                   >
                     <Icon size={14} />

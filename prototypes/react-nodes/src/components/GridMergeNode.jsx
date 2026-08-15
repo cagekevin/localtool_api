@@ -372,7 +372,7 @@ export default function GridMergeNode({ id, data, selected }) {
     <button
       key={mode}
       className={`px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 border transition-colors cursor-pointer ${
-        mergeMode === mode ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-[#2a2a2a] border-[#333] text-gray-400 hover:text-white'
+        mergeMode === mode ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white'
       }`}
       onClick={() => setMergeMode(mode)}
       title={title}
@@ -402,11 +402,11 @@ export default function GridMergeNode({ id, data, selected }) {
       <CustomHandle position="left" handleId="default" variant="small" />
       <CustomHandle position="right" handleId="merged-output" variant="small" />
 
-      <div ref={contentRef} className="p-3 space-y-3 bg-[#1a1a1a] relative drag-handle w-full">
+      <div ref={contentRef} className="p-3 space-y-3 bg-surface relative drag-handle w-full">
         {/* 预览区（含可拖拽 cell/项，复刻官方 Yo.jsx Component614/616 自由组合拼图） */}
         {mergeMode !== 'overlay' && (
           <div
-            className="bg-[#0d0c0c] rounded border border-[#333] flex items-center justify-center relative overflow-hidden nodrag"
+            className="bg-canvas rounded border border-edge flex items-center justify-center relative overflow-hidden nodrag"
             style={{ minHeight: 160, maxHeight: 360 }}
           >
             {preview && <img src={preview} alt="Preview" className="max-w-full max-h-[360px] object-contain block pointer-events-none" />}
@@ -575,13 +575,13 @@ export default function GridMergeNode({ id, data, selected }) {
           <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
             <span>背景</span>
             <button
-              className={`px-1.5 py-0.5 rounded border text-[10px] transition-colors cursor-pointer ${bgColor === 'transparent' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-[#2a2a2a] border-[#333] text-gray-400 hover:text-white'}`}
+              className={`px-1.5 py-0.5 rounded border text-[10px] transition-colors cursor-pointer ${bgColor === 'transparent' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white'}`}
               onClick={() => setBgColor('transparent')}
               title="透明背景（导出 PNG 保留透明通道）"
             >
               透明
             </button>
-            <input type="color" value={bgColor === 'transparent' ? '#000000' : bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-6 h-5 rounded border border-[#333] bg-transparent cursor-pointer" title="自定义背景色" />
+            <input type="color" value={bgColor === 'transparent' ? '#000000' : bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-6 h-5 rounded border border-edge bg-transparent cursor-pointer" title="自定义背景色" />
             {bgColor !== 'transparent' && <span className="font-mono text-gray-500">{bgColor}</span>}
           </div>
 
@@ -593,7 +593,7 @@ export default function GridMergeNode({ id, data, selected }) {
                   <button
                     key={p.label}
                     className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                      rows === p.rows && cols === p.cols ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-[#2a2a2a] border-[#333] text-gray-400 hover:text-white hover:border-[#555]'
+                      rows === p.rows && cols === p.cols ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'
                     }`}
                     onClick={() => { setRows(p.rows); setCols(p.cols); setGridText(`${p.rows}x${p.cols}`) }}
                   >
@@ -601,7 +601,7 @@ export default function GridMergeNode({ id, data, selected }) {
                   </button>
                 ))}
                 <button
-                  className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${showCustom ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-[#2a2a2a] border-[#333] text-gray-400 hover:text-white hover:border-[#555]'}`}
+                  className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${showCustom ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'}`}
                   onClick={() => setShowCustom((v) => !v)}
                 >
                   自定义
@@ -610,26 +610,26 @@ export default function GridMergeNode({ id, data, selected }) {
               {showCustom && (
                 <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
                   <span>行</span>
-                  <input type="number" min={1} max={20} value={rows} onChange={(e) => { const v = clamp(parseInt(e.target.value || '1', 10) || 1, 1, 20); setRows(v); setGridText(`${v}x${cols}`) }} className="w-12 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none" />
+                  <input type="number" min={1} max={20} value={rows} onChange={(e) => { const v = clamp(parseInt(e.target.value || '1', 10) || 1, 1, 20); setRows(v); setGridText(`${v}x${cols}`) }} className="w-12 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none" />
                   <span>×</span>
                   <span>列</span>
-                  <input type="number" min={1} max={20} value={cols} onChange={(e) => { const v = clamp(parseInt(e.target.value || '1', 10) || 1, 1, 20); setCols(v); setGridText(`${rows}x${v}`) }} className="w-12 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none" />
-                  <span className="mx-1 text-[#555]">|</span>
-                  <input type="text" value={gridText} placeholder="1x5" onChange={(e) => setGridText(e.target.value)} onBlur={() => { const r = parseGrid(gridText); if (r) { setRows(r.rows); setCols(r.cols) } }} onKeyDown={(e) => { if (e.key === 'Enter') { const r = parseGrid(gridText); if (r) { setRows(r.rows); setCols(r.cols) } } }} className="flex-1 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none" />
+                  <input type="number" min={1} max={20} value={cols} onChange={(e) => { const v = clamp(parseInt(e.target.value || '1', 10) || 1, 1, 20); setCols(v); setGridText(`${rows}x${v}`) }} className="w-12 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none" />
+                  <span className="mx-1 text-subtle">|</span>
+                  <input type="text" value={gridText} placeholder="1x5" onChange={(e) => setGridText(e.target.value)} onBlur={() => { const r = parseGrid(gridText); if (r) { setRows(r.rows); setCols(r.cols) } }} onKeyDown={(e) => { if (e.key === 'Enter') { const r = parseGrid(gridText); if (r) { setRows(r.rows); setCols(r.cols) } } }} className="flex-1 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none" />
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <input className="flex-1 bg-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 border border-[#333] outline-none" placeholder="分图角标，{num} 引入数字编号，可留空" value={titlePattern} onChange={(e) => setTitlePattern(e.target.value)} />
+                <input className="flex-1 bg-surface-hover text-gray-300 text-xs rounded px-2 py-1 border border-edge outline-none" placeholder="分图角标，{num} 引入数字编号，可留空" value={titlePattern} onChange={(e) => setTitlePattern(e.target.value)} />
               </div>
               <div className="flex items-center gap-2">
-                <select value={autoSize ? 'auto' : cellSize} onChange={(e) => { const v = e.target.value; if (v === 'auto') setAutoSize(true); else { setAutoSize(false); setCellSize(Number(v)) } }} className="bg-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 border border-[#333] outline-none flex-1" title="单格尺寸">
+                <select value={autoSize ? 'auto' : cellSize} onChange={(e) => { const v = e.target.value; if (v === 'auto') setAutoSize(true); else { setAutoSize(false); setCellSize(Number(v)) } }} className="bg-surface-hover text-gray-300 text-xs rounded px-2 py-1 border border-edge outline-none flex-1" title="单格尺寸">
                   <option value="auto">自适应</option>
                   <option value={256}>256px</option>
                   <option value={512}>512px</option>
                   <option value={1024}>1024px</option>
                   <option value={2048}>2048px</option>
                 </select>
-                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} disabled={autoSize} className="bg-[#2a2a2a] text-gray-300 text-xs rounded px-2 py-1 border border-[#333] outline-none flex-1" title="比例" style={{ opacity: autoSize ? 0.5 : 1 }}>
+                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} disabled={autoSize} className="bg-surface-hover text-gray-300 text-xs rounded px-2 py-1 border border-edge outline-none flex-1" title="比例" style={{ opacity: autoSize ? 0.5 : 1 }}>
                   <option value="1:1">1:1</option>
                   <option value="16:9">16:9</option>
                   <option value="4:3">4:3</option>
@@ -645,8 +645,8 @@ export default function GridMergeNode({ id, data, selected }) {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-[10px] text-gray-400">
                 <span>方向</span>
-                <button className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${longDirection === 'vertical' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-[#2a2a2a] border-[#333] text-gray-400'}`} onClick={() => setLongDirection('vertical')}>垂直</button>
-                <button className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${longDirection === 'horizontal' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-[#2a2a2a] border-[#333] text-gray-400'}`} onClick={() => setLongDirection('horizontal')}>水平</button>
+                <button className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${longDirection === 'vertical' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400'}`} onClick={() => setLongDirection('vertical')}>垂直</button>
+                <button className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${longDirection === 'horizontal' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400'}`} onClick={() => setLongDirection('horizontal')}>水平</button>
                 <span className="ml-auto">{longList.length} 张</span>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-gray-400">
@@ -655,9 +655,9 @@ export default function GridMergeNode({ id, data, selected }) {
                   跟随首图
                 </label>
                 <span>{longDirection === 'vertical' ? '宽度' : '高度'}</span>
-                <input type="number" min={64} max={4096} value={longTargetSize} onChange={(e) => setLongTargetSize(clamp(parseInt(e.target.value || '1024', 10) || 1024, 64, 4096))} disabled={longAutoSize} className="w-20 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none disabled:opacity-50" />
+                <input type="number" min={64} max={4096} value={longTargetSize} onChange={(e) => setLongTargetSize(clamp(parseInt(e.target.value || '1024', 10) || 1024, 64, 4096))} disabled={longAutoSize} className="w-20 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none disabled:opacity-50" />
                 <span>间距</span>
-                <input type="number" min={0} max={200} value={longGap} onChange={(e) => setLongGap(clamp(parseInt(e.target.value || '0', 10) || 0, 0, 200))} className="w-14 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none" />
+                <input type="number" min={0} max={200} value={longGap} onChange={(e) => setLongGap(clamp(parseInt(e.target.value || '0', 10) || 0, 0, 200))} className="w-14 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none" />
               </div>
             </div>
           )}
@@ -672,7 +672,7 @@ export default function GridMergeNode({ id, data, selected }) {
             <button
               onClick={handleMerge}
               disabled={mergeMode === 'overlay' ? overlayState.layers.length === 0 : connected.images.length === 0}
-              className={`flex-1 py-1.5 rounded text-xs transition-colors ${(mergeMode === 'overlay' ? overlayState.layers.length > 0 : connected.images.length > 0) ? 'bg-blue-600 text-white hover:bg-blue-500 cursor-pointer' : 'bg-[#333] text-gray-500 cursor-not-allowed'}`}
+              className={`flex-1 py-1.5 rounded text-xs transition-colors ${(mergeMode === 'overlay' ? overlayState.layers.length > 0 : connected.images.length > 0) ? 'bg-blue-600 text-white hover:bg-blue-500 cursor-pointer' : 'bg-surface-hover-strong text-gray-500 cursor-not-allowed'}`}
             >
               开始合成
             </button>

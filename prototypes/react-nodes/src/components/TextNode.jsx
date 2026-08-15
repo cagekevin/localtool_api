@@ -182,7 +182,7 @@ export default function TextNode({ id, data, selected }) {
             用 minHeight，故改用 flex 撑满：父容器已是 flex，textarea 用 flex-1 替代 h-full，
             由 flex 分配高度 → 完整显示多行，超出内容靠 textarea 自身 overflow:auto 滚动查看。 */}
         <div
-          className={`flex flex-col flex-1 min-h-0 p-3 overflow-hidden bg-[#1a1a1a] relative rounded-xl ${editingText ? 'nopan nowheel nodrag' : 'drag-handle cursor-move'}`}
+          className={`flex flex-col flex-1 min-h-0 p-3 overflow-hidden bg-surface relative rounded-xl ${editingText ? 'nopan nowheel nodrag' : 'drag-handle cursor-move'}`}
           onWheel={(e) => e.stopPropagation()}
           onDoubleClick={() => {
             if (!editingText) {
@@ -252,7 +252,7 @@ export default function TextNode({ id, data, selected }) {
                 </div>
               ))}
               {refTexts.map((t, i) => (
-                <div key={t.id || i} className="h-8 px-2 bg-[#2a2a2a] border border-[#444] rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-[#333] hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
+                <div key={t.id || i} className="h-8 px-2 bg-surface-hover border border-edge-muted rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-surface-hover-strong hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
                   <LinkIcon size={10} />
                   <span className="max-w-[60px] truncate">{t.label || '参考文本'}</span>
                 </div>
@@ -274,9 +274,9 @@ export default function TextNode({ id, data, selected }) {
           />
 
           {/* 底部：自动拆分 + 模型 + 预设 + 生成 */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a]">
+          <div className="flex items-center justify-between pt-2 border-t border-edge-faint">
             <div className="flex items-center gap-1.5">
-              <label className="flex items-center gap-1.5 cursor-pointer h-6 px-2 text-[11px] text-gray-400 hover:text-gray-200 select-none bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded transition-colors">
+              <label className="flex items-center gap-1.5 cursor-pointer h-6 px-2 text-[11px] text-gray-400 hover:text-gray-200 select-none bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded transition-colors">
                 <input type="checkbox" checked={autoSplit} onChange={(e) => setAutoSplit(e.target.checked)} className="accent-blue-500 rounded sm:w-3 sm:h-3" />
                 自动拆分
               </label>
@@ -318,7 +318,7 @@ export default function TextNode({ id, data, selected }) {
       <FullscreenModal open={fullscreenText} title="编辑文本内容" onClose={() => setFullscreenText(false)}>
         <textarea
           autoFocus
-          className="flex-1 w-full min-h-0 bg-[#0d0c0c] text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded"
+          className="flex-1 w-full min-h-0 bg-canvas text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded"
           style={{ fontSize: '14px', lineHeight: 1.8, color: '#e5e7eb' }}
           placeholder="输入文本内容..."
           value={text}
@@ -330,7 +330,7 @@ export default function TextNode({ id, data, selected }) {
       <FullscreenModal open={fullscreenPrompt} title="编辑提示词 - 文本" onClose={() => setFullscreenPrompt(false)}>
         <textarea
           autoFocus
-          className="flex-1 w-full min-h-0 bg-[#0d0c0c] text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded"
+          className="flex-1 w-full min-h-0 bg-canvas text-gray-100 outline-none custom-scrollbar resize-none p-4 rounded"
           style={{ fontSize: '14px', lineHeight: 1.8, color: '#e5e7eb' }}
           placeholder="输入提示词..."
           value={prompt}

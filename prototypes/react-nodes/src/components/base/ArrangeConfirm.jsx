@@ -27,20 +27,20 @@ export default function ArrangeConfirm({ snapshot, onRevert, onKeep }) {
   if (!snapshot) return null
 
   return (
-    <div className="absolute bottom-full left-0 mb-4 bg-[#222] border border-[#333] rounded-xl shadow-2xl p-4 w-[240px] text-gray-300 animate-slide-up origin-bottom-left z-popover pointer-events-auto">
+    <div className="absolute bottom-full left-0 mb-4 bg-surface-1 border border-edge rounded-xl shadow-2xl p-4 w-[240px] text-gray-300 animate-slide-up origin-bottom-left z-popover pointer-events-auto">
       <div className="text-sm font-medium mb-4 text-center">是否保留此次整理结果？</div>
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onRevert}
-          className="flex-1 py-1.5 rounded-lg text-sm transition-colors text-gray-400 hover:text-white hover:bg-[#333] border border-[#444]"
+          className="flex-1 py-1.5 rounded-lg text-sm transition-colors text-gray-400 hover:text-white hover:bg-surface-hover-strong border border-edge-muted"
         >
           还原
         </button>
         <button
           type="button"
           onClick={onKeep}
-          className="flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors bg-[#333] text-white hover:bg-[#444] border border-[#555]"
+          className="flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors bg-surface-hover-strong text-white hover:bg-surface-3 border border-edge-strong"
         >
           保留
         </button>

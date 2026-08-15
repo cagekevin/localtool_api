@@ -39,8 +39,8 @@ export default function ModelSection({ p, onUpdate }) {
     }, 0)
   }
   return (
-    <section className="bg-[#1a1a1a] border border-[#222] rounded-xl overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-[#222] flex items-baseline justify-between">
+    <section className="bg-surface border border-edge-subtle rounded-xl overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-edge-subtle flex items-baseline justify-between">
         <h3 className="text-sm text-gray-200">模型清单</h3>
         <p className="text-xs text-gray-500">按能力分类管理可用模型</p>
       </div>
@@ -56,17 +56,17 @@ export default function ModelSection({ p, onUpdate }) {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-400 inline-flex items-center gap-1.5"><Icon size={14} className="text-gray-500" /> {cat.label}（{models.length}）</span>
                   {!readonly && (
-                    <button type="button" onClick={() => onUpdate({ [cat.key]: [...models, { id: '' }] })} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white hover:bg-[#2a2a2a] px-2 py-1 rounded-md transition-colors cursor-pointer border-none bg-transparent">
+                    <button type="button" onClick={() => onUpdate({ [cat.key]: [...models, { id: '' }] })} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white hover:bg-surface-hover px-2 py-1 rounded-md transition-colors cursor-pointer border-none bg-transparent">
                       <Plus size={12} /> 添加
                     </button>
                   )}
                 </div>
                 {models.length === 0 ? (
-                  <div className="text-xs text-gray-600 py-2 px-3 bg-[#0d0c0c] border border-dashed border-[#333] rounded-lg">暂无模型，可点击「拉取模型」自动获取，或点「添加」手动填写</div>
+                  <div className="text-xs text-gray-600 py-2 px-3 bg-canvas border border-dashed border-edge rounded-lg">暂无模型，可点击「拉取模型」自动获取，或点「添加」手动填写</div>
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {models.map((m, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-[#0d0c0c] border border-[#333] rounded-lg px-3 py-2 group/model">
+                      <div key={i} className="flex items-center gap-2 bg-canvas border border-edge rounded-lg px-3 py-2 group/model">
                         <div className="flex-1 min-w-0">
                           {/* 模型名：真正传给上游的值，默认空、可自由填写。回车新增下一行 */}
                           <input

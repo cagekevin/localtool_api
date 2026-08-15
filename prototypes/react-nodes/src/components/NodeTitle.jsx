@@ -43,7 +43,7 @@ export default function NodeTitle({ label, defaultTitle, icon, className = '', f
           }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
-          className="nodrag nowheel nopan w-32 rounded border border-[#444] bg-[#111] px-1.5 py-0.5 text-[11px] text-gray-200 outline-none focus:border-blue-500"
+          className="nodrag nowheel nopan w-32 rounded border border-edge-muted bg-surface-black px-1.5 py-0.5 text-[11px] text-gray-200 outline-none focus:border-blue-500"
           autoFocus
         />
       ) : (

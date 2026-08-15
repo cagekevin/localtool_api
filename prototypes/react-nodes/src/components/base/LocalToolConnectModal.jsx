@@ -22,7 +22,7 @@ export default function LocalToolConnectModal({ isVisible, onClose, onRetry }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-modal">
-      <div className="bg-[#1a1a1a] border border-red-500/50 rounded-xl p-6 max-w-md mx-4 shadow-2xl shadow-red-900/20">
+      <div className="bg-surface border border-red-500/50 rounded-xl p-6 max-w-md mx-4 shadow-2xl shadow-red-900/20">
         {/* 头部：图标 + 标题 */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
@@ -35,7 +35,7 @@ export default function LocalToolConnectModal({ isVisible, onClose, onRetry }) {
         </div>
 
         {/* 步骤说明 */}
-        <div className="bg-[#0d0c0c] rounded-lg p-4 mb-4">
+        <div className="bg-canvas rounded-lg p-4 mb-4">
           <p className="text-sm text-gray-300 mb-3">为了保证系统的完整功能和数据安全，请按照以下步骤操作：</p>
           <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
             <li>

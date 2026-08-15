@@ -72,7 +72,7 @@ export default function GroupNode({ id, data, selected }) {
   if (collapsed) {
     return (
       <div
-        className={`relative flex items-center justify-center bg-[#2a1f24] border border-dashed ${selected ? 'border-[#555]' : 'border-[#444]'} rounded-xl px-4 py-2 shadow-lg min-w-[120px] h-[40px] cursor-pointer hover:bg-[#352a30] hover:border-gray-400 transition-all duration-300`}
+        className={`relative flex items-center justify-center bg-[#2a1f24] border border-dashed ${selected ? 'border-edge-strong' : 'border-edge-muted'} rounded-xl px-4 py-2 shadow-lg min-w-[120px] h-[40px] cursor-pointer hover:bg-[#352a30] hover:border-gray-400 transition-all duration-300`}
         onClick={toggleCollapse}
       >
         <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-gray-500 !border-gray-600 !opacity-0" />
@@ -86,7 +86,7 @@ export default function GroupNode({ id, data, selected }) {
 
   return (
     <div
-      className={`relative w-full h-full rounded-xl transition-all duration-300 ${selected ? 'border border-[#555]' : 'border border-transparent hover:border-white/10'} bg-[#1e171b]/50 hover:bg-[#161214] group`}
+      className={`relative w-full h-full rounded-xl transition-all duration-300 ${selected ? 'border border-edge-strong' : 'border border-transparent hover:border-white/10'} bg-[#1e171b]/50 hover:bg-[#161214] group`}
     >
       <div className="absolute -top-8 left-0 flex items-center px-2 py-1" onDoubleClick={() => setEditing(true)}>
         <button onClick={toggleCollapse} className="mr-1 hover:bg-white/10 rounded p-0.5 transition-colors">
@@ -101,7 +101,7 @@ export default function GroupNode({ id, data, selected }) {
             onChange={(e) => setName(e.target.value)}
             onBlur={commitName}
             onKeyDown={onKeyDown}
-            className="bg-[#2a2a2a] border border-[#444] rounded outline-none text-gray-200 text-sm w-32 focus:border-blue-500 px-1 py-0.5"
+            className="bg-surface-hover border border-edge-muted rounded outline-none text-gray-200 text-sm w-32 focus:border-blue-500 px-1 py-0.5"
           />
         ) : (
           <span className="text-gray-400 group-hover:text-gray-300 text-sm select-none cursor-text transition-colors">{name}</span>

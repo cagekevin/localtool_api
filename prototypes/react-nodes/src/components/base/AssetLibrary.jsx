@@ -49,9 +49,9 @@ function TextAssetCell({ url, name }) {
   }, [url])
   const display = useMemo(() => String(text || name || '').slice(0, 120), [text, name])
   return (
-    <div className="w-full h-full bg-[#161616] flex items-center justify-center px-1.5">
+    <div className="w-full h-full bg-surface-strong flex items-center justify-center px-1.5">
       {display && (
-        <p className="text-[8px] text-[#888] leading-tight m-0 line-clamp-3 break-all text-center">
+        <p className="text-[8px] text-muted leading-tight m-0 line-clamp-3 break-all text-center">
           {display}
         </p>
       )}
@@ -68,11 +68,11 @@ function TextPreview({ url, name }) {
     return () => { alive = false }
   }, [url])
   return (
-    <div className="w-[360px] max-w-[90vw] bg-[#1f1f1f] rounded-xl p-5">
+    <div className="w-[360px] max-w-[90vw] bg-surface-2 rounded-xl p-5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm text-[#ddd] m-0">{name}</span>
+        <span className="text-sm text-primary m-0">{name}</span>
       </div>
-      <pre className="text-xs text-[#aaa] whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar m-0">
+      <pre className="text-xs text-secondary whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar m-0">
         {text || '（加载中...）'}
       </pre>
     </div>
@@ -289,14 +289,14 @@ export default function AssetLibrary() {
         <div className="flex gap-1.5 flex-wrap items-center flex-1">
           {/* 返回上一级（进入子文件夹后可回退） */}
           {folder !== 'migrated' && (
-            <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-[#ccc] hover:bg-[#2a2a2a] cursor-pointer border-none bg-[#1f1f1f]" onClick={back} title="返回上级">
+            <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-body hover:bg-surface-hover cursor-pointer border-none bg-surface-2" onClick={back} title="返回上级">
               <ChevronLeft size={12} /> {folder.split('/').pop()}
             </button>
           )}
           {FOLDER_PILLS.map((f) => (
             <button
               key={f.key}
-              className={`px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer border-none ${folder === f.folder ? 'bg-white text-[#141414] font-medium' : 'bg-[#1f1f1f] text-[#999] hover:text-[#ddd]'}`}
+              className={`px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer border-none ${folder === f.folder ? 'bg-white text-[#141414] font-medium' : 'bg-surface-2 text-muted hover:text-primary'}`}
               onClick={() => setFolder(f.folder)}
             >
               {f.label}
@@ -305,18 +305,18 @@ export default function AssetLibrary() {
         </div>
         <div className="relative flex-shrink-0">
           <button
-            className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer border-none ${menuOpen ? 'bg-[#2a2a2a] text-white' : 'text-[#666] hover:text-[#ccc] hover:bg-[#242424]'}`}
+            className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer border-none ${menuOpen ? 'bg-surface-hover text-white' : 'text-faint hover:text-body hover:bg-surface-subtle'}`}
             onClick={() => setMenuOpen((v) => !v)}
             title="更多操作"
           >
             <MoreVertical size={15} />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-[#1c1c1c] border border-[#333] rounded-lg shadow-xl p-1 z-30 w-40 nowheel nopan nodrag">
-              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left" onClick={() => { setMenuOpen(false); handleOpenLocal() }} title="打开本地存储目录">
+            <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-edge rounded-lg shadow-xl p-1 z-30 w-40 nowheel nopan nodrag">
+              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-body hover:bg-surface-hover-2 hover:text-white transition-colors cursor-pointer border-none text-left" onClick={() => { setMenuOpen(false); handleOpenLocal() }} title="打开本地存储目录">
                 <FolderOpen size={13} /> 打开本地目录
               </button>
-              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left" onClick={() => { setMenuOpen(false); if (!connected) return showToast('请先连接本地引擎', { type: 'warning' }); setCreating(true); setNewFolderName('新建文件夹') }} title="新建文件夹">
+              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-body hover:bg-surface-hover-2 hover:text-white transition-colors cursor-pointer border-none text-left" onClick={() => { setMenuOpen(false); if (!connected) return showToast('请先连接本地引擎', { type: 'warning' }); setCreating(true); setNewFolderName('新建文件夹') }} title="新建文件夹">
                 <FolderPlus size={13} /> 新建文件夹
               </button>
             </div>
@@ -327,7 +327,7 @@ export default function AssetLibrary() {
       {/* 新建文件夹输入卡片 */}
       {creating && (
         <div className="px-2.5 pt-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 bg-[#151414] border border-orange-500/40 rounded-lg p-1.5">
+          <div className="flex items-center gap-1.5 bg-surface-deep border border-orange-500/40 rounded-lg p-1.5">
             <input
               autoFocus value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
@@ -344,9 +344,9 @@ export default function AssetLibrary() {
                 }
                 setCreating(false)
               }}
-              className="flex-1 h-7 bg-[#1e1e1e] border border-orange-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-orange-500 box-border"
+              className="flex-1 h-7 bg-surface-faint border border-orange-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-orange-500 box-border"
             />
-            <span className="text-[10px] text-[#777] whitespace-nowrap">回车确认</span>
+            <span className="text-[10px] text-faint whitespace-nowrap">回车确认</span>
           </div>
         </div>
       )}
@@ -354,7 +354,7 @@ export default function AssetLibrary() {
       {/* 重命名输入条 */}
       {renameTarget && (
         <div className="px-2.5 pt-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 bg-[#151414] border border-blue-500/40 rounded-lg p-1.5">
+          <div className="flex items-center gap-1.5 bg-surface-deep border border-blue-500/40 rounded-lg p-1.5">
             <input
               autoFocus value={renameName}
               onChange={(e) => setRenameName(e.target.value)}
@@ -363,10 +363,10 @@ export default function AssetLibrary() {
                 else if (e.key === 'Escape') { setRenameTarget(null); setRenameName('') }
               }}
               onBlur={handleRename}
-              className="flex-1 h-7 bg-[#1e1e1e] border border-blue-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-blue-500 box-border"
+              className="flex-1 h-7 bg-surface-faint border border-blue-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-blue-500 box-border"
               placeholder="输入新文件名"
             />
-            <span className="text-[10px] text-[#777] whitespace-nowrap">回车确认</span>
+            <span className="text-[10px] text-faint whitespace-nowrap">回车确认</span>
           </div>
         </div>
       )}
@@ -374,7 +374,7 @@ export default function AssetLibrary() {
       {/* 上传区 */}
       <div className="px-2.5 pt-2 flex-shrink-0">
         <button
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-[#333] text-[12px] text-[#888] hover:border-[#555] hover:text-[#ccc] transition-colors cursor-pointer bg-[#161616]/50"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-edge text-[12px] text-muted hover:border-edge-strong hover:text-body transition-colors cursor-pointer bg-surface-strong/50"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload size={14} /> 上传素材 / 拖入文件
@@ -385,14 +385,14 @@ export default function AssetLibrary() {
       {/* 素材网格（无限滚动） */}
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto custom-scrollbar px-2.5 pb-2.5 mt-2">
         {!connected ? (
-          <div className="h-full flex items-center justify-center text-[#666] text-sm">请先连接本地引擎</div>
+          <div className="h-full flex items-center justify-center text-faint text-sm">请先连接本地引擎</div>
         ) : loading && items.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-[#666] text-sm">加载中...</div>
+          <div className="h-full flex items-center justify-center text-faint text-sm">加载中...</div>
         ) : items.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-[#666] text-sm gap-2">
+          <div className="h-full flex flex-col items-center justify-center text-faint text-sm gap-2">
             <div className="text-4xl opacity-40">📦</div>
             <p className="m-0">该目录暂无素材</p>
-            <p className="text-xs text-[#555] m-0">上传文件后会落盘到本地并出现在这里</p>
+            <p className="text-xs text-subtle m-0">上传文件后会落盘到本地并出现在这里</p>
           </div>
         ) : (
           <>
@@ -407,27 +407,27 @@ export default function AssetLibrary() {
                     key={a.id}
                     draggable={!isFolder}
                     onDragStart={(e) => { if (!isFolder) onDragStart(e, a) }}
-                    className={`group relative aspect-square bg-[#1a1a1a] rounded-xl overflow-hidden transition-colors ${isFolder ? 'border border-[#333] cursor-pointer hover:border-[#4a4a4a]' : 'border border-[#242424] cursor-grab active:cursor-grabbing hover:border-[#3a3a3a]'}`}
+                    className={`group relative aspect-square bg-surface rounded-xl overflow-hidden transition-colors ${isFolder ? 'border border-edge cursor-pointer hover:border-[#4a4a4a]' : 'border border-[#242424] cursor-grab active:cursor-grabbing hover:border-edge-raised'}`}
                     onClick={() => {
                       if (isFolder) setFolder(currentFolder === 'migrated' ? `migrated/${a.name}` : `${currentFolder}/${a.name}`)
                       else setPreview(a)
                     }}
                   >
                     {isFolder ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-[#888]">
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted">
                         <FolderOpen size={30} strokeWidth={1.2} />
                         <span className="text-[10px] font-medium text-center px-1 break-all leading-tight m-0">{a.name}</span>
                       </div>
                     ) : a.type === 'text' ? (
                       <TextAssetCell url={a.url} name={a.name} />
                     ) : audio ? (
-                      <div className="w-full h-full bg-[#111] flex flex-col items-center justify-center gap-1.5 p-2">
+                      <div className="w-full h-full bg-surface-black flex flex-col items-center justify-center gap-1.5 p-2">
                         <Music size={22} className="text-green-400" />
-                        <span className="text-[9px] text-[#888] text-center break-all leading-tight m-0">{a.name}</span>
+                        <span className="text-[9px] text-muted text-center break-all leading-tight m-0">{a.name}</span>
                       </div>
                     ) : a.type === 'video' || (a.type && a.type.startsWith('video')) ? (
                       <div className="w-full h-full flex items-center justify-center relative">
-                        {a.url ? <video src={a.url} className="w-full h-full object-cover" muted /> : <Play size={20} className="text-[#666]" />}
+                        {a.url ? <video src={a.url} className="w-full h-full object-cover" muted /> : <Play size={20} className="text-faint" />}
                         <span className="absolute inset-0 flex items-center justify-center">
                           <span className="w-7 h-7 rounded-full bg-black/45 flex items-center justify-center">
                             <Play size={12} className="text-white ml-0.5" />
@@ -436,7 +436,7 @@ export default function AssetLibrary() {
                       </div>
                     ) : (
                       <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: a.url ? `url(${a.url})` : undefined }}>
-                        {!a.url && <div className="w-full h-full flex items-center justify-center text-[#555]"><FileText size={18} /></div>}
+                        {!a.url && <div className="w-full h-full flex items-center justify-center text-subtle"><FileText size={18} /></div>}
                       </div>
                     )}
 
@@ -475,9 +475,9 @@ export default function AssetLibrary() {
             </div>
 
             {/* 底部加载提示 */}
-            {loading && <div className="py-3 text-center text-[11px] text-[#666]">加载中...</div>}
+            {loading && <div className="py-3 text-center text-[11px] text-faint">加载中...</div>}
             {!loading && !hasMore && items.length > 0 && (
-              <div className="py-3 text-center text-[11px] text-[#555]">已全部加载（共 {total} 个）</div>
+              <div className="py-3 text-center text-[11px] text-subtle">已全部加载（共 {total} 个）</div>
             )}
           </>
         )}
@@ -499,16 +499,16 @@ export default function AssetLibrary() {
             ) : preview.type === 'video' || (preview.type && preview.type.startsWith('video')) ? (
               <video src={preview.url} controls className="max-h-[70vh] max-w-full rounded-lg" />
             ) : isAudio(preview.type, preview.url) ? (
-              <div className="w-[300px] bg-[#1f1f1f] rounded-xl p-6 flex flex-col items-center gap-3">
+              <div className="w-[300px] bg-surface-2 rounded-xl p-6 flex flex-col items-center gap-3">
                 <Music size={40} className="text-green-400" />
-                <p className="text-xs text-[#aaa] m-0">{preview.name}</p>
+                <p className="text-xs text-secondary m-0">{preview.name}</p>
                 <audio src={preview.url} controls className="w-full" />
               </div>
             ) : (
               <img src={preview.url} alt={preview.name} className="max-h-[75vh] max-w-full rounded-lg object-contain" />
             )}
-            <p className="text-xs text-[#999] m-0">{preview.name} · {preview.folder}</p>
-            <button className="px-4 py-1.5 rounded-lg bg-[#2a2a2a] text-[#ccc] hover:bg-[#333] text-xs cursor-pointer border-none" onClick={() => setPreview(null)}>关闭</button>
+            <p className="text-xs text-muted m-0">{preview.name} · {preview.folder}</p>
+            <button className="px-4 py-1.5 rounded-lg bg-surface-hover text-body hover:bg-surface-hover-strong text-xs cursor-pointer border-none" onClick={() => setPreview(null)}>关闭</button>
           </div>
         </div>
       )}

@@ -575,26 +575,26 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
           type="number" min={64} max={4096}
           value={canvasWidth}
           onChange={(e) => onChange({ ...state, canvasWidth: Math.max(64, Math.min(4096, parseInt(e.target.value || '0', 10) || canvasWidth)) })}
-          className="w-16 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none"
+          className="w-16 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none"
         />
         <span>×</span>
         <input
           type="number" min={64} max={4096}
           value={canvasHeight}
           onChange={(e) => onChange({ ...state, canvasHeight: Math.max(64, Math.min(4096, parseInt(e.target.value || '0', 10) || canvasHeight)) })}
-          className="w-16 bg-[#2a2a2a] text-gray-200 rounded px-1.5 py-0.5 border border-[#333] outline-none"
+          className="w-16 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none"
         />
       </div>
 
       {/* 画布（只显示合成预览图 + 透明图层选择框，对齐官方 Component568） */}
       <div
-        className={fullscreen ? 'fixed inset-0 z-modal bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6 nodrag nowheel' : 'flex justify-center bg-[#0d0d0d] rounded border border-[#333] p-2 nodrag'}
+        className={fullscreen ? 'fixed inset-0 z-modal bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6 nodrag nowheel' : 'flex justify-center bg-[#0d0d0d] rounded border border-edge p-2 nodrag'}
         onClick={fullscreen ? (e) => e.stopPropagation() : undefined}
         onWheel={fullscreen ? (e) => e.stopPropagation() : undefined}
       >
         {fullscreen && (
           <button
-            className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded border bg-[#2a2a2a] border-[#444] text-gray-200 hover:text-white hover:border-[#666] text-xs cursor-pointer"
+            className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded border bg-surface-hover border-edge-muted text-gray-200 hover:text-white hover:border-[#666] text-xs cursor-pointer"
             onClick={() => setFullscreen(false)}
             title="退出全屏 (Esc)"
           >
@@ -694,21 +694,21 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
 
       {/* 涂抹工具栏 */}
       {paintLayerId && (
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-300 bg-[#1c1c1c] border border-orange-500/40 rounded p-1.5 nodrag">
-          <button className={`px-1.5 py-0.5 rounded border cursor-pointer ${brushMode === 'erase' ? 'bg-orange-500/15 border-orange-500/60 text-orange-300' : 'bg-[#2a2a2a] border-[#333] text-gray-300'}`} onClick={() => setBrushMode('erase')}>擦除</button>
-          <button className={`px-1.5 py-0.5 rounded border cursor-pointer ${brushMode === 'restore' ? 'bg-orange-500/15 border-orange-500/60 text-orange-300' : 'bg-[#2a2a2a] border-[#333] text-gray-300'}`} onClick={() => setBrushMode('restore')}>恢复</button>
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-300 bg-surface-raised border border-orange-500/40 rounded p-1.5 nodrag">
+          <button className={`px-1.5 py-0.5 rounded border cursor-pointer ${brushMode === 'erase' ? 'bg-orange-500/15 border-orange-500/60 text-orange-300' : 'bg-surface-hover border-edge text-gray-300'}`} onClick={() => setBrushMode('erase')}>擦除</button>
+          <button className={`px-1.5 py-0.5 rounded border cursor-pointer ${brushMode === 'restore' ? 'bg-orange-500/15 border-orange-500/60 text-orange-300' : 'bg-surface-hover border-edge text-gray-300'}`} onClick={() => setBrushMode('restore')}>恢复</button>
           <span className="ml-1">笔刷</span>
           <input type="range" min={4} max={200} value={brushSize} onChange={(e) => setBrushSize(parseInt(e.target.value, 10))} className="w-20 accent-orange-400" />
           <span className="text-gray-400">{brushSize}px</span>
-          <button className="ml-auto px-1.5 py-0.5 rounded border bg-[#2a2a2a] border-[#333] text-gray-300 hover:text-white cursor-pointer" onClick={() => setFullscreen(true)} title="全屏涂抹"><Maximize size={11} /></button>
-          <button className="px-1.5 py-0.5 rounded border bg-[#2a2a2a] border-[#333] text-gray-300 hover:text-white cursor-pointer" onClick={undoPaint}>撤销</button>
-          <button className="px-1.5 py-0.5 rounded border bg-[#2a2a2a] border-[#333] text-gray-300 hover:text-white cursor-pointer" onClick={() => setPaintLayerId(null)}>取消</button>
+          <button className="ml-auto px-1.5 py-0.5 rounded border bg-surface-hover border-edge text-gray-300 hover:text-white cursor-pointer" onClick={() => setFullscreen(true)} title="全屏涂抹"><Maximize size={11} /></button>
+          <button className="px-1.5 py-0.5 rounded border bg-surface-hover border-edge text-gray-300 hover:text-white cursor-pointer" onClick={undoPaint}>撤销</button>
+          <button className="px-1.5 py-0.5 rounded border bg-surface-hover border-edge text-gray-300 hover:text-white cursor-pointer" onClick={() => setPaintLayerId(null)}>取消</button>
           <button className="px-1.5 py-0.5 rounded border bg-orange-500/15 border-orange-500/60 text-orange-200 cursor-pointer" onClick={finishPaint}>完成</button>
         </div>
       )}
 
       {/* 图层列表 */}
-      <div className="bg-[#1c1c1c] border border-[#333] rounded p-1.5 max-h-[180px] overflow-y-auto nodrag">
+      <div className="bg-surface-raised border border-edge rounded p-1.5 max-h-[180px] overflow-y-auto nodrag">
         <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-1">
           <Box size={11} />
           <span>图层（{layers.length}）</span>
@@ -807,16 +807,16 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
           <input type="range" min={0} max={100} value={Math.round(selectedLayer.opacity * 100)} onChange={(e) => updateLayer(selectedLayer.id, { opacity: parseInt(e.target.value, 10) / 100 })} className="w-20 accent-blue-400" />
           <span>{Math.round(selectedLayer.opacity * 100)}%</span>
           <span className="ml-2">缩放</span>
-          <input type="number" min={0.05} max={10} step={0.05} value={Number(selectedLayer.scale.toFixed(2))} onChange={(e) => updateLayer(selectedLayer.id, { scale: Math.max(0.05, parseFloat(e.target.value) || selectedLayer.scale) })} className="w-14 bg-[#2a2a2a] text-gray-200 rounded px-1 py-0.5 border border-[#333] outline-none" />
+          <input type="number" min={0.05} max={10} step={0.05} value={Number(selectedLayer.scale.toFixed(2))} onChange={(e) => updateLayer(selectedLayer.id, { scale: Math.max(0.05, parseFloat(e.target.value) || selectedLayer.scale) })} className="w-14 bg-surface-hover text-gray-200 rounded px-1 py-0.5 border border-edge outline-none" />
           <span className="ml-2">旋转</span>
-          <input type="number" min={-360} max={360} step={1} value={Math.round(selectedLayer.rotation)} onChange={(e) => updateLayer(selectedLayer.id, { rotation: parseFloat(e.target.value) || 0 })} className="w-14 bg-[#2a2a2a] text-gray-200 rounded px-1 py-0.5 border border-[#333] outline-none" />
+          <input type="number" min={-360} max={360} step={1} value={Math.round(selectedLayer.rotation)} onChange={(e) => updateLayer(selectedLayer.id, { rotation: parseFloat(e.target.value) || 0 })} className="w-14 bg-surface-hover text-gray-200 rounded px-1 py-0.5 border border-edge outline-none" />
         </div>
       )}
 
       {/* 右键菜单 */}
       {menu && menuLayer && createPortal(
         <div
-          className="fixed z-modal-raise min-w-[140px] bg-[#1c1c1c] border border-[#333] rounded-md shadow-2xl p-1"
+          className="fixed z-modal-raise min-w-[140px] bg-surface-raised border border-edge rounded-md shadow-2xl p-1"
           style={{ top: menu.y, left: menu.x }}
           onClick={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}
@@ -825,7 +825,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
           <MenuItem icon={<ChevronUp size={12} />} label="上移一层" disabled={isTop} onClick={() => reorderLayer(menuLayer.id, 'up')} />
           <MenuItem icon={<ChevronDown size={12} />} label="下移一层" disabled={isBottom} onClick={() => reorderLayer(menuLayer.id, 'down')} />
           <MenuItem icon={<ChevronsDown size={12} />} label="移到底部" disabled={isBottom} onClick={() => reorderLayer(menuLayer.id, 'bottom')} />
-          <div className="h-px my-1 bg-[#333]" />
+          <div className="h-px my-1 bg-surface-hover-strong" />
           <MenuItem icon={<Brush size={12} />} label="涂抹擦除" onClick={() => { setPaintLayerId(menuLayer.id); setSelectedId(menuLayer.id) }} />
           <MenuItem icon={<Trash2 size={12} />} label="删除图层" onClick={() => removeLayer(menuLayer.id)} danger />
         </div>,

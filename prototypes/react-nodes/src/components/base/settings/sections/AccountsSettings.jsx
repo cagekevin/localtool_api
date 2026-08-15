@@ -30,7 +30,7 @@ function EnvMenu({ env, isConfirming, onEdit, onCopy, onClearAll, onDelete }) {
     <div className="relative group/menu" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        className="text-gray-400 hover:text-white p-1 rounded hover:bg-[#333] cursor-pointer border-none bg-transparent"
+        className="text-gray-400 hover:text-white p-1 rounded hover:bg-surface-hover-strong cursor-pointer border-none bg-transparent"
         aria-label="环境菜单"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -40,21 +40,21 @@ function EnvMenu({ env, isConfirming, onEdit, onCopy, onClearAll, onDelete }) {
         </svg>
       </button>
       <div className="absolute right-0 top-full pt-1 hidden group-hover/menu:block z-50">
-        <div className="bg-[#252525] border border-[#333] rounded-md shadow-xl py-1 w-24">
-          <button type="button" onClick={onEdit} className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-[#333] hover:text-white cursor-pointer border-none bg-transparent">
+        <div className="bg-surface-active border border-edge rounded-md shadow-xl py-1 w-24">
+          <button type="button" onClick={onEdit} className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-surface-hover-strong hover:text-white cursor-pointer border-none bg-transparent">
             修改
           </button>
-          <button type="button" onClick={onCopy} className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-[#333] hover:text-white cursor-pointer border-none bg-transparent">
+          <button type="button" onClick={onCopy} className="w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-surface-hover-strong hover:text-white cursor-pointer border-none bg-transparent">
             复制 Cookie
           </button>
-          <button type="button" onClick={onClearAll} className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-[#333] hover:text-red-300 cursor-pointer border-none bg-transparent">
+          <button type="button" onClick={onClearAll} className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-surface-hover-strong hover:text-red-300 cursor-pointer border-none bg-transparent">
             清除全部 Cookies
           </button>
-          <div className="border-t border-[#333] my-1" />
+          <div className="border-t border-edge my-1" />
           <button
             type="button"
             onClick={onDelete}
-            className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-[#333] hover:text-red-300 cursor-pointer border-none bg-transparent"
+            className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-surface-hover-strong hover:text-red-300 cursor-pointer border-none bg-transparent"
           >
             {isConfirming ? '确认删除?' : '删除'}
           </button>
@@ -132,11 +132,11 @@ export default function AccountsSettings() {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#0d0c0c] overflow-hidden z-float">
+    <div className="absolute inset-0 flex flex-col bg-canvas overflow-hidden z-float">
       {/* ── 新建/修改环境表单（复刻官方 un && Component828）── */}
       {formOpen && (
-        <div className="p-3 bg-[#151414] border-b border-[#333] shadow-sm">
-          <div className="bg-[#252525] p-3 rounded-lg border border-[#333] animate-fade-in">
+        <div className="p-3 bg-surface-deep border-b border-edge shadow-sm">
+          <div className="bg-surface-active p-3 rounded-lg border border-edge animate-fade-in">
             <div className="flex justify-between items-center mb-2">
               <div className="text-sm font-bold text-gray-200">{formEditId ? '修改环境' : '手动添加环境'}</div>
               <button type="button" onClick={closeForm} className="text-gray-500 hover:text-gray-300 cursor-pointer border-none bg-transparent">
@@ -150,7 +150,7 @@ export default function AccountsSettings() {
                 onChange={(e) => setFormName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                 placeholder="输入环境名称 (如:即梦小号)"
-                className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                className="flex-1 bg-surface border border-edge rounded px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
               />
               <button
                 type="button"
@@ -166,7 +166,7 @@ export default function AccountsSettings() {
                 value={formCookies}
                 onChange={(e) => setFormCookies(e.target.value)}
                 placeholder="[可选] 手动粘贴 Cookie (JSON 或 key=value; 格式)"
-                className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500 h-16 resize-none font-mono nowheel nopan"
+                className="w-full bg-surface border border-edge rounded px-3 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500 h-16 resize-none font-mono nowheel nopan"
               />
             </div>
             <div className="text-[10px] text-gray-500 mt-2">* 默认自动抓取当前标签页 Cookie。若填写上方 Cookie 则优先使用。</div>
@@ -182,7 +182,7 @@ export default function AccountsSettings() {
             href="https://www.bilibili.com/video/BV1nWdbBREXv/?share_source=copy_web&vd_source=cebaf375056cef0735636bdd79543af1"
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-gray-500 hover:text-gray-300 underline flex items-center gap-1 transition-colors bg-[#222] px-3 py-1.5 rounded-full hover:bg-[#333]"
+            className="text-xs text-gray-500 hover:text-gray-300 underline flex items-center gap-1 transition-colors bg-surface-1 px-3 py-1.5 rounded-full hover:bg-surface-hover-strong"
           >
             📺 如何一个网站登录多个账号？(视频教程)
           </a>
@@ -219,14 +219,14 @@ export default function AccountsSettings() {
                 onDrop={(ev) => handleDrop(ev, idx)}
                 onClick={() => activateEnv(e.id)}
                 title={e.siteName}
-                className={`relative bg-[#151414] rounded-xl border transition-all cursor-grab active:cursor-grabbing group hover:bg-[#252525] flex flex-col items-center justify-center p-3 h-32
-                  ${isActive ? 'border-blue-500 shadow-blue-500/10 shadow-md ring-1 ring-blue-500/50 bg-blue-900/10' : 'border-[#333] hover:border-gray-500'}
+                className={`relative bg-surface-deep rounded-xl border transition-all cursor-grab active:cursor-grabbing group hover:bg-surface-active flex flex-col items-center justify-center p-3 h-32
+                  ${isActive ? 'border-blue-500 shadow-blue-500/10 shadow-md ring-1 ring-blue-500/50 bg-blue-900/10' : 'border-edge hover:border-gray-500'}
                   ${isDragOver ? 'border-dashed border-[3px] border-blue-400 opacity-80 scale-105 z-10' : ''}
                 `}
               >
                 <img
                   src={e.avatar}
-                  className="w-12 h-12 rounded-full bg-[#0d0c0c] object-contain p-0.5 border border-[#333] mb-3 pointer-events-none"
+                  className="w-12 h-12 rounded-full bg-canvas object-contain p-0.5 border border-edge mb-3 pointer-events-none"
                   draggable={false}
                   alt={e.name}
                   onError={(t) => { t.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${e.name}` }}

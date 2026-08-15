@@ -50,10 +50,10 @@ export default function ModelSelect({
 
   return (
     <div className="relative nodrag flex items-center" ref={ref}>
-      {showDivider && <div className="w-[1px] h-3 bg-[#444] flex-shrink-0 mr-1.5" />}
+      {showDivider && <div className="w-[1px] h-3 bg-surface-3 flex-shrink-0 mr-1.5" />}
       <button
         type="button"
-        className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-[#2a2a2a] border border-transparent hover:border-[#333] rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
+        className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
         title={value ? `${value}（${selectedBadge.label}）` : '选择模型'}
       >
@@ -65,7 +65,7 @@ export default function ModelSelect({
 
       {open && (
         <div
-          className={`absolute ${popupTo === 'down' ? 'top-full left-0 mt-1' : 'bottom-full left-0 mb-1'} min-w-[17rem] w-max max-w-[29rem] bg-[#222] border border-[#333] rounded-lg shadow-xl p-2 z-50 block max-h-60 overflow-y-auto custom-scrollbar nowheel nopan nodrag`}
+          className={`absolute ${popupTo === 'down' ? 'top-full left-0 mt-1' : 'bottom-full left-0 mb-1'} min-w-[17rem] w-max max-w-[29rem] bg-surface-1 border border-edge rounded-lg shadow-xl p-2 z-50 block max-h-60 overflow-y-auto custom-scrollbar nowheel nopan nodrag`}
           onClick={(e) => e.stopPropagation()}
         >
           {models.map((m) => {
@@ -76,7 +76,7 @@ export default function ModelSelect({
               <div
                 key={m.id}
                 role="button"
-                className={`flex items-center gap-1.5 mb-1 last:mb-0 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors cursor-pointer ${selected ? 'bg-[#333] text-white' : 'text-gray-400 hover:bg-[#2a2a2a] hover:text-gray-200'}`}
+                className={`flex items-center gap-1.5 mb-1 last:mb-0 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors cursor-pointer ${selected ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`}
                 onMouseDown={(e) => { e.preventDefault(); onChange(m.id); setOpen(false) }}
               >
                 <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${itemBadge.className}`}>

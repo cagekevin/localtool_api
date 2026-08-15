@@ -30,7 +30,7 @@ export default function ApiSettings() {
   return (
     <div className="flex flex-col gap-6">
       {/* 顶部操作栏 */}
-      <div className="bg-[#1a1a1a] border border-[#222] rounded-xl px-5 py-4 flex items-center justify-between">
+      <div className="bg-surface border border-edge-subtle rounded-xl px-5 py-4 flex items-center justify-between">
         <div>
           <h2 className="text-base text-gray-100 flex items-center gap-2">
             <Server size={18} className="text-gray-500" /> 第三方 API 配置
@@ -54,16 +54,16 @@ export default function ApiSettings() {
       <div className="flex gap-6 items-start">
         {/* 左侧：供应商列表 */}
         <aside className="w-72 shrink-0 flex flex-col gap-3">
-          <div className="bg-[#1a1a1a] border border-[#222] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#222] flex items-center justify-between">
+          <div className="bg-surface border border-edge-subtle rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-edge-subtle flex items-center justify-between">
               <span className="text-sm text-gray-200">供应商</span>
-              <span className="text-xs text-gray-500 bg-[#222] px-2 py-0.5 rounded-full">{providers.length}</span>
+              <span className="text-xs text-gray-500 bg-surface-1 px-2 py-0.5 rounded-full">{providers.length}</span>
             </div>
             <div className="p-2 space-y-1">
               {loading ? (
                 <div className="text-center text-xs text-gray-500 py-6">加载中…</div>
               ) : providers.length === 0 ? (
-                <div className="text-center text-xs text-gray-500 py-6 border border-dashed border-[#333] rounded-lg">暂无供应商</div>
+                <div className="text-center text-xs text-gray-500 py-6 border border-dashed border-edge rounded-lg">暂无供应商</div>
               ) : (
                 providers.map((p) => (
                   <ProviderListItem
@@ -80,7 +80,7 @@ export default function ApiSettings() {
           <button
             type="button"
             onClick={add}
-            className="w-full py-2.5 bg-[#222] text-gray-400 rounded-lg hover:bg-[#2a2a2a] hover:text-gray-200 transition-colors text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer border-none"
+            className="w-full py-2.5 bg-surface-1 text-gray-400 rounded-lg hover:bg-surface-hover hover:text-gray-200 transition-colors text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer border-none"
           >
             <Plus size={14} /> 添加供应商
           </button>
@@ -89,16 +89,16 @@ export default function ApiSettings() {
         {/* 右侧：编辑面板 */}
         <main className="flex-1 min-w-0">
           {!selected ? (
-            <div className="bg-[#1a1a1a] border border-dashed border-[#333] rounded-xl py-16 text-center text-sm text-gray-500">请选择或添加一个供应商进行配置</div>
+            <div className="bg-surface border border-dashed border-edge rounded-xl py-16 text-center text-sm text-gray-500">请选择或添加一个供应商进行配置</div>
           ) : (
             <div className="flex flex-col gap-4">
               {/* 当前供应商 header */}
-              <div className="bg-[#1a1a1a] border border-[#222] rounded-xl px-5 py-4 flex items-center gap-3">
+              <div className="bg-surface border border-edge-subtle rounded-xl px-5 py-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-base text-gray-100 truncate">{selected.name || '未命名供应商'}</h3>
                     {selected.isPrimary && <Star size={14} className="text-gray-400 fill-gray-400" />}
-                    {selected.readonly && <span className="text-[10px] text-gray-500 bg-[#222] px-2 py-0.5 rounded-full">内置</span>}
+                    {selected.readonly && <span className="text-[10px] text-gray-500 bg-surface-1 px-2 py-0.5 rounded-full">内置</span>}
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{selected.base_url || '未设置请求地址'}</p>
                 </div>
@@ -135,7 +135,7 @@ function ProviderListItem({ p, active, onSelect, onRemove }) {
   const readonly = !!p.readonly
   return (
     <div
-      className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors border ${active ? 'bg-[#252525] border-[#333]' : 'border-transparent hover:bg-[#222]'}`}
+      className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors border ${active ? 'bg-surface-active border-edge' : 'border-transparent hover:bg-surface-1'}`}
       onClick={onSelect}
     >
       <span className={`flex-1 truncate text-sm ${active ? 'text-white' : 'text-gray-300'}`}>{p.name || p.id}</span>

@@ -391,7 +391,7 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
   const toolBtn = (t, icon, title, active) => (
     <button
       type="button"
-      className={`p-2 rounded transition-colors ${active ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white hover:bg-[#333]'}`}
+      className={`p-2 rounded transition-colors ${active ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white hover:bg-surface-hover-strong'}`}
       onClick={() => { setTool(t); if (t === 'crop') setCrop(undefined) }}
       title={title}
     >
@@ -400,13 +400,13 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
   )
 
   return createPortal(
-    <div className="fixed inset-0 z-ceiling flex flex-col bg-[#0d0c0c] select-none">
+    <div className="fixed inset-0 z-ceiling flex flex-col bg-canvas select-none">
       {/* 顶部工具栏（复刻 _Component129:444-595） */}
-      <div className="flex items-center justify-between p-3 bg-[#1c1c1c] border-b border-[#333]">
+      <div className="flex items-center justify-between p-3 bg-surface-raised border-b border-edge">
         <div className="flex items-center gap-2">
           <span className="text-white font-medium mr-4">图片编辑</span>
           {/* 工具组 */}
-          <div className="flex items-center bg-[#2a2a2a] rounded-lg p-1">
+          <div className="flex items-center bg-surface-hover rounded-lg p-1">
             {toolBtn('pencil', <Pencil size={16} />, '画笔', tool === 'pencil')}
             {toolBtn('eraser', <Eraser size={16} />, '橡皮擦', tool === 'eraser')}
             {toolBtn('text', <Type size={16} />, '文字', tool === 'text')}
@@ -418,16 +418,16 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
             {toolBtn('eyedropper', <Pipette size={16} />, '吸管取色', tool === 'eyedropper')}
             {toolBtn('crop', <Crop size={16} />, '裁剪', tool === 'crop')}
           </div>
-          <div className="h-6 w-[1px] bg-[#444] mx-2" />
+          <div className="h-6 w-[1px] bg-surface-3 mx-2" />
           {/* 颜色 + 粗细 */}
           <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-none p-0" />
           <input type="range" min="1" max="20" value={lineWidth} onChange={(e) => setLineWidth(parseInt(e.target.value))} className="w-24 accent-blue-500 ml-2" title={`粗细: ${lineWidth}px`} />
-          <div className="h-6 w-[1px] bg-[#444] mx-2" />
+          <div className="h-6 w-[1px] bg-surface-3 mx-2" />
           {/* 撤销 + 清空 */}
-          <button type="button" onClick={undo} disabled={history.length <= 1} className={`p-2 rounded text-gray-400 hover:text-white hover:bg-[#333] ${history.length <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`} title="撤销">
+          <button type="button" onClick={undo} disabled={history.length <= 1} className={`p-2 rounded text-gray-400 hover:text-white hover:bg-surface-hover-strong ${history.length <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`} title="撤销">
             <Undo2 size={16} />
           </button>
-          <button type="button" onClick={clearAll} className="p-2 rounded text-gray-400 hover:text-red-400 hover:bg-[#333]" title="清空涂鸦">
+          <button type="button" onClick={clearAll} className="p-2 rounded text-gray-400 hover:text-red-400 hover:bg-surface-hover-strong" title="清空涂鸦">
             <Trash2 size={16} />
           </button>
         </div>
@@ -446,7 +446,7 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
                     setCrop(centerCrop(makeAspectCrop({ unit: '%', width: 80 }, ratio || 16 / 9, imgSize.w, imgSize.h), imgSize.w, imgSize.h))
                   }
                 }}
-                className="bg-[#2a2a2a] text-xs text-gray-200 px-2 py-1.5 rounded border border-[#444] focus:outline-none"
+                className="bg-surface-hover text-xs text-gray-200 px-2 py-1.5 rounded border border-edge-muted focus:outline-none"
               >
                 {CROP_RATIOS.map((r) => (
                   <option key={r.label} value={r.value ?? 'free'}>{r.label}</option>
@@ -457,7 +457,7 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
               </button>
             </React.Fragment>
           )}
-          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg text-gray-300 hover:bg-[#333] transition-colors flex items-center gap-1 text-sm">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg text-gray-300 hover:bg-surface-hover-strong transition-colors flex items-center gap-1 text-sm">
             <X size={16} /> 取消
           </button>
           <button type="button" onClick={handleSave} className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center gap-1 text-sm font-medium">
@@ -537,18 +537,18 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
       </div>
 
       {/* 底部缩放条（复刻 _Component129:644-659） */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1.5 bg-[#1c1c1c]/95 border border-[#333] rounded-lg shadow-xl backdrop-blur z-modal-action">
-        <button type="button" onClick={zoomOut} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-[#333]" title="缩小 (滚轮)">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1.5 bg-surface-raised/95 border border-edge rounded-lg shadow-xl backdrop-blur z-modal-action">
+        <button type="button" onClick={zoomOut} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-surface-hover-strong" title="缩小 (滚轮)">
           <ZoomOut size={15} />
         </button>
         <button type="button" onClick={resetZoom} className="px-2 text-[11px] text-gray-200 tabular-nums min-w-[44px] text-center hover:text-white" title="重置为 100%（空格拖动平移）">
           {Math.round(zoom * 100)}%
         </button>
-        <button type="button" onClick={zoomIn} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-[#333]" title="放大 (滚轮)">
+        <button type="button" onClick={zoomIn} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-surface-hover-strong" title="放大 (滚轮)">
           <ZoomIn size={15} />
         </button>
-        <div className="w-[1px] h-4 bg-[#444] mx-0.5" />
-        <button type="button" onClick={fitZoom} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-[#333]" title="适应屏幕">
+        <div className="w-[1px] h-4 bg-surface-3 mx-0.5" />
+        <button type="button" onClick={fitZoom} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-surface-hover-strong" title="适应屏幕">
           <Maximize size={15} />
         </button>
       </div>

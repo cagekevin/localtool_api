@@ -29,7 +29,7 @@ export default function GenerateButton({
       <div className="flex items-center gap-3 flex-shrink-0 ml-2">
         {onRefresh && (
           <button
-            className="flex items-center gap-1 text-gray-400 hover:text-white bg-[#222] hover:bg-[#333] border border-[#333] hover:border-gray-500 rounded-full px-2.5 py-1 transition-colors"
+            className="flex items-center gap-1 text-gray-400 hover:text-white bg-surface-1 hover:bg-surface-hover-strong border border-edge hover:border-gray-500 rounded-full px-2.5 py-1 transition-colors"
             title="刷新状态"
             onClick={(e) => { e.stopPropagation(); onRefresh() }}
           >
@@ -52,7 +52,7 @@ export default function GenerateButton({
 
   return (
     <div
-      className="flex items-center bg-[#2a2a2a] rounded-full p-1 pl-3 border border-[#333] hover:border-gray-500 transition-colors cursor-pointer group/btn flex-shrink-0 ml-2"
+      className="flex items-center bg-surface-hover rounded-full p-1 pl-3 border border-edge hover:border-gray-500 transition-colors cursor-pointer group/btn flex-shrink-0 ml-2"
       onClick={(e) => { e.stopPropagation(); onGenerate() }}
     >
       {showCost && cost != null && (

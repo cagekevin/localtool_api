@@ -110,10 +110,10 @@ export default function ScriptBoxNode({ id, data, selected }) {
             </span>
           )}
           <div className="flex-1" />
-          <button className="p-1 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md" title="总体提示词设置" onClick={(e) => { e.stopPropagation(); setSettingsOpen(true) }}>
+          <button className="p-1 text-gray-400 hover:text-white hover:bg-surface-hover rounded-md" title="总体提示词设置" onClick={(e) => { e.stopPropagation(); setSettingsOpen(true) }}>
             <Settings size={13} />
           </button>
-          <button className="p-1 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-md" title="全屏显示" onClick={(e) => { e.stopPropagation(); setFullscreen(true) }}>
+          <button className="p-1 text-gray-400 hover:text-white hover:bg-surface-hover rounded-md" title="全屏显示" onClick={(e) => { e.stopPropagation(); setFullscreen(true) }}>
             <Maximize2 size={13} />
           </button>
         </div>
@@ -166,7 +166,7 @@ function StepNav({ step, setStep, shots, assets }) {
         const off = 2 * Math.PI * 11 * (1 - s.p)
         return (
           <React.Fragment key={s.n}>
-            <button className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-left transition-colors ${active ? 'bg-[#2a2a2a]' : 'hover:bg-[#222]'}`} onClick={() => setStep(s.n)}>
+            <button className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-left transition-colors ${active ? 'bg-surface-hover' : 'hover:bg-surface-1'}`} onClick={() => setStep(s.n)}>
               <svg width="28" height="28" className="shrink-0">
                 <circle cx="14" cy="14" r="11" fill="none" stroke={active ? '#3a3a3a' : '#2a2a2a'} strokeWidth="2" />
                 <circle cx="14" cy="14" r="11" fill="none" stroke={active ? '#fff' : '#666'} strokeWidth="2" strokeDasharray={2 * Math.PI * 11} strokeDashoffset={off} transform="rotate(-90 14 14)" style={{ transition: 'all .3s' }} />
@@ -177,7 +177,7 @@ function StepNav({ step, setStep, shots, assets }) {
                 <span className="block text-[10px] text-gray-500">{s.desc}</span>
               </span>
             </button>
-            {k < steps.length - 1 && <div className="w-10 h-px bg-[#333]" />}
+            {k < steps.length - 1 && <div className="w-10 h-px bg-surface-hover-strong" />}
           </React.Fragment>
         )
       })}

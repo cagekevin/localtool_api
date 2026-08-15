@@ -48,9 +48,9 @@ function TextResourceCell({ url, name }) {
   }, [url])
   const display = useMemo(() => String(text || name || '').slice(0, 120), [text, name])
   return (
-    <div className="w-full h-full bg-[#161616] flex items-center justify-center px-1.5">
+    <div className="w-full h-full bg-surface-strong flex items-center justify-center px-1.5">
       {display && (
-        <p className="text-[8px] text-[#888] leading-tight m-0 line-clamp-3 break-all text-center">
+        <p className="text-[8px] text-muted leading-tight m-0 line-clamp-3 break-all text-center">
           {display}
         </p>
       )}
@@ -67,12 +67,12 @@ function TextPreview({ url, name }) {
     return () => { alive = false }
   }, [url])
   return (
-    <div className="w-[360px] max-w-[90vw] bg-[#1f1f1f] rounded-xl p-5">
+    <div className="w-[360px] max-w-[90vw] bg-surface-2 rounded-xl p-5">
       <div className="flex items-center gap-2 mb-3">
         <FileText size={18} className="text-yellow-400" />
-        <span className="text-sm text-[#ddd] m-0">{name}</span>
+        <span className="text-sm text-primary m-0">{name}</span>
       </div>
-      <pre className="text-xs text-[#aaa] whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar m-0">
+      <pre className="text-xs text-secondary whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto custom-scrollbar m-0">
         {text || '（加载中...）'}
       </pre>
     </div>
@@ -256,14 +256,14 @@ export default function GeneratedView() {
       <div className="px-2.5 pt-2.5 flex items-center gap-1.5 flex-shrink-0 relative">
         <div className="flex gap-1.5 flex-wrap items-center flex-1">
           {folder !== 'tasks' && (
-            <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-[#ccc] hover:bg-[#2a2a2a] cursor-pointer border-none bg-[#1f1f1f]" onClick={back} title="返回上级">
+            <button className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] text-body hover:bg-surface-hover cursor-pointer border-none bg-surface-2" onClick={back} title="返回上级">
               <ChevronLeft size={12} /> {folder.split('/').pop()}
             </button>
           )}
           {TYPE_FILTERS.map((f) => (
             <button
               key={f.key}
-              className={`px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer border-none ${typeFilter === f.key ? 'bg-white text-[#141414] font-medium' : 'bg-[#1f1f1f] text-[#999] hover:text-[#ddd]'}`}
+              className={`px-2.5 py-1 rounded-full text-[11px] transition-all cursor-pointer border-none ${typeFilter === f.key ? 'bg-white text-[#141414] font-medium' : 'bg-surface-2 text-muted hover:text-primary'}`}
               onClick={() => setTypeFilter(f.key)}
             >
               {f.label}
@@ -274,16 +274,16 @@ export default function GeneratedView() {
         {/* 「⋯」更多操作菜单：打开本地目录 / 新建文件夹 */}
         <div className="relative flex-shrink-0">
           <button
-            className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer border-none ${menuOpen ? 'bg-[#2a2a2a] text-white' : 'text-[#666] hover:text-[#ccc] hover:bg-[#242424]'}`}
+            className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer border-none ${menuOpen ? 'bg-surface-hover text-white' : 'text-faint hover:text-body hover:bg-surface-subtle'}`}
             onClick={() => setMenuOpen((v) => !v)}
             title="更多操作"
           >
             <MoreVertical size={15} />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-[#1c1c1c] border border-[#333] rounded-lg shadow-xl p-1 z-30 w-40 nowheel nopan nodrag">
+            <div className="absolute right-0 top-full mt-1 bg-surface-raised border border-edge rounded-lg shadow-xl p-1 z-30 w-40 nowheel nopan nodrag">
               <button
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-body hover:bg-surface-hover-2 hover:text-white transition-colors cursor-pointer border-none text-left"
                 onClick={() => {
                   setMenuOpen(false)
                   handleOpenLocal()
@@ -293,7 +293,7 @@ export default function GeneratedView() {
                 <FolderOpen size={13} /> 打开本地目录
               </button>
               <button
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[#ccc] hover:bg-[#2c2c2c] hover:text-white transition-colors cursor-pointer border-none text-left"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-body hover:bg-surface-hover-2 hover:text-white transition-colors cursor-pointer border-none text-left"
                 onClick={() => {
                   setMenuOpen(false)
                   if (!connected) return showToast('请先连接本地引擎', { type: 'warning' })
@@ -312,7 +312,7 @@ export default function GeneratedView() {
       {/* 新建文件夹输入卡片 */}
       {creating && (
         <div className="px-2.5 pt-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 bg-[#151414] border border-orange-500/40 rounded-lg p-1.5">
+          <div className="flex items-center gap-1.5 bg-surface-deep border border-orange-500/40 rounded-lg p-1.5">
             <input
               autoFocus value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
@@ -329,9 +329,9 @@ export default function GeneratedView() {
                 }
                 setCreating(false)
               }}
-              className="flex-1 h-7 bg-[#1e1e1e] border border-orange-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-orange-500 box-border"
+              className="flex-1 h-7 bg-surface-faint border border-orange-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-orange-500 box-border"
             />
-            <span className="text-[10px] text-[#777] whitespace-nowrap">回车确认</span>
+            <span className="text-[10px] text-faint whitespace-nowrap">回车确认</span>
           </div>
         </div>
       )}
@@ -339,7 +339,7 @@ export default function GeneratedView() {
       {/* 重命名输入条 */}
       {renameTarget && (
         <div className="px-2.5 pt-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 bg-[#151414] border border-blue-500/40 rounded-lg p-1.5">
+          <div className="flex items-center gap-1.5 bg-surface-deep border border-blue-500/40 rounded-lg p-1.5">
             <input
               autoFocus value={renameName}
               onChange={(e) => setRenameName(e.target.value)}
@@ -348,10 +348,10 @@ export default function GeneratedView() {
                 else if (e.key === 'Escape') { setRenameTarget(null); setRenameName('') }
               }}
               onBlur={handleRename}
-              className="flex-1 h-7 bg-[#1e1e1e] border border-blue-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-blue-500 box-border"
+              className="flex-1 h-7 bg-surface-faint border border-blue-500/40 rounded-md px-2 text-[11px] text-white outline-none focus:border-blue-500 box-border"
               placeholder="输入新文件名"
             />
-            <span className="text-[10px] text-[#777] whitespace-nowrap">回车确认</span>
+            <span className="text-[10px] text-faint whitespace-nowrap">回车确认</span>
           </div>
         </div>
       )}
@@ -359,14 +359,14 @@ export default function GeneratedView() {
       {/* 网格（点击翻页，只显示当前页） */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-2.5 pb-2.5 mt-2">
         {!connected ? (
-          <div className="h-full flex items-center justify-center text-[#666] text-sm">请先连接本地引擎</div>
+          <div className="h-full flex items-center justify-center text-faint text-sm">请先连接本地引擎</div>
         ) : loading && items.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-[#666] text-sm">加载中...</div>
+          <div className="h-full flex items-center justify-center text-faint text-sm">加载中...</div>
         ) : items.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-[#666] text-sm gap-2">
+          <div className="h-full flex flex-col items-center justify-center text-faint text-sm gap-2">
             <div className="text-4xl opacity-40">📦</div>
             <p className="m-0">暂无生成资源</p>
-            <p className="text-xs text-[#555] m-0">在画布上生成图片/视频后会自动出现在这里</p>
+            <p className="text-xs text-subtle m-0">在画布上生成图片/视频后会自动出现在这里</p>
           </div>
         ) : (
           <>
@@ -381,27 +381,27 @@ export default function GeneratedView() {
                     key={a.id}
                     draggable={!isFolder}
                     onDragStart={(e) => onDragStart(e, a)}
-                    className={`group relative aspect-square bg-[#151414] rounded-xl overflow-hidden transition-colors ${isFolder ? 'border border-[#333] cursor-pointer hover:border-[#4a4a4a]' : 'border border-[#242424] hover:border-[#3a3a3a] cursor-grab active:cursor-grabbing'}`}
+                    className={`group relative aspect-square bg-surface-deep rounded-xl overflow-hidden transition-colors ${isFolder ? 'border border-edge cursor-pointer hover:border-[#4a4a4a]' : 'border border-[#242424] hover:border-edge-raised cursor-grab active:cursor-grabbing'}`}
                     onClick={() => {
                       if (isFolder) setFolder(folder === 'tasks' ? `tasks/${a.name}` : `${folder}/${a.name}`)
                       else setPreview(a) // 图片/视频/文字/音频 → 点击大图预览
                     }}
                   >
                     {isFolder ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-[#888]">
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted">
                         <FolderOpen size={30} strokeWidth={1.2} />
                         <span className="text-[10px] font-medium text-center px-1 break-all leading-tight m-0">{a.name}</span>
                       </div>
                     ) : audio ? (
-                      <div className="w-full h-full bg-[#111] flex flex-col items-center justify-center gap-1.5 p-2">
+                      <div className="w-full h-full bg-surface-black flex flex-col items-center justify-center gap-1.5 p-2">
                         <Music size={22} className="text-green-400" />
-                        <span className="text-[9px] text-[#888] text-center break-all leading-tight m-0">{a.name}</span>
+                        <span className="text-[9px] text-muted text-center break-all leading-tight m-0">{a.name}</span>
                       </div>
                     ) : a.type === 'text' ? (
                       <TextResourceCell url={a.url} name={a.name} />
                     ) : a.type === 'video' || (a.type && a.type.startsWith('video')) ? (
                       <div className="w-full h-full flex items-center justify-center relative">
-                        {a.url ? <video src={a.url} className="w-full h-full object-cover" muted /> : <Play size={20} className="text-[#666]" />}
+                        {a.url ? <video src={a.url} className="w-full h-full object-cover" muted /> : <Play size={20} className="text-faint" />}
                         <span className="absolute inset-0 flex items-center justify-center">
                           <span className="w-7 h-7 rounded-full bg-black/45 flex items-center justify-center">
                             <Play size={12} className="text-white ml-0.5" />
@@ -410,7 +410,7 @@ export default function GeneratedView() {
                       </div>
                     ) : (
                       <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: a.url ? `url(${a.url})` : undefined }}>
-                        {!a.url && <div className="w-full h-full flex items-center justify-center text-[#555]"><FileText size={18} /></div>}
+                        {!a.url && <div className="w-full h-full flex items-center justify-center text-subtle"><FileText size={18} /></div>}
                       </div>
                     )}
 
@@ -453,8 +453,8 @@ export default function GeneratedView() {
       </div>
 
       {/* 底部固定分页栏（对齐官方 Un.jsx：生成(总数) + 上一页/页码/下一页 + 清空全部） */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-[#333] bg-[#0d0c0c] flex-shrink-0">
-        <span className="text-sm font-bold text-[#ccc]">
+      <div className="flex items-center justify-between px-3 py-2 border-t border-edge bg-canvas flex-shrink-0">
+        <span className="text-sm font-bold text-body">
           生成 ({total})
         </span>
         {totalPages > 1 ? (
@@ -462,19 +462,19 @@ export default function GeneratedView() {
             <button
               disabled={page <= 1 || loading}
               onClick={() => goPage(page - 1)}
-              className="px-3 py-1 bg-[#2a2a2a] text-[#aaa] rounded text-xs hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+              className="px-3 py-1 bg-surface-hover text-secondary rounded text-xs hover:bg-surface-hover-strong disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
             >上一页</button>
-            <span className="text-xs text-[#888]">{page} / {totalPages}</span>
+            <span className="text-xs text-muted">{page} / {totalPages}</span>
             <button
               disabled={page >= totalPages || loading}
               onClick={() => goPage(page + 1)}
-              className="px-3 py-1 bg-[#2a2a2a] text-[#aaa] rounded text-xs hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+              className="px-3 py-1 bg-surface-hover text-secondary rounded text-xs hover:bg-surface-hover-strong disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
             >下一页</button>
           </div>
         ) : (
           <div className="flex-1" />
         )}
-        {loading && <span className="text-[10px] text-[#666] whitespace-nowrap mr-1">加载中...</span>}
+        {loading && <span className="text-[10px] text-faint whitespace-nowrap mr-1">加载中...</span>}
       </div>
 
       {/* 点击大图/视频/文字/音频预览（与素材库一致） */}
@@ -486,16 +486,16 @@ export default function GeneratedView() {
             ) : preview.type === 'video' || (preview.type && preview.type.startsWith('video')) ? (
               <video src={preview.url} controls className="max-h-[70vh] max-w-full rounded-lg" />
             ) : isAudio(preview.type, preview.url) ? (
-              <div className="w-[300px] bg-[#1f1f1f] rounded-xl p-6 flex flex-col items-center gap-3">
+              <div className="w-[300px] bg-surface-2 rounded-xl p-6 flex flex-col items-center gap-3">
                 <Music size={40} className="text-green-400" />
-                <p className="text-xs text-[#aaa] m-0">{preview.name}</p>
+                <p className="text-xs text-secondary m-0">{preview.name}</p>
                 <audio src={preview.url} controls className="w-full" />
               </div>
             ) : (
               <img src={preview.url} alt={preview.name} className="max-h-[75vh] max-w-full rounded-lg object-contain" />
             )}
-            <p className="text-xs text-[#999] m-0">{preview.name} · {preview.folder}</p>
-            <button className="px-4 py-1.5 rounded-lg bg-[#2a2a2a] text-[#ccc] hover:bg-[#333] text-xs cursor-pointer border-none" onClick={() => setPreview(null)}>关闭</button>
+            <p className="text-xs text-muted m-0">{preview.name} · {preview.folder}</p>
+            <button className="px-4 py-1.5 rounded-lg bg-surface-hover text-body hover:bg-surface-hover-strong text-xs cursor-pointer border-none" onClick={() => setPreview(null)}>关闭</button>
           </div>
         </div>
       )}

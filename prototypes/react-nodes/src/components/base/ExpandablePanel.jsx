@@ -27,7 +27,7 @@ export default function ExpandablePanel({
 }) {
   return (
     <div
-      className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[#1c1c1c] rounded-2xl border border-[#333] shadow-2xl w-max max-w-[920px] transition-all duration-300 origin-top z-40
+      className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-surface-raised rounded-2xl border border-edge shadow-2xl w-max max-w-[920px] transition-all duration-300 origin-top z-40
         ${expanded ? 'opacity-100 scale-100 p-4 overflow-visible' : 'opacity-0 scale-95 pointer-events-none h-0 p-0 border-0 overflow-hidden'}
       `}
       style={{ minWidth: `${minWidth}px` }}

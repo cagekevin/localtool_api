@@ -31,7 +31,7 @@ function Reasoning({ text, streaming }) {
   }, [streaming])
 
   return (
-    <div className="mb-1 border border-[#2a2a2a] rounded-md bg-[#0a0a0a]">
+    <div className="mb-1 border border-edge-faint rounded-md bg-[#0a0a0a]">
       <button
         type="button"
         onClick={() => { setOpen(!open); setDone(false) }}
@@ -44,7 +44,7 @@ function Reasoning({ text, streaming }) {
         {!streaming && <span className="ml-auto text-[10px] text-gray-600">{open ? '点击折叠' : '点击展开'}</span>}
       </button>
       {open && (
-        <div className="px-3 pb-2 pt-0.5 text-[12px] text-gray-500 whitespace-pre-wrap break-words border-t border-[#222] leading-relaxed">
+        <div className="px-3 pb-2 pt-0.5 text-[12px] text-gray-500 whitespace-pre-wrap break-words border-t border-edge-subtle leading-relaxed">
           {text}
           {streaming && <span className="inline-block w-1 h-3 bg-gray-600 ml-0.5 animate-pulse align-middle" />}
         </div>
@@ -87,7 +87,7 @@ export default function AgentMessage({ message }) {
             </div>
           )}
           {message.content && (
-            <div className="bg-[#2a2a2a] text-white text-sm rounded-lg rounded-br-sm px-3 py-2 whitespace-pre-wrap break-words border border-[#333]">
+            <div className="bg-surface-hover text-white text-sm rounded-lg rounded-br-sm px-3 py-2 whitespace-pre-wrap break-words border border-edge">
               {message.content}
             </div>
           )}
@@ -109,7 +109,7 @@ export default function AgentMessage({ message }) {
             </div>
           )}
           {message.content && (
-            <div className="bg-[#0d0c0c] border border-[#2a2a2a] text-gray-200 text-sm rounded-lg rounded-bl-sm px-3 py-2 whitespace-pre-wrap break-words">
+            <div className="bg-canvas border border-edge-faint text-gray-200 text-sm rounded-lg rounded-bl-sm px-3 py-2 whitespace-pre-wrap break-words">
               {message.content}
               {message.streaming && <span className="inline-block w-1 h-3 bg-gray-400 ml-0.5 animate-pulse align-middle" />}
             </div>
@@ -129,7 +129,7 @@ export default function AgentMessage({ message }) {
     } catch { /* keep raw */ }
     return (
       <div className="flex justify-start">
-        <div className="max-w-[85%] text-[11px] text-gray-500 bg-[#0d0c0c] border border-[#222] rounded-md px-2 py-1">
+        <div className="max-w-[85%] text-[11px] text-gray-500 bg-canvas border border-edge-subtle rounded-md px-2 py-1">
           <span className={ok ? 'text-green-500' : 'text-red-400'}>{'●'}</span>
           {' '}
           {text}

@@ -43,13 +43,13 @@ const PROTOCOLS = [
 // 后端 generate_ai_image 按 effective_image_request_mode 分派发什么 body；删任一选项，
 // 配对应平台（如用 openai-json 的 agnes）时后端无法正确发请求。禁止删，见文件头契约表。
 const REQUEST_MODES = ['openai', 'openai-json', 'openai-video-proxy', 'openai-responses']
-const inputCls = 'w-full bg-[#0d0c0c] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none transition-colors placeholder-gray-600 disabled:opacity-50'
-const selectCls = 'bg-[#0d0c0c] border border-[#333] text-gray-300 text-sm px-3 py-2 rounded-lg outline-none focus:border-blue-500 transition-colors disabled:opacity-50'
+const inputCls = 'w-full bg-canvas border border-edge rounded-lg px-3 py-2 text-sm text-gray-200 focus:border-blue-500 focus:outline-none transition-colors placeholder-gray-600 disabled:opacity-50'
+const selectCls = 'bg-canvas border border-edge text-gray-300 text-sm px-3 py-2 rounded-lg outline-none focus:border-blue-500 transition-colors disabled:opacity-50'
 
 function Section({ title, desc, children }) {
   return (
-    <section className="bg-[#1a1a1a] border border-[#222] rounded-xl overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-[#222] flex items-baseline justify-between">
+    <section className="bg-surface border border-edge-subtle rounded-xl overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-edge-subtle flex items-baseline justify-between">
         <h3 className="text-sm text-gray-200">{title}</h3>
         {desc && <p className="text-xs text-gray-500">{desc}</p>}
       </div>
@@ -121,7 +121,7 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
             <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input type={showKey ? 'text' : 'password'} value={keyValue} onChange={handleKeyChange} disabled={readonly} placeholder={hasSavedKey ? '已保存（输入新值覆盖）' : 'sk-...'} className={`${inputCls} pl-9`} />
           </div>
-          <button type="button" onClick={() => setShowKey((v) => !v)} className="p-2.5 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-lg transition-colors cursor-pointer border-none bg-transparent" title={showKey ? '隐藏' : '显示'}>
+          <button type="button" onClick={() => setShowKey((v) => !v)} className="p-2.5 text-gray-400 hover:text-white hover:bg-surface-hover rounded-lg transition-colors cursor-pointer border-none bg-transparent" title={showKey ? '隐藏' : '显示'}>
             {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
           {hasSavedKey && !readonly && (
@@ -134,10 +134,10 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
 
       <Section title="连接测试" desc="验证连通性 / 拉取远端模型">
         <div className="flex items-center gap-3 flex-wrap">
-          <button type="button" onClick={onTest} disabled={testing} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-[#222] text-gray-300 hover:bg-[#2a2a2a] hover:text-blue-400 transition-colors cursor-pointer border-none disabled:opacity-50">
+          <button type="button" onClick={onTest} disabled={testing} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-surface-1 text-gray-300 hover:bg-surface-hover hover:text-blue-400 transition-colors cursor-pointer border-none disabled:opacity-50">
             <RefreshCw size={14} className={testing ? 'animate-spin' : ''} /> {testing ? '测试中…' : '测试连接'}
           </button>
-          <button type="button" onClick={onFetchModels} disabled={fetching} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-[#222] text-gray-300 hover:bg-[#2a2a2a] hover:text-blue-400 transition-colors cursor-pointer border-none disabled:opacity-50">
+          <button type="button" onClick={onFetchModels} disabled={fetching} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-surface-1 text-gray-300 hover:bg-surface-hover hover:text-blue-400 transition-colors cursor-pointer border-none disabled:opacity-50">
             <CircleDot size={14} className={fetching ? 'animate-spin' : ''} /> {fetching ? '拉取中…' : '拉取模型'}
           </button>
           {testResult && (
@@ -151,7 +151,7 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
 
       <ModelSection p={p} onUpdate={onUpdate} />
 
-      <div className="flex items-center gap-2 flex-wrap bg-[#1a1a1a] border border-[#222] rounded-xl px-5 py-4">
+      <div className="flex items-center gap-2 flex-wrap bg-surface border border-edge-subtle rounded-xl px-5 py-4">
         {!p.isPrimary && !readonly && (
           <button type="button" onClick={onSetPrimary} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-yellow-300 hover:bg-yellow-500/10 border border-yellow-500/40 transition-colors cursor-pointer">
             <Star size={14} /> 设为主供应商

@@ -79,11 +79,11 @@ export default function FullscreenModal({ open, title = '编辑输入', onClose,
     >
       <div
         ref={panelRef}
-        className="relative bg-[#1c1c1c] border border-[#333] rounded-xl shadow-2xl flex flex-col overflow-visible"
+        className="relative bg-surface-raised border border-edge rounded-xl shadow-2xl flex flex-col overflow-visible"
         style={{ width: size.w, height: size.h, maxWidth: '95vw', maxHeight: '95vh' }}
       >
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#2a2a2a] bg-[#222] flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-edge-faint bg-surface-1 flex-shrink-0">
           <div className="flex items-center gap-2 text-sm text-gray-200">
             <Pencil size={14} className="text-blue-400" />
             <span>{title}</span>
