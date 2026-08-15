@@ -400,7 +400,7 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
   )
 
   return createPortal(
-    <div className="fixed inset-0 z-[2147483647] flex flex-col bg-[#0d0c0c] select-none">
+    <div className="fixed inset-0 z-ceiling flex flex-col bg-[#0d0c0c] select-none">
       {/* 顶部工具栏（复刻 _Component129:444-595） */}
       <div className="flex items-center justify-between p-3 bg-[#1c1c1c] border-b border-[#333]">
         <div className="flex items-center gap-2">
@@ -537,7 +537,7 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
       </div>
 
       {/* 底部缩放条（复刻 _Component129:644-659） */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1.5 bg-[#1c1c1c]/95 border border-[#333] rounded-lg shadow-xl backdrop-blur z-[10001]">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1.5 bg-[#1c1c1c]/95 border border-[#333] rounded-lg shadow-xl backdrop-blur z-modal-action">
         <button type="button" onClick={zoomOut} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-[#333]" title="缩小 (滚轮)">
           <ZoomOut size={15} />
         </button>

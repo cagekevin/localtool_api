@@ -83,7 +83,7 @@ const PromptInput = forwardRef(function PromptInput(
 
         {showMention && (
           <div
-            className="absolute bottom-[calc(100%+4px)] left-0 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-[999999] flex flex-col overflow-hidden h-[300px] nopan"
+            className="absolute bottom-[calc(100%+4px)] left-0 w-72 bg-[#222] border border-[#444] rounded-lg shadow-2xl z-suggest flex flex-col overflow-hidden h-[300px] nopan"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-2 border-b border-[#333] bg-[#1a1a1a]">

@@ -623,7 +623,7 @@ export default function ImageBoxNode({ id, data, selected }) {
       createPortal(
         <div
           data-thumb-menu-portal
-          className="fixed z-[99999] min-w-[130px] bg-[#1c1c1c] border border-[#333] rounded-md shadow-2xl p-1 nodrag nowheel"
+          className="fixed z-overlay-error min-w-[130px] bg-[#1c1c1c] border border-[#333] rounded-md shadow-2xl p-1 nodrag nowheel"
           style={{ top: menuPos.top, left: menuPos.left }}
           onClick={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}

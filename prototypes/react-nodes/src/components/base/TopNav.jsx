@@ -79,7 +79,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
   }
 
   return (
-    <header className="bg-[#0d0c0c] flex items-center justify-between px-4 relative z-[200] flex-shrink-0 h-16 pt-2 pb-2">
+    <header className="bg-[#0d0c0c] flex items-center justify-between px-4 relative z-topnav flex-shrink-0 h-16 pt-2 pb-2">
       {/* 左侧：Logo */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2 cursor-pointer relative group/logo" onClick={() => onNavigate('canvas')} title="返回画布">
@@ -141,7 +141,7 @@ export default function TopNav({ view, onNavigate, onSwitchProject, onCreateProj
             />
           </button>
           {/* hover 用户菜单（复刻官方 Component797，含「同步设置」区块） */}
-          <div className="absolute right-0 top-full mt-2 w-64 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-[100] overflow-hidden flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-64 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-float overflow-hidden flex flex-col">
             {/* 头部：头像 + 昵称 */}
             <div className="p-4 border-b border-[#333] flex items-center gap-3">
               <img src="https://api.dicebear.com/9.x/thumbs/svg?seed=yimao" alt="avatar" className="w-10 h-10 rounded-full object-cover border border-[#444]" draggable={false} />

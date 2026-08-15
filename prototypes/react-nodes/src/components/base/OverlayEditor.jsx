@@ -588,7 +588,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
 
       {/* 画布（只显示合成预览图 + 透明图层选择框，对齐官方 Component568） */}
       <div
-        className={fullscreen ? 'fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6 nodrag nowheel' : 'flex justify-center bg-[#0d0d0d] rounded border border-[#333] p-2 nodrag'}
+        className={fullscreen ? 'fixed inset-0 z-modal bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6 nodrag nowheel' : 'flex justify-center bg-[#0d0d0d] rounded border border-[#333] p-2 nodrag'}
         onClick={fullscreen ? (e) => e.stopPropagation() : undefined}
         onWheel={fullscreen ? (e) => e.stopPropagation() : undefined}
       >
@@ -816,7 +816,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
       {/* 右键菜单 */}
       {menu && menuLayer && createPortal(
         <div
-          className="fixed z-[10000] min-w-[140px] bg-[#1c1c1c] border border-[#333] rounded-md shadow-2xl p-1"
+          className="fixed z-modal-raise min-w-[140px] bg-[#1c1c1c] border border-[#333] rounded-md shadow-2xl p-1"
           style={{ top: menu.y, left: menu.x }}
           onClick={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}

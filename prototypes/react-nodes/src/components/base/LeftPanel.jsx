@@ -49,7 +49,7 @@ export default function LeftPanel() {
     <>
       {/* 收起态：左侧竖条工具栏 */}
       {!expanded && (
-        <div className="fixed left-3 top-1/2 -translate-y-1/2 z-[800] flex flex-col items-center gap-1.5 bg-[#191919]/90 backdrop-blur border border-[#2a2a2a] rounded-xl px-1.5 py-2 shadow-lg">
+        <div className="fixed left-3 top-1/2 -translate-y-1/2 z-sidebar flex flex-col items-center gap-1.5 bg-[#191919]/90 backdrop-blur border border-[#2a2a2a] rounded-xl px-1.5 py-2 shadow-lg">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.key
@@ -75,7 +75,7 @@ export default function LeftPanel() {
 
       {/* 展开态：滑出面板 */}
       {expanded && (
-        <div ref={panelRef} className="fixed left-3 top-2 bottom-2 z-[800] w-[330px] bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-panel-in">
+        <div ref={panelRef} className="fixed left-3 top-2 bottom-2 z-sidebar w-[330px] bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-panel-in">
           {/* 顶栏：tab 切换（点空白即可关闭，无需多余按钮） */}
           <div className="h-[52px] border-b border-[#222] flex items-center px-3 gap-1 flex-shrink-0">
             <div className="flex-1 flex gap-1">

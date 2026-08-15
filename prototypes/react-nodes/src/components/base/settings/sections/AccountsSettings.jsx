@@ -132,7 +132,7 @@ export default function AccountsSettings() {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#0d0c0c] overflow-hidden z-[100]">
+    <div className="absolute inset-0 flex flex-col bg-[#0d0c0c] overflow-hidden z-float">
       {/* ── 新建/修改环境表单（复刻官方 un && Component828）── */}
       {formOpen && (
         <div className="p-3 bg-[#151414] border-b border-[#333] shadow-sm">

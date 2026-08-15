@@ -864,7 +864,7 @@ function Canvas() {
           {/* 小地图（复刻 H_.jsx:12095-12098，仅当开启且节点数 <100 时显示） */}
           {/* 抉择：定位在左下角工具栏上方（bottom-16），样式令牌 #222/#333/nodeColor#444 对齐 docs/39 */}
           {minimapOn && nodes.length < 100 && (
-            <div className="absolute left-4 bottom-16 z-[990] flex flex-col items-start gap-2 pointer-events-none">
+            <div className="absolute left-4 bottom-16 z-canvas-tools flex flex-col items-start gap-2 pointer-events-none">
               <MiniMap
                 pannable
                 zoomable
@@ -910,7 +910,7 @@ function Canvas() {
 
             {/* 左下角工具栏（复刻 H_.jsx:12013 bottom-left） */}
             {/* 抉择：工具栏 + 确认弹窗叠在一个 absolute 容器（left-3 bottom-3），弹窗 absolute bottom-full 挂在工具栏上方 */}
-            <div className="absolute left-3 bottom-3 z-[900] pointer-events-auto">
+            <div className="absolute left-3 bottom-3 z-canvas-tools pointer-events-auto">
               <div className="relative">
                 {/* 整理后「是否保留」确认弹窗（复刻 H_.jsx:11993） */}
                 <ArrangeConfirm

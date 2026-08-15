@@ -188,7 +188,7 @@ function DropTable({ opts, val, onPick }) {
     <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
       <button className="w-full text-left text-gray-300 text-[11px] px-1.5 py-0.5 rounded hover:bg-[#2a2a2a] whitespace-nowrap" onClick={() => setOpen(!open)}>{val || '选择'}</button>
       {open && (
-        <div className="absolute z-[9999] mt-1 bg-[#1c1c1e] border border-[#333] rounded-lg shadow-2xl py-1 min-w-[90px]">
+        <div className="absolute z-modal mt-1 bg-[#1c1c1e] border border-[#333] rounded-lg shadow-2xl py-1 min-w-[90px]">
           {opts.map((o) => (
             <button key={o} className="block w-full text-left px-2.5 py-1 text-[11px] text-gray-300 hover:bg-[#2a2a2a]" onClick={() => { onPick(o); setOpen(false) }}>{o}</button>
           ))}
@@ -201,7 +201,7 @@ function DropTable({ opts, val, onPick }) {
 /** 通用弹窗容器（相对剧本盒子主容器定位，节点内部面板） */
 function Modal({ children, onClose, title }) {
   return (
-    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="absolute inset-0 z-modal flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-[#1c1c1e] border border-[#333] rounded-xl p-4 w-[440px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="text-[12px] text-gray-300 mb-2">{title}</div>
         {children}

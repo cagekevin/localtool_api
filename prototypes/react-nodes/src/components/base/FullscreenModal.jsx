@@ -70,7 +70,7 @@ export default function FullscreenModal({ open, title = '编辑输入', onClose,
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[2147483646] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6 input-panel-fullscreen-root"
+      className="fixed inset-0 z-ceiling-2 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6 input-panel-fullscreen-root"
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       onClick={(e) => {

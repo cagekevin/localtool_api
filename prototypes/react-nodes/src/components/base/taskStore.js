@@ -13,6 +13,7 @@
  */
 import { useSyncExternalStore } from 'react'
 import { fetchTasks, saveTask, deleteTask, batchDeleteTasks, clearAllTasksApi } from './tasksApi.js'
+import { saveResultToTasks } from './filesApi.js'
 
 let tasks = []
 const listeners = new Set()
@@ -110,6 +111,17 @@ export function reportGenerate(nodeId, type, prompt, meta = {}) {
       tasks = tasks.map((t) => (t.id === task.id ? { ...t, status: 'completed', progress: 100, resultUrl: resultUrl || '' } : t))
       notify()
       persist({ ...task, status: 'completed', progress: 100, resultUrl: resultUrl || '' })
+      // 生成结果落盘 tasks 目录（对齐官方 Ce.uploadFile），使「生成」面板能收录。
+      // 异步执行，失败不影响主流程（节点显示/任务中心仍用原始 url）。
+      if (resultUrl && !resultUrl.startsWith('blob:')) {
+        saveResultToTasks(resultUrl, task.type).then((persistedUrl) => {
+          if (persistedUrl) {
+            tasks = tasks.map((t) => (t.id === task.id ? { ...t, resultUrl: persistedUrl } : t))
+            notify()
+            persist({ ...task, status: 'completed', progress: 100, resultUrl: persistedUrl })
+          }
+        })
+      }
     },
     // 标记失败
     fail: (errorMsg) => {

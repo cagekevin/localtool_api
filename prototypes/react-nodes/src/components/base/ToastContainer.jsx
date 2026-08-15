@@ -60,7 +60,7 @@ export default function ToastContainer() {
   }
 
   return createPortal(
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2147483645] flex flex-col items-center gap-2 pointer-events-none">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-ceiling-1 flex flex-col items-center gap-2 pointer-events-none">
       {items.map((t) => (
         <div
           key={t.id}

@@ -19,7 +19,7 @@ const TYPE_BADGE = {
   text: { icon: FileText, cls: 'text-yellow-400 bg-yellow-500/10' },
 }
 
-const PAGE_SIZE = 20 // 每次加载 20 个，无限滚动追加
+const PAGE_SIZE = 20 // 每次加载 20 个，点击翻页（对齐官方 Un.jsx 默认 pageSize:20）
 
 // 文本内容缓存（避免滚动时重复 fetch）
 const textCache = new Map()
@@ -81,7 +81,7 @@ function TextPreview({ url, name }) {
 
 /**
  * 生成 tab —— 对齐官方资源面板「生成」(generated) 视图的数据逻辑（Vr.jsx ft()/kr() + Un.jsx），
- * 过滤用本原型素材库的小圆按钮（pill）形式，无限滚动（每次 20 个），无收藏、无分页按钮。
+ * 过滤用本原型素材库的小圆按钮（pill）形式，点击翻页（每页 20 个，底部固定分页栏），无收藏。
  * 预览交互与素材库 AssetLibrary 一致：文字默认展示内容、图片点击大图、视频点击大图播放。
  *
  * 官方逻辑（逐条对齐）：
@@ -101,7 +101,6 @@ export default function GeneratedView() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
   const [preview, setPreview] = useState(null) // 点击大图/视频/文字/音频预览
 
   const [typeFilter, setTypeFilter] = useState('all') // all/image/video/text
@@ -113,10 +112,6 @@ export default function GeneratedView() {
   const [renameName, setRenameName] = useState('')
   const [menuItemId, setMenuItemId] = useState(null) // 卡片「⋯」菜单打开的卡片 id
 
-  const scrollRef = useRef(null)
-  // 用 ref 记录「当前已加载页」，避免滚动监听闭包拿到旧 page
-  const pageRef = useRef(1)
-  const loadingRef = useRef(false)
   const resetTokenRef = useRef(0)
 
   // 重置并加载第一页（目录/类型变化时）
@@ -125,7 +120,6 @@ export default function GeneratedView() {
     const token = ++resetTokenRef.current
     setLoading(true)
     setPage(1)
-    pageRef.current = 1
     try {
       if (rescan) await rescanResources()
       const data = await fetchResources({ folder, page: 1, pageSize: PAGE_SIZE, type: typeFilter === 'all' ? undefined : typeFilter })
@@ -133,7 +127,6 @@ export default function GeneratedView() {
       setItems(data.items || [])
       setTotal(data.total || 0)
       setTotalPages(data.totalPages || 1)
-      setHasMore((data.items || []).length < (data.total || 0))
     } catch (e) {
       console.warn('[GeneratedView] 加载失败（localTool 未连？）:', e?.message)
       if (token === resetTokenRef.current) setItems([])
@@ -142,32 +135,25 @@ export default function GeneratedView() {
     }
   }, [connected, folder, typeFilter])
 
-  // 加载下一页并追加
-  const loadMore = useCallback(async () => {
-    if (!connected || loadingRef.current || !hasMore) return
-    loadingRef.current = true
+  // 点击上一页/下一页 → 加载指定页（对齐官方 Un.jsx：每页固定数量，只显示当前页，不追加）
+  const goPage = useCallback(async (next) => {
+    if (!connected || loading || next < 1) return
+    const target = Math.min(next, totalPages)
+    const token = ++resetTokenRef.current
     setLoading(true)
-    const next = pageRef.current + 1
     try {
-      const data = await fetchResources({ folder, page: next, pageSize: PAGE_SIZE, type: typeFilter === 'all' ? undefined : typeFilter })
-      if (data.page > 1) {
-        setItems((prev) => {
-          const seen = new Set(prev.map((x) => x.id))
-          return [...prev, ...(data.items || []).filter((x) => !seen.has(x.id))]
-        })
-      }
-      pageRef.current = data.page || next
-      setPage(data.page || next)
+      const data = await fetchResources({ folder, page: target, pageSize: PAGE_SIZE, type: typeFilter === 'all' ? undefined : typeFilter })
+      if (token !== resetTokenRef.current) return
+      setItems(data.items || [])
       setTotal(data.total || 0)
       setTotalPages(data.totalPages || 1)
-      setHasMore((data.items || []).length > 0 && data.page < (data.totalPages || 1))
-    } catch {
-      // 加载下一页失败不打断，保留已加载内容
+      setPage(data.page || target)
+    } catch (e) {
+      console.warn('[GeneratedView] 翻页加载失败:', e?.message)
     } finally {
-      loadingRef.current = false
-      setLoading(false)
+      if (token === resetTokenRef.current) setLoading(false)
     }
-  }, [connected, folder, typeFilter, hasMore])
+  }, [connected, folder, typeFilter, totalPages, loading])
 
   // 首次挂载 + 过滤/目录变化 → 重置到第 1 页并 rescan
   useEffect(() => {
@@ -175,15 +161,6 @@ export default function GeneratedView() {
     reset(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, folder, typeFilter])
-
-  // 滚动接近底部时加载下一页（无限滚动）
-  const onScroll = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) {
-      loadMore()
-    }
-  }, [loadMore])
 
   const handleDelete = async (item) => {
     setItems((list) => list.filter((x) => x.id !== item.id))
@@ -379,12 +356,8 @@ export default function GeneratedView() {
         </div>
       )}
 
-      {/* 网格（无限滚动） */}
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        className="flex-1 overflow-y-auto custom-scrollbar px-2.5 pb-2.5 mt-2"
-      >
+      {/* 网格（点击翻页，只显示当前页） */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-2.5 pb-2.5 mt-2">
         {!connected ? (
           <div className="h-full flex items-center justify-center text-[#666] text-sm">请先连接本地引擎</div>
         ) : loading && items.length === 0 ? (
@@ -475,13 +448,33 @@ export default function GeneratedView() {
               })}
             </div>
 
-            {/* 底部加载提示 */}
-            {loading && <div className="py-3 text-center text-[11px] text-[#666]">加载中...</div>}
-            {!loading && !hasMore && items.length > 0 && (
-              <div className="py-3 text-center text-[11px] text-[#555]">已全部加载（共 {total} 个）</div>
-            )}
           </>
         )}
+      </div>
+
+      {/* 底部固定分页栏（对齐官方 Un.jsx：生成(总数) + 上一页/页码/下一页 + 清空全部） */}
+      <div className="flex items-center justify-between px-3 py-2 border-t border-[#333] bg-[#0d0c0c] flex-shrink-0">
+        <span className="text-sm font-bold text-[#ccc]">
+          生成 ({total})
+        </span>
+        {totalPages > 1 ? (
+          <div className="flex justify-center items-center gap-3 flex-1">
+            <button
+              disabled={page <= 1 || loading}
+              onClick={() => goPage(page - 1)}
+              className="px-3 py-1 bg-[#2a2a2a] text-[#aaa] rounded text-xs hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+            >上一页</button>
+            <span className="text-xs text-[#888]">{page} / {totalPages}</span>
+            <button
+              disabled={page >= totalPages || loading}
+              onClick={() => goPage(page + 1)}
+              className="px-3 py-1 bg-[#2a2a2a] text-[#aaa] rounded text-xs hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+            >下一页</button>
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+        {loading && <span className="text-[10px] text-[#666] whitespace-nowrap mr-1">加载中...</span>}
       </div>
 
       {/* 点击大图/视频/文字/音频预览（与素材库一致） */}

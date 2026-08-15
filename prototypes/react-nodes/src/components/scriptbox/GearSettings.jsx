@@ -81,7 +81,7 @@ export default function GearSettings({ data, updateData, onClose }) {
     // 弹窗用 absolute inset-0 相对剧本盒子主容器定位（节点内面板）。
     // 注意：不要 createPortal 到 body + fixed inset-0——那会让弹窗脱离节点变成全屏遮罩，
     // 用户明确要求这些弹窗是「剧本盒子的一部分」，显示在节点内部。
-    <div className="absolute inset-0 z-[9997] flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="absolute inset-0 z-modal flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="w-[760px] h-[600px] max-h-[88vh] bg-[#1c1c1e] border border-[#2a2a2a] rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] shrink-0">
           <div className="text-[13px] text-gray-200 font-medium">总体设置</div>

@@ -21,7 +21,7 @@ export default function LocalToolConnectModal({ isVisible, onClose, onRetry }) {
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-modal">
       <div className="bg-[#1a1a1a] border border-red-500/50 rounded-xl p-6 max-w-md mx-4 shadow-2xl shadow-red-900/20">
         {/* 头部：图标 + 标题 */}
         <div className="flex items-center gap-3 mb-4">

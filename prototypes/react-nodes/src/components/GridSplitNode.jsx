@@ -919,7 +919,7 @@ export default function GridSplitNode({ id, data, selected }) {
     {/* 切刀全屏聚焦 */}
     {splitMode === 'lasso' && fullscreen && createPortal(
       <div
-        className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex flex-col nodrag nowheel"
+        className="fixed inset-0 z-modal bg-black/90 backdrop-blur-md flex flex-col nodrag nowheel"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >

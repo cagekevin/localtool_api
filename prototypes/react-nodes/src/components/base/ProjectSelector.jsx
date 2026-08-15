@@ -65,7 +65,7 @@ export default function ProjectSelector({ onSwitch, onCreate }) {
           <ChevronDown size={14} className="text-gray-500 group-hover/project-dropdown:text-white transition-colors" />
         </div>
         <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-white/10 group-hover/project-dropdown:bg-white transition-colors pointer-events-none rounded-full" />
-        <div className="absolute left-0 top-full mt-2 w-48 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/project-dropdown:opacity-100 group-hover/project-dropdown:visible transition-all duration-200 z-[100] overflow-hidden py-1">
+        <div className="absolute left-0 top-full mt-2 w-48 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/project-dropdown:opacity-100 group-hover/project-dropdown:visible transition-all duration-200 z-float overflow-hidden py-1">
           {projects.map((e) => {
             const isActive = e.id === currentProjectId
             return (
@@ -87,7 +87,7 @@ export default function ProjectSelector({ onSwitch, onCreate }) {
         <button type="button" className="text-gray-500 hover:text-white transition-colors p-1 flex items-center justify-center cursor-pointer border-none bg-transparent" aria-label="项目菜单">
           <MoreVertical size={16} />
         </button>
-        <div className="absolute left-0 top-full mt-2 w-40 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/project-menu:opacity-100 group-hover/project-menu:visible transition-all duration-200 z-[100] overflow-hidden py-1">
+        <div className="absolute left-0 top-full mt-2 w-40 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl opacity-0 invisible group-hover/project-menu:opacity-100 group-hover/project-menu:visible transition-all duration-200 z-float overflow-hidden py-1">
           <button type="button" onClick={openRename} className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:bg-[#333] hover:text-white flex items-center gap-2 cursor-pointer border-none bg-transparent">
             <Pencil size={14} /> 重命名项目
           </button>
@@ -122,7 +122,7 @@ export default function ProjectSelector({ onSwitch, onCreate }) {
 
       {/* 新建/重命名弹窗（复刻官方 L3713-3749） */}
       {modal && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]" onClick={() => setModal(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-modal" onClick={() => setModal(null)}>
           <div className="bg-[#2a2a2a] p-4 rounded-lg border border-[#333] w-64" onClick={(e) => e.stopPropagation()}>
             <div className="text-gray-200 text-sm font-bold mb-3">{modal.mode === 'create' ? '新建项目' : '重命名项目'}</div>
             <input

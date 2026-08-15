@@ -20,7 +20,7 @@ export default function SettingsFrame() {
   const [moreOpen, setMoreOpen] = React.useState(false)
 
   return (
-    <div className="absolute inset-0 flex bg-[#0d0c0c] overflow-hidden z-[100]">
+    <div className="absolute inset-0 flex bg-[#0d0c0c] overflow-hidden z-float">
       {/* 左侧栏 */}
       <aside className="w-48 bg-[#0d0c0c] border-r-0 flex flex-col p-3 z-10 flex-shrink-0">
         <div className="px-3 py-2 mb-1">

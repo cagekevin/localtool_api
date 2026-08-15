@@ -116,7 +116,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-6 nowheel nopan nodrag" onClick={onClose}>
+    <div className="fixed inset-0 z-modal bg-black/75 backdrop-blur-sm flex items-center justify-center p-6 nowheel nopan nodrag" onClick={onClose}>
       <div className="w-[88vw] h-[84vh] max-w-[1400px] bg-[#141414] border border-[#2a2a2a] rounded-[18px] shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header：品牌 + 搜索 + 关闭 */}
         <div className="h-[60px] border-b border-[#222] flex items-center px-5 gap-4 flex-shrink-0">
@@ -236,7 +236,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
 
       {/* 编辑/新建弹窗 */}
       {isModalOpen && createPortal(
-        <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center" onClick={() => { setEditingIndex(-1); setShowNewForm(false) }}>
+        <div className="fixed inset-0 z-modal-raise bg-black/60 flex items-center justify-center" onClick={() => { setEditingIndex(-1); setShowNewForm(false) }}>
           <div className="w-[520px] bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 flex flex-col gap-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-[15px] font-semibold text-white m-0">{showNewForm ? '新建提示词' : '编辑提示词'}</h3>
             <div className="flex gap-2.5">

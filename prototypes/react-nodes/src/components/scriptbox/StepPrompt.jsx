@@ -184,7 +184,7 @@ export default function StepPrompt({ data, updateData, callbacks }) {
 
       {/* 双击编辑弹窗（相对剧本盒子主容器定位，节点内部面板） */}
       {editing && (
-        <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={() => setEditing(null)}>
+        <div className="absolute inset-0 z-modal flex items-center justify-center bg-black/50" onClick={() => setEditing(null)}>
           <div className="bg-[#1c1c1e] border border-[#333] rounded-xl p-4 w-[520px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-[12px] text-gray-300 mb-2">编辑{editing.title}</div>
             <textarea autoFocus value={editVal} onChange={(e) => setEditVal(e.target.value)} className="w-full h-36 bg-[#161616] border border-[#333] rounded-lg p-2 text-[12px] text-gray-200 outline-none custom-scrollbar nodrag nowheel" />

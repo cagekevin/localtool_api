@@ -36,7 +36,7 @@ export default class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       const err = this.state.error
       return (
-        <div className="fixed inset-0 z-[99999] bg-[#141414] flex items-center justify-center">
+        <div className="fixed inset-0 z-overlay-error bg-[#141414] flex items-center justify-center">
           <div className="flex flex-col items-center gap-5 max-w-[420px] px-6 text-center">
             {/* 图标 */}
             <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
