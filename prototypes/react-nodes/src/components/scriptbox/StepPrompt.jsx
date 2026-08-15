@@ -55,7 +55,7 @@ export default function StepPrompt({ data, updateData, callbacks }) {
       <div className="grid grid-cols-2 gap-2">
         {/* 左侧：生图提示词 + 生图按钮 + AI 生图 */}
         <div className="flex flex-col gap-1.5 min-w-0">
-          <PromptBox label="生图提示词" text={s.prompt} loading={s.promptLoading} onEdit={() => openField(i, 'prompt', '生图提示词')} onGen={() => handleGenImg(callbacks, patchShot, i)} />
+          <PromptBox label="生图提示词" text={s.prompt} loading={s.promptLoading} onEdit={() => openField(i, 'prompt', '生图提示词')} onGen={() => handleGenImg(callbacks, patchShot, i, s.id)} />
           {/* AI 生成提示词（关键帧/四宫格/九宫格/俯视调度图，均属生图），样式与重新生成/连下游一致 */}
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-1">
@@ -100,7 +100,7 @@ export default function StepPrompt({ data, updateData, callbacks }) {
         </div>
         {/* 右侧：生视频提示词 + 操作 */}
         <div className="flex flex-col gap-1.5 min-w-0">
-          <PromptBox label="生视频提示词" text={s.videoPrompt} loading={s.promptLoading} onEdit={() => openField(i, 'videoPrompt', '生视频提示词')} onGen={() => handleGenVid(callbacks, patchShot, i)} />
+          <PromptBox label="生视频提示词" text={s.videoPrompt} loading={s.promptLoading} onEdit={() => openField(i, 'videoPrompt', '生视频提示词')} onGen={() => handleGenVid(callbacks, patchShot, i, s.id)} />
           <div className="flex gap-1.5">
             <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onGenerateShotPrompts?.([s.id])}><RefreshCw size={10} /> 重新生成</button>
             <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-[#222] hover:bg-[#2a2a2a] rounded" onClick={() => callbacks.onConnectShot?.(s.id, 'video')}><Video size={10} /> 生视频</button>
@@ -214,13 +214,12 @@ function PromptBox({ label, text, loading, onEdit, onGen }) {
   )
 }
 
-/** 生成图片（假实现：写回占位图） */
-function handleGenImg(callbacks, patchShot, i) {
-  patchShot(i, 'loading', true)
-  setTimeout(() => patchShot(i, { loading: false, imageUrl: `https://picsum.photos/seed/shotprompt-${i}-${Date.now()}/200/200` }), 500)
+/** 生成图片：连生图下游（真实现，走 onConnectShot('image') 建 promptNode） */
+function handleGenImg(callbacks, patchShot, i, shotId) {
+  callbacks.onConnectShot?.(shotId, 'image')
 }
 
-/** 生成视频（假实现：仅标记 connVid） */
-function handleGenVid(callbacks, patchShot, i) {
-  patchShot(i, 'connVid', true)
+/** 生成视频：连生视频下游（真实现，走 onConnectShot('video') 建 discountVideoNode） */
+function handleGenVid(callbacks, patchShot, i, shotId) {
+  callbacks.onConnectShot?.(shotId, 'video')
 }

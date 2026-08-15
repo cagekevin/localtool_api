@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import { createScriptBoxEngine } from './scriptBoxEngine.js'
+import { useProviders, load as loadProviders } from './settings/providerStore.js'
 
 /**
  * 剧本盒子 —— 引擎回调注入 hook（对应官方 H_.jsx 的注入机制 A/B）。
@@ -25,6 +26,15 @@ import { createScriptBoxEngine } from './scriptBoxEngine.js'
 export function useScriptBoxEngine(nodeId, data) {
   const { getNodes, setNodes, setEdges, addNodes, screenToFlowPosition } = useReactFlow()
 
+  // 供应商（多 provider，接真系统）：引擎经 getProviderState 实时读 providers + 主供应商，
+  // 生成/生图时按模型 value（providerId::modelId）解析到对应 provider 再经 /api/proxy 转发。
+  const { providers } = useProviders()
+  // 首次挂载确保供应商已加载（生成/生图前必须有 provider，否则解析不到模型）
+  useEffect(() => {
+    if (!providers || providers.length === 0) loadProviders().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // 引擎实例用 ref 缓存，跨 render 稳定（不因 data 变化重建导致子组件重渲染）
   const engineRef = useRef(null)
   if (!engineRef.current) {
@@ -37,6 +47,11 @@ export function useScriptBoxEngine(nodeId, data) {
       nodeId,
       setEdges,
       getNodes,
+      // 供应商解析（接真系统）：返回 { providers, primary }，供引擎选模型/转发
+      getProviderState: () => {
+        const list = providers || []
+        return { providers: list, primary: list.find((p) => p.isPrimary) || list[0] || null }
+      },
       // 连线：经 addNodes 建下游节点，位置用 screenToFlowPosition 算落点基准
       addNodes: (nodes) => {
         if (!addNodes) return

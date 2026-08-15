@@ -1,8 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   ASSET_TEMPLATES, SCRIPT_WRITER_SYSTEM, SHOT_DIRECTOR_SYSTEM,
   IMAGE_GEN_TYPES, defaultImageGenTemplates
 } from '../base/scriptBoxPrompts.js'
+import { useProviders, load as loadProviders } from '../base/settings/providerStore.js'
+import { buildAllModels } from '../base/providerModels.js'
+import ModelSelect from '../base/ModelSelect.jsx'
 
 /**
  * 剧本盒子 齿轮设置弹窗（复刻原型 .gearModal）。
@@ -22,6 +25,16 @@ export default function GearSettings({ data, updateData, onClose }) {
   ]
   const [tab, setTab] = useState('basic')
 
+  // 供应商（多 provider，接真系统）：模型下拉聚合所有 provider 的 chat/image 模型，
+  // 值用 `providerId::modelId`，保存后引擎经 resolveProviderModel 解析回 provider + modelId。
+  const { providers } = useProviders()
+  useEffect(() => {
+    if (!providers || providers.length === 0) loadProviders().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const chatModels = buildAllModels(providers, 'chat')
+  const imageModels = buildAllModels(providers, 'image')
+
   // 本地编辑态（保存时一次性写回，避免每次输入都触发全节点更新）
   const [aspectRatio, setAspectRatio] = useState(d.aspectRatio || '16:9')
   const [customAspectRatio, setCustomAspectRatio] = useState(d.customAspectRatio || '')
@@ -34,10 +47,17 @@ export default function GearSettings({ data, updateData, onClose }) {
   // 生图类型模板（关键帧/四宫格/九宫格/俯视调度图），默认用内置，可覆盖
   const [genTpl, setGenTpl] = useState(d.customImageGenTemplates || defaultImageGenTemplates())
   // 模型（文本模型 = 生成分镜/提示词；资产生图模型 = 步骤2批量生图）
-  const TEXT_MODELS = ['gpt-4o-mini', 'gpt-4o', 'deepseek-chat', 'claude-3-5-sonnet']
-  const ASSET_MODELS = ['gpt-image-2-low', 'gpt-image-2', 'gpt-image-2-high']
-  const [textModel, setTextModel] = useState(d.textModel || d.selectedModel || TEXT_MODELS[0])
-  const [assetModel, setAssetModel] = useState((d.assetModelSettings && d.assetModelSettings.globalModel) || ASSET_MODELS[0])
+  // 默认值：节点已存（textModel/selectedModel 或 assetModelSettings.globalModel）优先；
+  // 否则取第一个 chat/image 模型；若已在 store 里则取该值，无则回退节点值/空。
+  const pickDefault = (stored, models) => {
+    if (stored) {
+      // 兼容旧裸模型名：若 store 里找不到该裸名，仍保留（引擎会回退主供应商）
+      return stored
+    }
+    return models[0]?.id || ''
+  }
+  const [textModel, setTextModel] = useState(() => pickDefault(d.textModel || d.selectedModel, chatModels))
+  const [assetModel, setAssetModel] = useState(() => pickDefault(d.assetModelSettings && d.assetModelSettings.globalModel, imageModels))
 
   const save = () => {
     updateData({
@@ -95,14 +115,14 @@ export default function GearSettings({ data, updateData, onClose }) {
               <Section title="模型">
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="文本模型（生成分镜/提示词）">
-                    <select value={textModel} onChange={(e) => setTextModel(e.target.value)} className="w-full bg-[#161616] border border-white/[0.06] rounded-md px-2 py-1.5 text-gray-200 text-[11px] outline-none focus:border-white/20 nodrag">
-                      {TEXT_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                    <div className="flex items-center">
+                      <ModelSelect value={textModel} onChange={setTextModel} models={chatModels} placeholder="选择文本模型" popupTo="down" showDivider={false} />
+                    </div>
                   </Field>
                   <Field label="资产生图模型">
-                    <select value={assetModel} onChange={(e) => setAssetModel(e.target.value)} className="w-full bg-[#161616] border border-white/[0.06] rounded-md px-2 py-1.5 text-gray-200 text-[11px] outline-none focus:border-white/20 nodrag">
-                      {ASSET_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                    <div className="flex items-center">
+                      <ModelSelect value={assetModel} onChange={setAssetModel} models={imageModels} placeholder="选择生图模型" popupTo="down" showDivider={false} />
+                    </div>
                   </Field>
                 </div>
               </Section>

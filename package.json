@@ -11,7 +11,8 @@
     "ask": "node scripts/ai_ask.cjs",
     "contracts": "node scripts/contract_scan.cjs",
     "test:smoke": "node scripts/smoke_test.cjs",
-    "health": "node scripts/health-check.cjs"
+    "health": "node scripts/health-check.cjs",
+    "sync:api-config": "node scripts/sync-api-config.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

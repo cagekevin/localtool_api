@@ -37,19 +37,16 @@ export default function StepAssets({ data, updateData, callbacks }) {
     const next = assets.filter((a) => a.id !== id)
     updateData({ assets: next, pickedCount: next.filter((a) => a.picked).length })
   }
-  // 批量生图：用选中集（未选则全选）
+  // 批量生图：用选中集（未选则全部无图资产），走真批量引擎（onGenerateAllAssetImages）
   const batchGen = () => {
     const picked = assets.filter((a) => a.picked)
-    const target = picked.length ? picked : assets
-    target.forEach((a) => callbacks.onGenerateAssetImage?.(a.id))
+    const target = picked.length ? picked.map((a) => a.id) : undefined
+    callbacks.onGenerateAllAssetImages?.(target)
   }
   // 上传全部素材
   const uploadAll = () => callbacks.onUploadAllVideoAssets?.()
-  // 上传单个资产视频
-  const uploadOne = (id) => {
-    updateData({ assets: assets.map((a) => (a.id === id ? { ...a, videoStatus: 'uploading' } : a)) })
-    setTimeout(() => updateData({ assets: assets.map((a) => (a.id === id ? { ...a, videoStatus: 'uploaded' } : a)) }), 600)
-  }
+  // 上传单个资产视频：走真重试上传引擎（onRetryVideoAssetUpload，内部标记 uploading→uploaded）
+  const uploadOne = (id) => callbacks.onRetryVideoAssetUpload?.(id)
   const retryUpload = (id) => callbacks.onRetryVideoAssetUpload?.(id)
 
   return (
@@ -89,8 +86,8 @@ export default function StepAssets({ data, updateData, callbacks }) {
                       />
                     )
                   })}
-                  <button className="flex flex-col items-center justify-center h-12 w-full border border-dashed border-[#333] hover:border-[#555] rounded-lg text-gray-500 hover:text-gray-300" onClick={() => { const id = addAsset(updateData, c.k, assets); setEditIdx(id) }}>
-                    <Plus size={13} /> 新增{c.n}
+                  <button className="flex items-center justify-center gap-1 h-9 w-full border border-dashed border-[#333] hover:border-[#555] rounded-lg text-[10px] text-gray-500 hover:text-gray-300" onClick={() => { const id = addAsset(updateData, c.k, assets); setEditIdx(id) }}>
+                    <Plus size={10} /> 新增{c.n}
                   </button>
                 </div>
               </div>
