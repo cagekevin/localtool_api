@@ -10,7 +10,7 @@ import {
   useEdgesState,
   useReactFlow
 } from '@xyflow/react'
-import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy, Zap } from 'lucide-react'
+import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy, Zap, RefreshCw } from 'lucide-react'
 import CanvasToolbar from './components/base/CanvasToolbar.jsx'
 import ArrangeConfirm from './components/base/ArrangeConfirm.jsx'
 import { useArrangeCanvas } from './components/base/useArrangeCanvas.js'
@@ -109,6 +109,37 @@ function Canvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /* ====================================================================
+   * 多窗口画布同步检测（复刻官方 H_.jsx:480-492 + 870-880）
+   *  - 每窗口唯一 tabId
+   *  - BroadcastChannel('yimao_canvas_sync') 监听：收到「其他窗口」保存的
+   *    同一项目 CANVAS_SAVED → 显示红色警告条「画布在其他窗口被修改」
+   * ==================================================================== */
+  const tabIdRef = React.useRef(`tab-${Date.now()}-${Math.random()}`)
+  const [canvasConflict, setCanvasConflict] = React.useState(false)
+  React.useEffect(() => {
+    let channel
+    try {
+      channel = new BroadcastChannel('yimao_canvas_sync')
+      channel.onmessage = (e) => {
+        if (
+          e?.data?.type === 'CANVAS_SAVED' &&
+          e.data.projectId === getCurrentProject().id &&
+          e.data.tabId !== tabIdRef.current
+        ) {
+          setCanvasConflict(true)
+        }
+      }
+    } catch (err) {
+      console.warn('[Canvas] BroadcastChannel 不可用:', err?.message)
+    }
+    return () => { try { channel?.close() } catch { /* ignore */ } }
+  }, [])
+  // 切换项目后重置冲突标记（官方在 projectId 变化时不应残留旧项目冲突）
+  React.useEffect(() => {
+    setCanvasConflict(false)
+  }, [getCurrentProject()?.id])
+
   // 视窗中心 → flow 坐标（Q/W/E 快速添加节点用）；适配用 fitView
   const { screenToFlowPosition, fitView } = useReactFlow()
 
@@ -176,10 +207,25 @@ function Canvas() {
     }
   )
 
+  // 保存画布并广播到其他窗口（复刻官方 H_.jsx:870-880：保存后 postMessage CANVAS_SAVED）
+  const persistCanvas = React.useCallback(
+    (projectId) => {
+      saveCanvasState(projectId, nodesRef.current, edgesRef.current).catch(() => {})
+      try {
+        const channel = new BroadcastChannel('yimao_canvas_sync')
+        channel.postMessage({ type: 'CANVAS_SAVED', projectId, tabId: tabIdRef.current })
+        channel.close()
+      } catch (err) {
+        console.warn('[Canvas] 广播画布同步失败:', err?.message)
+      }
+    },
+    []
+  )
+
   // 切换项目：保存当前画布快照（KV）→ 切换 → 异步加载目标项目快照 → 重置历史（对齐官方 Vr.jsx）
   const handleSwitchProject = useCallback(
     (targetId) => {
-      saveCanvasState(getCurrentProject().id, nodesRef.current, edgesRef.current).catch(() => {})
+      persistCanvas(getCurrentProject().id)
       switchProject(targetId)
       setNodes([])
       setEdges([])
@@ -191,17 +237,17 @@ function Canvas() {
       history.clear?.()
       logger.info('项目', 'switch', { targetId })
     },
-    [setNodes, setEdges, history]
+    [setNodes, setEdges, history, persistCanvas]
   )
 
   // 新建项目：先保存当前画布快照（KV，对齐官方切走前自动持久化）→ 清空画布（store 已在 ProjectSelector 中创建并切换到新项目）
   const handleCreateProject = useCallback(() => {
-    saveCanvasState(getCurrentProject().id, nodesRef.current, edgesRef.current).catch(() => {})
+    persistCanvas(getCurrentProject().id)
     setNodes([])
     setEdges([])
     history.clear?.()
     logger.info('项目', 'create', { name: getCurrentProject().name })
-  }, [setNodes, setEdges, history])
+  }, [setNodes, setEdges, history, persistCanvas])
 
   // 右键菜单状态（基座 useContextMenu）
   const menu = useContextMenu()
@@ -881,6 +927,19 @@ function Canvas() {
               <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm flex items-center gap-2 animate-pulse">
                 <Zap size={14} className="text-yellow-400" />
                 {lodLevel === 3 ? '已进入全局性能模式 (图片视频已隐藏)' : '低缩放性能模式 (图片已隐藏)'}
+              </div>
+            </Panel>
+          )}
+          {/* 画布在其他窗口被修改警告条（复刻官方 H_.jsx:11984-11991：Sn 时红色横幅，点击刷新页面） */}
+          {canvasConflict && (
+            <Panel position="top-center" className="mt-16 pointer-events-none">
+              <div
+                className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm flex items-center gap-2 pointer-events-auto cursor-pointer"
+                onClick={() => window.location.reload()}
+                title="点击刷新页面"
+              >
+                <RefreshCw size={14} className="text-red-400 animate-pulse" />
+                检测到该画布在其他窗口被修改，继续保存可能会覆盖数据，强烈建议点击此处刷新页面！
               </div>
             </Panel>
           )}
