@@ -197,7 +197,7 @@ const updateNodeTool = {
     const node = getNodes().find((n) => n.id === id)
     if (!node) return { ok: false, error: `节点不存在：${id}` }
     // 白名单字段（对齐官方 update_node，防 LLM 乱改任意 data 造成失同步）
-    const WHITELIST = ['prompt', 'label', 'selectedModel', 'aspectRatio', 'resolution', 'seconds', 'text']
+    const WHITELIST = ['prompt', 'label', 'selectedModel', 'aspectRatio', 'resolution', 'seconds', 'text', 'locked']
     const patch = {}
     for (const k of WHITELIST) {
       if (args[k] !== undefined) patch[k] = args[k]
@@ -359,7 +359,12 @@ const readCanvasTool = {
       type: n.type,
       label: n.data?.label || '',
       prompt: n.data?.prompt || '',
-      position: n.position || { x: 0, y: 0 }
+      position: n.position || { x: 0, y: 0 },
+      // 生成结果（打通 Agent 感知：读完画布即可看到哪个节点已出图/出视频/出音频，供多步编排）
+      imageUrl: n.data?.imageUrl || undefined,
+      videoUrl: n.data?.videoUrl || undefined,
+      audioUrl: n.data?.audioUrl || undefined,
+      resultUrl: n.data?.resultUrl || undefined,
     }))
     const edges = ctx.getEdges().map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || null }))
     return { ok: true, data: { nodes, edges } }

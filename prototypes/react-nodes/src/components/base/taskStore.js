@@ -179,6 +179,43 @@ export function runNodeGeneration(nodeId) {
   return false
 }
 
+/**
+ * 按 nodeId 等待该节点最近一次生成任务完成（done/fail 时 resolve）。
+ *
+ * 用途：Agent 多步编排 / 测试 / 脚本在需要「生成完再继续」时调用。
+ * 注意：Agent 的 SSE 工具循环是同步逐轮的，本函数按需等待，不会阻塞主循环；
+ *      若未来 Agent 循环支持真正的异步编排，可直接 awaitTask 拿到最终 resultUrl。
+ *
+ * @param {string} nodeId 节点 id
+ * @param {number} [timeout] 超时 ms，默认 60s
+ * @returns {Promise<{status:'completed'|'failed'|'timeout', resultUrl:string, errorMsg:string}>}
+ */
+export function awaitTask(nodeId, timeout = 60000) {
+  return new Promise((resolve) => {
+    let unsub = null
+    let done = false
+    const finish = (r) => {
+      if (done) return
+      done = true
+      if (unsub) unsub()
+      resolve(r)
+    }
+    const startedAt = Date.now()
+    const check = () => {
+      const t = tasks.find((x) => x.nodeId === nodeId)
+      if (t && (t.status === 'completed' || t.status === 'failed')) {
+        finish({ status: t.status, resultUrl: t.resultUrl || '', errorMsg: t.errorMsg || '' })
+        return
+      }
+      if (Date.now() - startedAt > timeout) {
+        finish({ status: 'timeout', resultUrl: '', errorMsg: '等待生成超时' })
+      }
+    }
+    unsub = subscribe(check)
+    check()
+  })
+}
+
 // 清理：按条件批量删除（同步后端）
 export function clearTasksBy(predicate) {
   const removed = tasks.filter((t) => predicate(t))
