@@ -103,10 +103,6 @@ export default function LeftPanel() {
         </div>
       )}
 
-      <style>{`
-        @keyframes panelIn { from { transform: translateX(-16px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .animate-panel-in { animation: panelIn 0.22s ease-out; }
-      `}</style>
     </>
   )
 }

@@ -260,10 +260,6 @@ export default function AccountsSettings() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
-      `}</style>
     </div>
   )
 }

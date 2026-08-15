@@ -138,14 +138,6 @@ export default function GeneratingOverlay({ label = '生成中...', backgroundUr
 
   return (
     <div className="absolute inset-0 z-10 flex items-center overflow-hidden bg-canvas">
-      {/* 官方 Ti 内联动画 keyframes */}
-      <style>{`
-        @keyframes npbSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes npbGlow { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.7; } }
-        @keyframes npbShimmer { 0% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(220%) skewX(-20deg); } }
-        @keyframes genTipIn { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
-      `}</style>
-
       {/* 背景：模糊放大压暗 */}
       {backgroundUrl && (
         <div

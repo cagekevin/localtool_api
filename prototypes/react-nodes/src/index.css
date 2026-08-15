@@ -35,7 +35,8 @@ body,
   outline: none !important;
 }
 
-/* ===== 整理结果确认弹窗入场动画（复刻 H_.jsx:11993 animate-slide-up） ===== */
+/* ===== 统一动画（keyframes 集中管理，原散落在组件内联 <style> 中） ===== */
+/* 整理结果确认弹窗入场（复刻 H_.jsx:11993） */
 @keyframes animate-slide-up {
   from {
     opacity: 0;
@@ -48,6 +49,71 @@ body,
 }
 .animate-slide-up {
   animation: animate-slide-up 0.18s ease-out;
+}
+/* 左侧面板滑出（原 LeftPanel 内联 panelIn） */
+@keyframes panelIn {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.animate-panel-in {
+  animation: panelIn 0.22s ease-out;
+}
+/* 设置页淡入（原 AccountsSettings 内联 fadeIn） */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+/* 生成中遮罩动画（原 GeneratingOverlay 内联 npbSpin/Glow/Shimmer/genTipIn，
+   被组件内联 style 以动画名引用，故保留原 keyframes 名） */
+@keyframes npbSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes npbGlow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+@keyframes npbShimmer {
+  0% {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+@keyframes genTipIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== 小地图样式（复刻 H_.jsx:12096-12097 _shared.P MiniMap） ===== */
