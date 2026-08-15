@@ -41,8 +41,9 @@ export default function ImageNode({ id, data, selected }) {
   // 查看大图弹窗（复刻官方 xi.jsx onDoubleClick → onZoom 看大图）。图片双击打开全屏查看。
   const [zoomView, setZoomView] = useState(false)
 
-  // 内容类型（统一走 detectMediaType）
-  const type = detectMediaType(url)
+  // 内容类型：优先显式 data.mediaType（blob: 等无扩展名/前缀的 URL 无法靠字符串判断，
+  // 由产出方明确标注，如视频处理节点的 audio/video 输出），否则统一走 detectMediaType
+  const type = data.mediaType || detectMediaType(url)
 
   // 性能模式媒体降级（hideMedia：'image' / 'image video audio' / ''，见 useMediaDegrade）
   const { hideMedia } = useMediaDegrade()
@@ -66,6 +67,28 @@ export default function ImageNode({ id, data, selected }) {
     },
     [id, setNodes]
   )
+
+  // 下载当前内容（图片/视频/音频/文本共用）。用 <a download> 触发浏览器保存，
+  // 文件名优先用节点 label，其次是 URL 里的文件名；无扩展名时按类型补扩展名。
+  const handleDownload = useCallback(() => {
+    if (!url) return
+    const extMap = { image: 'png', video: 'mp4', audio: 'm4a', text: 'txt' }
+    let filename = data.label || ''
+    try {
+      const fromUrl = decodeURIComponent(new URL(url).pathname.split('/').pop() || '')
+      if (fromUrl && !/^blob:|^data:/.test(url)) filename = filename || fromUrl
+    } catch {}
+    const ext = (filename.match(/\.[a-z0-9]{2,5}$/i) || [])[0] || (type !== 'image' ? `.${extMap[type] || 'bin'}` : '')
+    if (filename && !ext) filename += ext
+    if (!filename) filename = `image-${type || 'content'}${ext || '.png'}`
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }, [url, data.label, type])
 
   const DEMO_IMAGE = data.demoImage || 'https://picsum.photos/seed/imagenode/400/260'
   const defaultTitle = type === 'video' ? '视频' : type === 'audio' ? '音频' : type === 'text' ? '文本文件' : '图片'
@@ -95,7 +118,7 @@ export default function ImageNode({ id, data, selected }) {
       show: type === 'image', // 标记只对图片
     },
     { key: 'send', icon: <Send size={14} />, title: '发送到左侧网站', hoverClass: 'hover:text-blue-400' },
-    { key: 'download', icon: <Download size={14} />, title: '下载' }
+    { key: 'download', icon: <Download size={14} />, title: '下载', onClick: handleDownload, show: !!url }
   ]
 
   return (

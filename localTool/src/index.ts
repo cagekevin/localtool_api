@@ -23,7 +23,7 @@ import { handlePluginManifest, handleWorkflowAppsByProject, handleBuiltin, handl
 import { handleAdminStats, handleAdminCleanup, handleAdminExport, handleAdminImport, handleAdminKvList, handleAdminClearCache } from './routes/admin.js';
 import { handleOfficialUser, handleOfficialEntitlements, handleOfficialVipCheck, handleOfficialInvalidate } from './routes/official.js';
 import { handleAgentChat } from './routes/agentChat.js';
-import { handleProvidersGet, handleProvidersPut, handleProviderTest, handleProviderFetchModels } from './routes/providers.js';
+import { handleProvidersGet, handleProvidersPut, handleProviderTest, handleProviderFetchModels, handleConfigBasePut } from './routes/providers.js';
 // catch-all 兜底透传：未命中本地具名路由的请求原样转发官方（详见 routes/passthrough.ts 文件头）
 // 这是「改 dist base 指向 18080」的硬前置——否则未接管的 /api/* 会直接 404。
 import { handlePassthrough } from './routes/passthrough.js';
@@ -365,6 +365,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
     if (pathname === '/api/providers' && method === 'PUT') {
       return await handleProvidersPut(req, res);
+    }
+    if (pathname === '/api/config/base' && method === 'PUT') {
+      return await handleConfigBasePut(req, res);
     }
     if (pathname === '/api/providers/test-connection' && method === 'POST') {
       return await handleProviderTest(req, res);

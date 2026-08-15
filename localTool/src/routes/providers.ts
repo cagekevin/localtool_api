@@ -496,6 +496,62 @@ function emptyModels() {
   return { image_models: [], chat_models: [], video_models: [] };
 }
 
+// ── 方案A：把保存后的 providers 回写项目根 api.config.json ──
+// 解决「前端设置页改完 → providers.json 更新了、但 api.config.json 不变」的双源漂移：
+// 前端 save() 成功后调 PUT /api/config/base，把脱敏视图合并回写 json。
+// 保留顶层 _meta 和每个 provider 的 _comment（AI/人维护的注释骨架），只更新字段。
+const CONFIG_FILE = process.env.MAOMAO_CONFIG_FILE || path.join(__dirname, '..', '..', 'api.config.json');
+
+export function syncConfigJson(providers: ApiProvider[]): void {
+  let cfg: any = {};
+  try {
+    cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+  } catch {
+    cfg = {};
+  }
+  const meta = cfg._meta;
+  const oldById = new Map<string, any>((cfg.providers || []).map((p: any) => [p?.id, p]));
+
+  const newProviders = providers.map((p) => {
+    const old = oldById.get(p.id);
+    const out: Record<string, unknown> = {
+      id: p.id,
+      name: p.name,
+      base_url: p.base_url,
+      protocol: p.protocol,
+    };
+    if (p.image_request_mode) out.image_request_mode = p.image_request_mode;
+    if (p.image_mode) out.image_mode = p.image_mode;
+    if (typeof p.enabled === 'boolean') out.enabled = p.enabled;
+    if (p.isPrimary) out.isPrimary = true;
+    if (p.image_models?.length) out.image_models = p.image_models;
+    if (p.chat_models?.length) out.chat_models = p.chat_models;
+    if (p.video_models?.length) out.video_models = p.video_models;
+    if (p.model_names && Object.keys(p.model_names).length) out.model_names = p.model_names;
+    // 保留原 json 里的注释，避免回写抹掉 AI/人写的说明
+    if (old && typeof old._comment === 'string') out._comment = old._comment;
+    return out;
+  });
+
+  const out: Record<string, unknown> = {};
+  if (meta !== undefined) out._meta = meta;
+  out.providers = newProviders;
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(out, null, 2) + '\n', 'utf8');
+}
+
+export async function handleConfigBasePut(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const body = (await parseJsonBody(req)) as { providers?: unknown } | null;
+  if (!body || !Array.isArray(body.providers)) {
+    return sendError(res, 'Invalid body: providers[] required', 400);
+  }
+  try {
+    syncConfigJson(body.providers as ApiProvider[]);
+    return json(res, { ok: true });
+  } catch (e) {
+    return sendError(res, (e as Error).message || 'Failed to sync api.config.json', 500);
+  }
+}
+
 /**
  * 把 OpenAI /v1/models 返回的 id 列表按关键字分类（对齐契约 classify_upstream_model）。
  * video: video/seedance/kling/wan/minimax/veo/sora...

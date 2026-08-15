@@ -2,7 +2,7 @@ import React from 'react'
 import {
   Type, Image as ImageIcon, Clapperboard, Combine, AudioLines, Box,
   Grid3X3, Globe, Film, FileArchive, Shuffle,
-  Contrast, Link as LinkIcon, Video, ImageDown, Wand2, StickyNote,
+  Contrast, Link as LinkIcon, ImageDown, Wand2, StickyNote,
   FileUp, Grid2X2, Puzzle, FolderTree
 } from 'lucide-react'
 
@@ -48,8 +48,7 @@ export const paletteNodes = [
   { type: 'discountVideoNode', label: '视频', icon: Clapperboard, cat: 'video', data: { prompt: '' }, builtin: true },
   { type: 'videoNode', label: '其他视频', icon: Film, cat: 'video', data: { prompt: '' } },
   { type: 'videoExtractNode', label: '视频抽帧', icon: ImageDown, cat: 'video' },
-  { type: 'videoToGifNode', label: '视频转GIF', icon: Video, cat: 'video' },
-  { type: 'videoProcessNode', label: '视频处理', icon: Wand2, cat: 'video', badge: { text: 'NEW', tone: 'new' }, data: { mode: 'trim', sourceOrder: [], audioFormat: 'm4a', trimStart: 0, trimEnd: 4, resizeWidth: 1280, resizeHeight: 720, targetFps: 30 } },
+  { type: 'videoProcessNode', label: '视频处理', icon: Wand2, cat: 'video', badge: { text: 'NEW', tone: 'new' }, builtin: true, data: { mode: 'trim', sourceOrder: [], timelineTracks: [], audioFormat: 'm4a', trimStart: 0, trimEnd: 4, resizeWidth: 1280, resizeHeight: 720, targetFps: 30 } },
 
   // --- 其他工具 ---
   { type: 'group', label: '编组', icon: FolderTree, cat: 'other', builtin: true },

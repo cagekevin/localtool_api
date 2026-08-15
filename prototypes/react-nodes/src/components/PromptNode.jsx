@@ -167,6 +167,25 @@ export default function PromptNode({ id, data, selected }) {
   const insertMention = (name) => setPrompt((p) => (p ? `${p} @${name} ` : `@${name} `))
   const hasImage = !!imageUrl
 
+  // 下载生成的图片（<a download> 触发浏览器保存）
+  const handleDownload = () => {
+    if (!imageUrl) return
+    let filename = data.label || data.name || ''
+    try {
+      const fromUrl = decodeURIComponent(new URL(imageUrl).pathname.split('/').pop() || '')
+      if (fromUrl && !/^blob:|^data:/.test(imageUrl)) filename = filename || fromUrl
+    } catch {}
+    if (!/\.[a-z0-9]{2,5}$/i.test(filename)) filename += (filename ? '.' : '') + 'png'
+    if (!filename) filename = 'generated.png'
+    const a = document.createElement('a')
+    a.href = imageUrl
+    a.download = filename
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
   // hover 操作栏按钮
   const toolbarButtons = [
     ...(refImages.length === 0
@@ -179,7 +198,7 @@ export default function PromptNode({ id, data, selected }) {
           { key: 'edit', icon: <Pencil size={14} />, title: '编辑' },
           { key: 'send', icon: <Send size={14} />, title: '发送到左侧网站', hoverClass: 'hover:text-blue-400' },
           { key: 'jianying', icon: <JianyingIcon size={14} />, title: '发送到剪映素材库', hoverClass: 'hover:text-emerald-400' },
-          { key: 'download', icon: <Download size={14} />, title: '下载' }
+          { key: 'download', icon: <Download size={14} />, title: '下载', onClick: handleDownload }
         ]
       : [])
   ]

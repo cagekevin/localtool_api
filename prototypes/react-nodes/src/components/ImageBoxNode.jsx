@@ -10,6 +10,7 @@ import CustomHandle from './CustomHandle.jsx'
 import FullscreenModal from './base/FullscreenModal.jsx'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
+import LazyImage from './base/LazyImage.jsx'
 import { showToast } from './base/toastStore.js'
 
 /**
@@ -557,7 +558,7 @@ export default function ImageBoxNode({ id, data, selected }) {
                       }}
                       title={img.label || (isSel ? '点击取消选择' : '点击选择 (按住 Ctrl 设为默认图)')}
                     >
-                      <img src={img.thumb || img.url} alt={img.label || ''} loading="lazy" decoding="async" className="w-full h-full object-cover bg-[#0e0e0e]" draggable={false} />
+                      <LazyImage src={img.thumb || img.url} alt={img.label || ''} className="w-full h-full" imgClassName="w-full h-full object-cover bg-[#0e0e0e]" />
                       <button
                         className={`absolute top-1 left-1 w-4 h-4 rounded flex items-center justify-center transition-colors cursor-pointer border-none ${isSel ? 'bg-emerald-500 text-white' : 'bg-black/50 text-gray-300 group-hover/thumb:bg-black/70'}`}
                         onClick={(e) => { e.stopPropagation(); toggleSelect(img.id) }}

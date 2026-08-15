@@ -171,6 +171,12 @@ export async function save() {
     })
     const data = await providerApi.saveProviders(payload)
     setState({ providers: data.providers || state.providers, dirty: false })
+    // 方案A：把保存后的结果回写 api.config.json，消除双源漂移。
+    // 回写是辅助动作，失败不影响主保存（避免 json 写失败导致保存报错）。
+    providerApi
+      .syncConfigBase(data.providers || payload)
+      .then(() => setState({ configSynced: true }))
+      .catch((e) => setState({ configSyncError: e.message }))
     // 对齐官方 active_api_endpoint（KV）：把主供应商写入 localTool KV，供跨端读取当前生效 endpoint
     const primary = (data.providers || state.providers).find((p) => p.isPrimary) || (data.providers || state.providers)[0]
     if (primary) {

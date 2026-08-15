@@ -22,4 +22,6 @@ export const providerApi = {
   saveProviders: (providers) => request('/api/providers', { method: 'PUT', body: { providers } }),
   testConnection: (payload) => request('/api/providers/test-connection', { method: 'POST', body: payload }),
   fetchModels: (id) => request(`/api/providers/${encodeURIComponent(id)}/fetch-models`, { method: 'POST' }),
+  // 方案A：保存后把合并结果回写项目根 api.config.json（保留 _meta/_comment），消除双源漂移
+  syncConfigBase: (providers) => request('/api/config/base', { method: 'PUT', body: { providers } }),
 }

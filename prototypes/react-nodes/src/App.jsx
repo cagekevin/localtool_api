@@ -24,6 +24,7 @@ import VideoExtractNode from './components/VideoExtractNode.jsx'
 import ImageBoxNode from './components/ImageBoxNode.jsx'
 import GridSplitNode from './components/GridSplitNode.jsx'
 import GridMergeNode from './components/GridMergeNode.jsx'
+import VideoProcessNode from './components/VideoProcessNode.jsx'
 import GroupNode from './components/GroupNode.jsx'
 import ScriptBoxNode from './components/ScriptBoxNode.jsx'
 import GhostTargetNode from './components/GhostTargetNode.jsx'
@@ -67,6 +68,7 @@ const nodeTypes = {
   imageBoxNode: ImageBoxNode,
   gridSplitNode: GridSplitNode,
   gridMergeNode: GridMergeNode,
+  videoProcessNode: VideoProcessNode,
   group: GroupNode,
   scriptBoxNode: ScriptBoxNode,
   ghostTarget: GhostTargetNode
@@ -254,6 +256,10 @@ function Canvas() {
       if (type === 'gridSplitNode') {
         // 图片切分对齐官方 Lo.jsx：固定窄容器 280px，图片区跟随图片比例
         Object.assign(newNode, { width: 280, style: { width: 280 } })
+      }
+      if (type === 'videoProcessNode') {
+        // 视频处理对齐官方 Gc.jsx：min 520×620
+        Object.assign(newNode, { width: 520, height: 620, style: { width: 520, height: 620 } })
       }
       const nextNodes = [...nodesRef.current, newNode]
       // 若带 connection：自动创建 source→新节点 的边
@@ -838,6 +844,14 @@ function Canvas() {
           fitView
           fitViewOptions={{ padding: 0.2, maxZoom: 1, minZoom: 0.05 }}
           onViewportChange={onViewportChange}
+          /* ===== 画布性能优化（复刻 H_.jsx:11958-11964）===== */
+          elevateNodesOnSelect={false}
+          elevateEdgesOnSelect={false}
+          nodeOrigin={[0, 0]}
+          onlyRenderVisibleElements={nodes.length > 20}
+          selectionOnDrag={nodes.length <= 80}
+          panOnDrag
+          className={nodes.length > 100 ? 'performance-large-canvas' : undefined}
         >
           {/* 点阵网格：gap=20 / size=1 / color=#333（复刻 H_.jsx:12100） */}
           <Background

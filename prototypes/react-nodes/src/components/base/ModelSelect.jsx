@@ -43,6 +43,8 @@ export default function ModelSelect({
     const item = models.find((m) => m.id === id)
     return item?.badge || 'builtin'
   }
+  // 当前选中模型项（按钮上显示其 label，而不是裸 value——避免把 provider 前缀拼进去）
+  const selectedItem = models.find((m) => m.id === value)
   // 当前选中模型的 badge 样式（外层按钮用）
   const selectedBadge = badgeMeta(badge(value))
 
@@ -58,7 +60,7 @@ export default function ModelSelect({
         <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${selectedBadge.className}`}>
           {selectedBadge.label}
         </span>
-        <span className="whitespace-nowrap">{value || placeholder}</span>
+        <span className="whitespace-nowrap">{selectedItem?.label || value || placeholder}</span>
       </button>
 
       {open && (

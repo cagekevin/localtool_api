@@ -15,6 +15,8 @@ import JianyingIcon from './JianyingIcon.jsx'
 import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
+import { useVideoPoster } from './base/useVideoPoster.js'
+import LazyImage from './base/LazyImage.jsx'
 import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
 import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import { generateVideo } from './base/videoApi.js'
@@ -31,6 +33,9 @@ export default function DiscountVideoNode({ id, data, selected }) {
   // 性能模式媒体降级（通用 hook）：hideVideo = isHidden('video')，即 lodLevel>=3
   const { isHidden } = useMediaDegrade()
   const hideVideo = isHidden('video')
+
+  // 视频首帧封面（复刻官方 xi.jsx poster 机制）：未播放时只显示首帧封面、不加载视频本体，点击才加载播放
+  const posterUrl = useVideoPoster(videoUrl)
 
   // 通用连线数据传递：读取直接上游节点的图片/文本作为参考素材
   const connected = useConnectedInputs(id)
@@ -139,7 +144,32 @@ export default function DiscountVideoNode({ id, data, selected }) {
     return () => unregisterTaskRetry(id)
   }, [id])
 
+  // 外部写入 videoUrl（如视频处理节点 spawn 输出）→ 同步到本地 state，使节点显示/可下载该视频
+  React.useEffect(() => {
+    if (data.videoUrl && data.videoUrl !== videoUrl) setVideoUrl(data.videoUrl)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.videoUrl])
+
   const onUpload = () => fileRef.current?.click()
+
+  // 下载当前视频（<a download> 触发浏览器保存；文件名取 label，缺扩展名补 .mp4）
+  const handleDownload = () => {
+    if (!videoUrl) return
+    let filename = data.label || ''
+    try {
+      const fromUrl = decodeURIComponent(new URL(videoUrl).pathname.split('/').pop() || '')
+      if (fromUrl && !/^blob:|^data:/.test(videoUrl)) filename = filename || fromUrl
+    } catch {}
+    if (!/\.[a-z0-9]{2,5}$/i.test(filename)) filename += (filename ? '.' : '') + 'mp4'
+    if (!filename) filename = 'video.mp4'
+    const a = document.createElement('a')
+    a.href = videoUrl
+    a.download = filename
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
 
   // hover 操作栏按钮
   const toolbarButtons = [
@@ -147,7 +177,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
     ...(videoUrl
       ? [
           { key: 'fullscreen', icon: <Expand size={14} />, title: '全屏播放' },
-          { key: 'download', icon: <Download size={14} />, title: '下载' },
+          { key: 'download', icon: <Download size={14} />, title: '下载', onClick: handleDownload },
           {
             key: 'jianying',
             icon: <JianyingIcon size={14} />,
@@ -198,7 +228,8 @@ export default function DiscountVideoNode({ id, data, selected }) {
             <>
               <video
                 src={videoUrl}
-                poster={data.poster || ''}
+                poster={posterUrl || data.poster || ''}
+                preload="none"
                 className={`max-w-full w-full h-full object-contain block rounded-lg ${loading ? 'opacity-50 blur-sm' : ''}`}
                 controls={false}
                 autoPlay={false}
@@ -238,7 +269,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
             <div className="flex flex-wrap gap-2 mb-1">
               {connected.images.map((img, i) => (
                 <div key={img.id || i} className="w-10 h-10 rounded-md overflow-hidden border border-[#444] relative group bg-black cursor-grab active:cursor-grabbing nodrag nopan" title="连线图片 (点击底部标签插入到提示词)">
-                  <img src={img.url} alt="Ref" className="w-full h-full object-cover pointer-events-none" />
+                  <LazyImage src={img.url} alt="Ref" className="w-full h-full" imgClassName="w-full h-full object-cover pointer-events-none" />
                 </div>
               ))}
               {connected.texts.map((t, i) => (
