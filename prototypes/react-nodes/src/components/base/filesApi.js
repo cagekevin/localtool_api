@@ -18,10 +18,12 @@ const EXT_BY_TYPE = {
   audio: 'm4a',
 }
 
-/** 文件名去非法字符 + 时间戳唯一化 */
+/** 文件名去非法字符 + 可读时间戳唯一化（到秒，如 20250815_142305） */
 function safeName(base, ext) {
   const clean = (base || '').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_') || 'result'
-  const ts = Date.now().toString(36)
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const ts = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
   return `${clean}_${ts}.${ext}`
 }
 
@@ -93,7 +95,10 @@ export async function saveResultToTasks(url, type) {
 export async function saveTextToTasks(text, name) {
   if (typeof text !== 'string' || !text.trim()) return null
   const safeName = (name || 'generated').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_') || 'generated'
-  const filename = `${safeName}_${Date.now().toString(36)}.txt`
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const ts = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+  const filename = `${safeName}_${ts}.txt`
   try {
     const blob = new Blob([text], { type: 'text/plain' })
     const fd = new FormData()
