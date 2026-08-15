@@ -29,8 +29,9 @@ const cases = [
     props: { id: 'image-1', data: { label: '图片节点', demoImage: true }, selected: false },
     expect: [
       'group/node',                // 节点根
-      'bg-[#1c1c1c]',              // 主容器
-      'group-hover/node:opacity-100', // hover 操作栏
+      'bg-surface-raised',         // 主容器（统一 NodeShell 外壳）
+      'rounded-xl',                // 圆角
+      'border-edge',               // 边框
       'cust-handle',               // 端口
     ],
   },
@@ -38,19 +39,19 @@ const cases = [
     name: '文本节点 TextNode',
     Comp: TextNode,
     props: { id: 'text-1', data: { label: '文本节点' }, selected: false },
-    expect: ['group/node', 'bg-[#1c1c1c]', 'group-hover/node:opacity-100', 'cust-handle'],
+    expect: ['group/node', 'bg-surface-raised', 'rounded-xl', 'border-edge', 'cust-handle'],
   },
   {
     name: '生图节点 PromptNode',
     Comp: PromptNode,
     props: { id: 'prompt-1', data: { label: '生图节点', expanded: true }, selected: false },
-    expect: ['group/node', 'bg-[#1c1c1c]', 'group-hover/node:opacity-100', 'cust-handle'],
+    expect: ['group/node', 'bg-surface-raised', 'rounded-xl', 'border-edge', 'cust-handle'],
   },
   {
     name: '特惠视频 DiscountVideoNode',
     Comp: DiscountVideoNode,
     props: { id: 'discount-1', data: { label: '特惠视频', expanded: true }, selected: false },
-    expect: ['group/node', 'bg-[#1c1c1c]', 'group-hover/node:opacity-100', 'cust-handle'],
+    expect: ['group/node', 'bg-surface-raised', 'rounded-xl', 'border-edge', 'cust-handle'],
   },
 ]
 

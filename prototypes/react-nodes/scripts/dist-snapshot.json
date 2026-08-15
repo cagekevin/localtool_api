@@ -1,0 +1,28 @@
+{
+  "assets": {
+    "assets/index-CzKrLDn8.js": {
+      "size": 1564848
+    },
+    "assets/style-BJeM1dqx.css": {
+      "size": 92365
+    }
+  },
+  "background.js": {
+    "size": 5548
+  },
+  "icon128.png": {
+    "size": 25293
+  },
+  "icon16.png": {
+    "size": 831
+  },
+  "icon48.png": {
+    "size": 4849
+  },
+  "index.html": {
+    "size": 713
+  },
+  "manifest.json": {
+    "size": 1959
+  }
+}

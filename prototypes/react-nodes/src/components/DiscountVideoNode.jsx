@@ -34,9 +34,6 @@ export default function DiscountVideoNode({ id, data, selected }) {
   const { isHidden } = useMediaDegrade()
   const hideVideo = isHidden('video')
 
-  // 视频首帧封面（复刻官方 xi.jsx poster 机制）：未播放时只显示首帧封面、不加载视频本体，点击才加载播放
-  const posterUrl = useVideoPoster(videoUrl)
-
   // 通用连线数据传递：读取直接上游节点的图片/文本作为参考素材
   const connected = useConnectedInputs(id)
   const [prompt, setPrompt] = useState(data.prompt || '')
@@ -47,6 +44,10 @@ export default function DiscountVideoNode({ id, data, selected }) {
   const [expanded, setExpanded] = useState(data.expanded === undefined ? true : data.expanded)
   const [videoUrl, setVideoUrl] = useState(data.videoUrl || '')
   const [showRatioMenu, setShowRatioMenu] = useState(false)
+
+  // 视频首帧封面（复刻官方 xi.jsx poster 机制）：未播放时只显示首帧封面、不加载视频本体，点击才加载播放
+  // 注意：必须在 videoUrl state 定义之后调用，否则触发 TDZ「Cannot access before initialization」
+  const posterUrl = useVideoPoster(videoUrl)
   const fileRef = useRef(null)
   const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
   const ratioMenuRef = useRef(null) // 比例/分辨率/时长菜单容器（点击外部关闭）

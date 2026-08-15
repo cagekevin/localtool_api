@@ -118,7 +118,8 @@ function checkReactFlowApis(ROOT) {
         // useReactFlow() 官方返回：setNodes/getNodes/setEdges/getEdges/... 但 updateNodeInternals 不在其中
         const allowedFromUseReactFlow = new Set([
           'getNodes', 'setNodes', 'getNode', 'addNodes', 'setNodes',
-          'getEdges', 'setEdges', 'addEdges', 'getViewport', 'setViewport',
+          'getEdges', 'setEdges', 'addEdges', 'deleteElements',
+          'getViewport', 'setViewport',
           'fitView', 'fitBounds', 'zoomIn', 'zoomOut', 'getZoom', 'setCenter',
           'getIntersectingNodes', 'isNodeIntersecting', 'screenToFlowPosition',
           'flowToScreenPoint', 'getTransformInstance', 'project', 'getViewport'
