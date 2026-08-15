@@ -44,9 +44,63 @@ function classifyUrl(url) {
   return 'image'
 }
 
+/** 产出类型判定：data.mediaType 优先（产出方自带），否则按 URL 分类。
+ *  · 为什么 mediaType 优先：如 VideoProcessNode extractAudio spawn 的 imageNode 带
+ *    data.mediaType:'audio'（blob: URL 无扩展名），classifyUrl 会误判为 image。
+ *    产出方自带类型是「协议判断」与「节点渲染判断」一致的唯一来源。 */
+function resolveKind(url, mediaType) {
+  if (mediaType === 'image' || mediaType === 'video' || mediaType === 'audio') return mediaType
+  return classifyUrl(url || '')
+}
+
+/**
+ * ════════════════════════════════════════════════════════════════
+ * 节点产出声明表（管线契约入口，治根）
+ * ════════════════════════════════════════════════════════════════
+ * 每个「有产出的上游节点」在此声明如何解析它的产出。getNodeOutput 统一查表调度。
+ *  · 新增节点只需在此加一行声明，产出即对下游开放，天然接入管线。
+ *  · 各声明返回 { images:[{id,url,label}], texts:[{id,label,text}], videos:[{id,url}], audios:[{id,url}] }。
+ *  · 数组型产出（images[]/extractedImages[]）在此集中归一，避免各节点手写上游解析导致不一致。
+ */
+function arrayImages(list, prefix = 'img', labelFn) {
+  return (list || [])
+    .map((url, i) => ({ id: `${prefix}-${i}`, url, label: labelFn ? labelFn(i) : '' }))
+    .filter((x) => x.url)
+}
+
+const NODE_OUTPUTS = {
+  // 图片盒子：多图（对象数组 {id,url,label}），产出全部图；mediaType 由 URL 判定
+  imageBoxNode: (d) => ({
+    images: (d.images || [])
+      .map((im) => ({ id: im.id, url: im.url, label: im.label || '' }))
+      .filter((x) => x.url),
+  }),
+  // 视频抽帧 / 网格切图 / 网格合并：data.extractedImages[]（dataURL 字符串数组）
+  videoExtractNode: (d) => ({ images: arrayImages(d.extractedImages, 'frame', (i) => `帧 ${i + 1}`) }),
+  gridSplitNode: (d) => ({ images: arrayImages(d.extractedImages, 'split', (i) => `切片 ${i + 1}`) }),
+  gridMergeNode: (d) => ({ images: arrayImages(d.extractedImages, 'merge', (i) => `图 ${i + 1}`) }),
+}
+
+/** 通用单产出兜底：imageUrl > videoUrl > resultUrl，且尊重 data.mediaType */
+function genericOutput(d, id) {
+  const empty = { images: [], texts: [], videos: [], audios: [] }
+  const candidates = [
+    { url: d.imageUrl, mediaType: d.mediaType },
+    { url: d.videoUrl, mediaType: d.mediaType },
+    { url: d.resultUrl, mediaType: d.mediaType },
+  ].filter((c) => c.url && typeof c.url === 'string')
+  for (const { url, mediaType } of candidates) {
+    const kind = resolveKind(url, mediaType)
+    const item = { id, url }
+    if (kind === 'video') return { ...empty, videos: [item] }
+    if (kind === 'audio') return { ...empty, audios: [item] }
+    return { ...empty, images: [item] }
+  }
+  return empty
+}
+
 /** 提取「单个」源节点的产出资源（复刻官方 Ra + Ia）。
- *  根据节点类型返回它产出的 { images, texts, videos, audios }。
- *  · 顺序：先处理特殊类型（剧本盒子/文本节点），再按通用字段（imageUrl/videoUrl/resultUrl/label）兜底。
+ *  统一调度：特殊类型（剧本盒子/文本节点）→ 节点产出声明表 → 通用字段兜底。
  *  · 为什么统一返回 { id, url, label, text } 对象：下游渲染缩略图/文本都需要 id 作 key、label 作显示名。
  *  · 无产出返回空对象，不返回 undefined：调用方可直接 push，无需判空。 */
 export function getNodeOutput(node, sourceHandle) {
@@ -68,31 +122,15 @@ export function getNodeOutput(node, sourceHandle) {
     return { ...empty, texts: [{ id: node.id, label: d.label || '参考文本', text: d.text }] }
   }
 
-  // 其余节点按 imageUrl / videoUrl 分类（图片/视频/音频）。
-  // 优先级 imageUrl > videoUrl > resultUrl > label：节点可能同时有几个字段，取「最具体的产出」。
-  if (d.imageUrl && typeof d.imageUrl === 'string') {
-    const kind = classifyUrl(d.imageUrl)
-    const item = { id: node.id, url: d.imageUrl }
-    if (kind === 'video') return { ...empty, videos: [item] }
-    if (kind === 'audio') return { ...empty, audios: [item] }
-    return { ...empty, images: [item] }
+  // 1. 节点产出声明表（管线契约）：声明过的节点类型走这里（含数组型产出 + 自带 mediaType）。
+  const declared = NODE_OUTPUTS[node.type]
+  if (declared) {
+    const out = declared(d, sourceHandle) || {}
+    return { ...empty, ...out }
   }
-  if (d.videoUrl && typeof d.videoUrl === 'string') {
-    return { ...empty, videos: [{ id: node.id, url: d.videoUrl }] }
-  }
-  if (d.resultUrl && typeof d.resultUrl === 'string') {
-    const kind = classifyUrl(d.resultUrl)
-    const item = { id: node.id, url: d.resultUrl }
-    if (kind === 'video') return { ...empty, videos: [item] }
-    if (kind === 'audio') return { ...empty, audios: [item] }
-    return { ...empty, images: [item] }
-  }
-  // 其余文本类输出（label/prompt 兜底）。
-  // 为什么排除 imageNode：图片节点没有文本产出，不该拿 label 冒充文本。
-  if (d.label && typeof d.label === 'string' && node.type !== 'imageNode') {
-    return { ...empty, texts: [{ id: node.id, label: d.label, text: d.label }] }
-  }
-  return empty
+
+  // 2. 通用单产出兜底（imageUrl/videoUrl/resultUrl + 尊重 mediaType）。
+  return genericOutput(d, node.id)
 }
 
 /** 聚合「直接上游」节点的产出（下游生成时读取）。
