@@ -115,10 +115,12 @@ function Canvas() {
    *  - BroadcastChannel('yimao_canvas_sync') 监听：收到「其他窗口」保存的
    *    同一项目 CANVAS_SAVED → 显示红色警告条「画布在其他窗口被修改」
    *
-   * ═══ 官方其他 BroadcastChannel/mutiwindow 广播，我们为什么不做 ═══
-   * 1) mutiwindow-task-completed / mutiwindow-rerun-task（任务跨窗口联动）：
-   *    任务中心已走后端 /api/tasks 轮询（taskStore），任务完成自己会刷新；
-   *    再做广播属于重复轮子，且任务数据在 localTool 共享，其他窗口轮询自然拿到最新。
+   * ═══ 官方其他 BroadcastChannel/mutiwindow 事件，我们为什么不做 ═══
+   * 1) mutiwindow-task-completed / mutiwindow-rerun-task：
+   *    已在官方 H_.jsx 核实：它们其实是【窗口内】CustomEvent（window.addEventListener /
+   *    dispatchEvent），并非跨窗口 BroadcastChannel；且全项目【只有监听、从未 dispatch】，
+   *    属于预留钩子/死代码，当前业务流程根本不触发 → 无脑复刻没有意义。
+   *    任务完成本就走 taskStore + /api/tasks 轮询刷新，结果落盘即更新，不依赖该事件。
    * 2) mutiwindow-open-schedule-settings / open-builtin-settings：
    *    这是「模型调度 / 内置模型详情」两个独立功能面板的窗口内事件，
    *    属功能缺失而非窗口机制，应单独评估开发，不并入本多窗口模块。
