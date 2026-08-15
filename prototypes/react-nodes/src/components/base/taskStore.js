@@ -163,6 +163,22 @@ export function retryTask(id) {
   return false
 }
 
+/**
+ * 按 nodeId 直接触发节点生成（供 Agent trigger_generation / 测试 / 脚本调用）。
+ * 复用 useNodeGeneration 注册到 retryRegistry 的回调（即该节点的 start）。
+ * 返回是否成功触发。
+ */
+export function runNodeGeneration(nodeId) {
+  if (!nodeId) return false
+  const fn = retryRegistry.get(nodeId)
+  if (fn) {
+    try { fn() } catch (e) { console.error('[taskStore] runNodeGeneration 触发失败:', e) }
+    return true
+  }
+  console.warn('[taskStore] runNodeGeneration 未找到节点回调 nodeId=', nodeId)
+  return false
+}
+
 // 清理：按条件批量删除（同步后端）
 export function clearTasksBy(predicate) {
   const removed = tasks.filter((t) => predicate(t))

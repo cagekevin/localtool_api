@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useReactFlow, useUpdateNodeInternals } from '@xyflow/react'
-import { reportGenerate } from './taskStore.js'
-import { logger } from './logger.js'
 
 /**
  * 判断事件目标是否在可编辑元素内（INPUT / TEXTAREA / contenteditable）。
@@ -173,53 +171,6 @@ export function useNodeResize(id) {
   )
 
   return { onMainBoxResize, onInputResize }
-}
-
-/**
- * 生成/停止模拟 hook。
- * @param onDone 生成完成回调（可设结果）
- * @param delay 模拟耗时 ms
- * @param task 可选任务上报信息 { nodeId, type, prompt }，传了则在开始/完成时自动写入任务中心
- */
-export function useGenerate({ onDone, delay = 2000, task } = {}) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const timer = useRef(null)
-  const taskRef = useRef(task)
-  taskRef.current = task
-
-  const start = useCallback(() => {
-    if (timer.current) return
-    setLoading(true)
-    setError('')
-    // 上报任务：生成中，并模拟进度递增（对齐官方进度条）
-    const t = taskRef.current
-    let taskCtl = null
-    if (t?.nodeId) {
-      taskCtl = reportGenerate(t.nodeId, t.type, t.prompt, { modelName: t.modelName })
-      taskCtl.progress(15)
-      logger.info('生成', 'start', { nodeId: t.nodeId, type: t.type, prompt: t.prompt })
-    }
-    timer.current = setTimeout(() => {
-      setLoading(false)
-      timer.current = null
-      taskCtl?.done(t.resultUrl) // 标记任务完成
-      if (t?.nodeId) logger.info('生成', 'success', { nodeId: t.nodeId, type: t.type })
-      onDone?.()
-    }, delay)
-  }, [onDone, delay])
-
-  const stop = useCallback(() => {
-    if (timer.current) {
-      clearTimeout(timer.current)
-      timer.current = null
-    }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => () => clearTimeout(timer.current), [])
-
-  return { loading, setLoading, error, setError, start, stop }
 }
 
 /**

@@ -13,10 +13,10 @@ import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import GeneratingOverlay from './base/GeneratingOverlay.jsx'
 import PromptLibraryButton from './base/PromptLibraryButton.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
-import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
+import { useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
-import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
+import { useNodeGeneration } from './base/useNodeGeneration.js'
 import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import { generateImage } from './base/imageApi.js'
 import { useNodePrefs } from './base/nodePrefs.js'
@@ -85,61 +85,34 @@ export default function PromptNode({ id, data, selected }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultFromProvider])
 
-  // 生成 loading / error（useGenerate 只复用 loading/stop 管理，真实请求走 handleGenerate）
-  const { loading, setLoading, error, setError, stop: onStop } = useGenerate({})
-
-  // 真实生图：经 localTool /api/proxy → 选中的 provider /v1/images/generations（节点式：可跨 provider 选模型）
-  // 同步/异步由该 provider.image_mode 决定（API 设置页「图片生成模式」）。
-  const handleGenerate = async () => {
-    // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
-    const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
-    console.log('[PromptNode] handleGenerate 触发, provider=', useProvider?.id, 'model=', modelId, '原始selected=', selectedModel)
-    const p = prompt || ''
-    if (!p.trim()) { console.log('[PromptNode] 无提示词，跳过'); setError('请输入提示词'); return }
-    setLoading(true)
-    setError('')
-    const taskCtl = reportGenerate(id, 'image', p, { modelName: modelId })
-    taskCtl.progress(10)
-    const refUrls = refImages.map((img) => img.url)
-    console.log('[PromptNode] 参考图 refImages=', JSON.stringify(refImages).slice(0, 500), 'urls=', JSON.stringify(refUrls).slice(0, 500))
-    try {
-      const r = await generateImage({
+  // 统一生成契约（useNodeGeneration）：收敛「reportGenerate + 进度 + 成功双写(taskStore+node.data) + 失败 + retry注册」。
+  // 真实生图：经 localTool /api/proxy → 选中的 provider /v1/images/generations（节点式：可跨 provider 选模型）。
+  // 同步/异步由该 provider.image_mode 决定（API 设置页「图片生成模式」）。Agent 的 trigger_generation 也走这里。
+  const { loading, error, stop: onStop, start: handleGenerate } = useNodeGeneration({
+    nodeId: id,
+    type: { type: 'image', prompt: prompt || '', modelName: selectedModel },
+    validate: () => (prompt?.trim() ? '' : '请输入提示词'),
+    run: async ({ progress }) => {
+      // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
+      const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
+      const refUrls = refImages.map((img) => img.url)
+      // 图生图：把连线上游产出的参考图传下去（网关 image_urls 字段）
+      return generateImage({
         provider: useProvider,
-        prompt: p,
+        prompt: prompt || '',
         model: modelId,
         size: imageSize,
         n: count,
         aspectRatio,
-        // 图生图：把连线上游产出的参考图传下去（网关 image_urls 字段）
         images: refUrls,
-      }, (pct) => taskCtl.progress(Math.max(15, Math.min(98, Math.round(pct)))))
-      if (r.ok) {
-        console.log('[PromptNode] 生图成功 url=', r.url)
-        setImageUrl(r.url)
-        // 记忆本次参数（模型/比例/尺寸），供新建节点复用
-        setImgPrefs({ model: selectedModel, aspectRatio, imageSize })
-        taskCtl.done(r.url)
-      } else {
-        console.error('[PromptNode] 生图失败 error=', r.error)
-        setError(r.error || '生成失败')
-        taskCtl.fail(r.error || '生成失败')
-      }
-    } catch (e) {
-      console.error('[PromptNode] 生图异常:', e?.message)
-      setError(e?.message || '生成失败')
-      taskCtl.fail(e?.message || '生成失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 任务中心「再来一次/刷新」→ 触发本节点重新生成（挂载注册，卸载注销）
-  const handleGenerateRef = useRef(handleGenerate)
-  React.useEffect(() => { handleGenerateRef.current = handleGenerate })
-  React.useEffect(() => {
-    registerTaskRetry(id, () => handleGenerateRef.current())
-    return () => unregisterTaskRetry(id)
-  }, [id])
+      }, (pct) => progress(Math.max(15, Math.min(98, Math.round(pct)))))
+    },
+    onSuccess: (r) => {
+      setImageUrl(r.url)
+      // 记忆本次参数（模型/比例/尺寸），供新建节点复用
+      setImgPrefs({ model: selectedModel, aspectRatio, imageSize })
+    },
+  })
 
   // 图片可选比例（含 1:3 / 3:1 极端竖/横比例，不含 1:2 / 2:1）
   const ratioOptions = ['Auto', '1:1', '16:9', '9:16', '3:2', '2:3', '4:3', '3:4', '21:9', '9:21', '1:3', '3:1']

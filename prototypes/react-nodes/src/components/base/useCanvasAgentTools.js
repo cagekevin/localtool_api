@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import { getPaletteNode, defaultNodeData } from './NodePalette.jsx'
+import { runNodeGeneration } from './taskStore.js'
 
 /**
  * ════════════════════════════════════════════════════════════════
@@ -364,18 +365,25 @@ const readCanvasTool = {
   }
 }
 
-/** 触发节点生成（trigger_generation）—— 假实现，标注真链路 */
+/**
+ * 触发节点生成（trigger_generation）
+ * 走统一生成契约：useNodeGeneration 已把各节点的 start 注册到 taskStore.retryRegistry，
+ * 这里按 nodeId 调用 runNodeGeneration 即可驱动「真」生成（含进度 + 任务中心 + node.data 双写）。
+ */
 const triggerGenerationTool = {
   name: 'trigger_generation',
-  description: '触发指定节点的生成任务。生成为异步过程，提交后返回状态。调用前确保该节点已有提示词。',
+  description: '触发指定节点的生成任务。生成为异步过程，提交后立即返回。调用前确保该节点已有提示词。',
   parameters: { type: 'object', properties: { nodeId: { type: 'string' } }, required: ['nodeId'] },
   execute(args, ctx) {
     const id = str(args.nodeId)
     const node = ctx.getNodes().find((n) => n.id === id)
     if (!node) return { ok: false, error: `节点不存在：${id}` }
-    // 真链路：调 localTool /v1/gateway 生成 + 轮询，写回 data.imageUrl/videoUrl。
-    // 当前原型为假实现：仅确认节点存在并回执，不真正生成。
-    return { ok: true, data: { id, submitted: true, note: '原型阶段：生成未真正执行（需接真引擎）' } }
+    // 通过统一契约触发真实生成（节点须已用 useNodeGeneration 注册 start）。
+    const triggered = runNodeGeneration(id)
+    if (!triggered) {
+      return { ok: false, error: `节点 ${id} 未注册生成契约（类型 ${node.type} 暂不支持由 Agent 驱动）` }
+    }
+    return { ok: true, data: { id, submitted: true, note: '已触发生成（走 useNodeGeneration 统一契约）' } }
   }
 }
 

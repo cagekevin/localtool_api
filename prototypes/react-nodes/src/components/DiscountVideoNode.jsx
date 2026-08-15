@@ -12,12 +12,12 @@ import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import GeneratingOverlay from './base/GeneratingOverlay.jsx'
 import PromptLibraryButton from './base/PromptLibraryButton.jsx'
 import JianyingIcon from './JianyingIcon.jsx'
-import { useGenerate, useNodeResize, useOutsideClick } from './base/hooks.js'
+import { useNodeResize, useOutsideClick } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
 import { useMediaDegrade } from './base/useMediaDegrade.js'
 import { useVideoPoster } from './base/useVideoPoster.js'
 import LazyImage from './base/LazyImage.jsx'
-import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
+import { useNodeGeneration } from './base/useNodeGeneration.js'
 import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import { generateVideo } from './base/videoApi.js'
 import { useNodePrefs } from './base/nodePrefs.js'
@@ -91,58 +91,32 @@ export default function DiscountVideoNode({ id, data, selected }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultFromProvider])
 
-  // 生成 loading / error（useGenerate 只复用 loading/stop 管理，真实请求走 handleGenerate）
-  const { loading, setLoading, error, setError, stop: onStop } = useGenerate({})
-
-  // 真实视频生成：经 localTool /api/proxy → 选中的 provider /v1/videos/generations（节点式：可跨 provider 选模型）
-  const handleGenerate = async () => {
-    // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
-    const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
-    console.log('[DiscountVideoNode] handleGenerate 触发, provider=', useProvider?.id, 'model=', modelId, '原始selected=', selectedModel)
-    const p = prompt || ''
-    if (!p.trim()) { console.log('[DiscountVideoNode] 无提示词，跳过'); setError('请输入提示词'); return }
-    setLoading(true)
-    setError('')
-    const taskCtl = reportGenerate(id, 'video', p, { modelName: modelId })
-    taskCtl.progress(5)
-    const refUrls = connected.images.map((img) => img.url)
-    console.log('[DiscountVideoNode] 参考图 urls=', JSON.stringify(refUrls).slice(0, 400))
-    try {
-      const r = await generateVideo({
+  // 统一生成契约（useNodeGeneration）：收敛「reportGenerate + 进度 + 成功双写 + 失败 + retry注册」。
+  // 真实视频生成：经 localTool /api/proxy → 选中的 provider /v1/videos/generations（节点式：可跨 provider 选模型）。
+  // Agent 的 trigger_generation 也走这里。
+  const { loading, error, stop: onStop, start: handleGenerate } = useNodeGeneration({
+    nodeId: id,
+    type: { type: 'video', prompt: prompt || '', modelName: selectedModel },
+    validate: () => (prompt?.trim() ? '' : '请输入提示词'),
+    run: async ({ progress }) => {
+      // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
+      const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
+      const refUrls = connected.images.map((img) => img.url)
+      return generateVideo({
         provider: useProvider,
-        prompt: p,
+        prompt: prompt || '',
         model: modelId,
         size: ratio,
         resolution,
         seconds,
         images: refUrls,
-      }, (pct) => taskCtl.progress(Math.max(10, Math.min(98, Math.round(pct)))))
-      if (r.ok) {
-        console.log('[DiscountVideoNode] 视频生成成功 url=', r.url)
-        setVideoUrl(r.url)
-        setVidPrefs({ model: selectedModel, size: ratio, resolution, seconds })
-        taskCtl.done(r.url)
-      } else {
-        console.error('[DiscountVideoNode] 视频生成失败 error=', r.error)
-        setError(r.error || '生成失败')
-        taskCtl.fail(r.error || '生成失败')
-      }
-    } catch (e) {
-      console.error('[DiscountVideoNode] 视频生成异常:', e?.message)
-      setError(e?.message || '生成失败')
-      taskCtl.fail(e?.message || '生成失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 任务中心「再来一次/刷新」→ 触发本节点重新生成（挂载注册，卸载注销）
-  const handleGenerateRef = useRef(handleGenerate)
-  React.useEffect(() => { handleGenerateRef.current = handleGenerate })
-  React.useEffect(() => {
-    registerTaskRetry(id, () => handleGenerateRef.current())
-    return () => unregisterTaskRetry(id)
-  }, [id])
+      }, (pct) => progress(Math.max(10, Math.min(98, Math.round(pct)))))
+    },
+    onSuccess: (r) => {
+      setVideoUrl(r.url)
+      setVidPrefs({ model: selectedModel, size: ratio, resolution, seconds })
+    },
+  })
 
   // 外部写入 videoUrl（如视频处理节点 spawn 输出）→ 同步到本地 state，使节点显示/可下载该视频
   React.useEffect(() => {

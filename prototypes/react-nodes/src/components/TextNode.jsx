@@ -13,9 +13,10 @@ import ResizeFullscreenHandle from './base/ResizeFullscreenHandle.jsx'
 import FullscreenModal from './base/FullscreenModal.jsx'
 import GeneratingOverlay from './base/GeneratingOverlay.jsx'
 import PromptLibraryButton from './base/PromptLibraryButton.jsx'
-import { useGenerate, useNodeResize } from './base/hooks.js'
+import { useNodeResize } from './base/hooks.js'
 import { useConnectedInputs } from './base/useConnectedInputs.js'
-import { reportGenerate, registerTaskRetry, unregisterTaskRetry } from './base/taskStore.js'
+import { useNodeGeneration } from './base/useNodeGeneration.js'
+import { saveTextToTasks } from './base/filesApi.js'
 import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import { chatCompletions } from './base/chatApi.js'
 import { useNodePrefs } from './base/nodePrefs.js'
@@ -74,56 +75,39 @@ export default function TextNode({ id, data, selected }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultFromProvider])
 
-  // 生成 loading / error（useGenerate 只复用 loading/stop 管理，真实请求走 handleGenerate）
-  const { loading, setLoading, error, setError, stop: onStop } = useGenerate({})
-
-  // 真实文本生成：经 localTool /api/proxy → 选中的 provider /v1/chat/completions（节点式：可跨 provider 选模型）
-  const handleGenerate = async () => {
-    // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
-    const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
-    console.log('[TextNode] handleGenerate 触发, provider=', useProvider?.id, 'model=', modelId, '原始selected=', selectedModel)
-    const p = prompt || text || ''
-    if (!p.trim()) { console.log('[TextNode] 无内容，跳过'); setError('请输入提示词或文本'); return }
-    setLoading(true)
-    setError('')
-    const taskCtl = reportGenerate(id, 'text', p, { modelName: modelId })
-    taskCtl.progress(15)
-    try {
+  // 统一生成契约（useNodeGeneration）：收敛「reportGenerate + 进度 + 成功双写 + 失败 + retry注册」。
+  // 真实文本生成：经 localTool /api/proxy → 选中的 provider /v1/chat/completions（节点式：可跨 provider 选模型）。
+  // Agent 的 trigger_generation 也走这里。
+  const { loading, error, stop: onStop, start: handleGenerate } = useNodeGeneration({
+    nodeId: id,
+    type: { type: 'text', prompt: prompt || text || '', modelName: selectedModel },
+    validate: () => ((prompt || text)?.trim() ? '' : '请输入提示词或文本'),
+    run: async () => {
+      // 从「providerId::modelId」解析出实际 provider 和 modelId（跨 provider 选模型）
+      const { provider: useProvider, modelId } = resolveProviderModel(providers, selectedModel, primary)
       // 参考图：把连线上游/上传的图传给 AI（让 AI 看图反推提示词/理解图片）。
       // chatApi 会转成 image_url 内容块（blob 自动转 data base64）。
       const refUrls = refImages.map((img) => img.url)
-      console.log('[TextNode] 参考图 urls=', JSON.stringify(refUrls).slice(0, 400))
       const r = await chatCompletions({
         provider: useProvider,
         messages: [
           { role: 'system', content: 'You are a helpful assistant that outputs strict JSON.' },
-          { role: 'user', content: p }
+          { role: 'user', content: prompt || text || '' }
         ],
         model: modelId,
         images: refUrls
       })
-      if (r.ok) {
-        setText(r.content)
-        taskCtl.done()
-      } else {
-        setError(r.error || '生成失败')
-        taskCtl.fail(r.error || '生成失败')
+      if (!r.ok) return { ok: false, error: r.error || '生成失败' }
+      return { ok: true, content: r.content }
+    },
+    onSuccess: (r) => {
+      setText(r.content)
+      // 文本结果落盘成 txt → 生成面板「文本」tab 收录（异步，失败不影响节点显示）
+      if (typeof r.content === 'string' && r.content.trim()) {
+        saveTextToTasks(r.content, 'text').catch(() => {})
       }
-    } catch (e) {
-      setError(e?.message || '生成失败')
-      taskCtl.fail(e?.message || '生成失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 任务中心「再来一次/刷新」→ 触发本节点重新生成（挂载注册，卸载注销）
-  const handleGenerateRef = useRef(handleGenerate)
-  React.useEffect(() => { handleGenerateRef.current = handleGenerate })
-  React.useEffect(() => {
-    registerTaskRetry(id, () => handleGenerateRef.current())
-    return () => unregisterTaskRetry(id)
-  }, [id])
+    },
+  })
 
   const uploadImage = (e) => {
     const f = e.target.files?.[0]

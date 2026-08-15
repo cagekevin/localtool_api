@@ -82,3 +82,33 @@ export async function saveResultToTasks(url, type) {
     return null
   }
 }
+
+/**
+ * 把纯文本结果落盘成 txt 到 tasks 目录（文本节点的生成结果不是 url，而是文本内容）。
+ * 后端 rescan 会把 upload/tasks/*.txt 识别为 type='text'，生成面板「文本」tab 即可收录。
+ * @param {string} text 文本内容
+ * @param {string} [name] 文件名前缀（默认 generated）
+ * @returns {Promise<string|null>} 落盘后的 18080 url；失败返回 null（不抛，不影响主流程）
+ */
+export async function saveTextToTasks(text, name) {
+  if (typeof text !== 'string' || !text.trim()) return null
+  const safeName = (name || 'generated').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_') || 'generated'
+  const filename = `${safeName}_${Date.now().toString(36)}.txt`
+  try {
+    const blob = new Blob([text], { type: 'text/plain' })
+    const fd = new FormData()
+    fd.append('file', blob, filename)
+    fd.append('subfolder', SUBFOLDER)
+    fd.append('filename', filename)
+    const res = await fetch(`${API_BASE}/api/files/upload`, { method: 'POST', body: fd })
+    if (!res.ok) {
+      console.warn('[filesApi] 文本落盘失败', res.status)
+      return null
+    }
+    const data = await res.json().catch(() => ({}))
+    return data.url || null
+  } catch (e) {
+    console.warn('[filesApi] 文本落盘 tasks 失败:', e)
+    return null
+  }
+}
