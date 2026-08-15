@@ -63,10 +63,10 @@ export function useNodeGeneration({ nodeId, type, validate, run, onSuccess }) {
     setError('')
     const t = typeRef.current || {}
     const taskCtl = reportGenerate(nodeId, t.type, t.prompt, { modelName: t.modelName })
-    taskCtl.progress(10)
+    taskCtl.progress(5, '准备中…')
     logger.info('生成', 'start', { nodeId, type: t.type, prompt: t.prompt })
     try {
-      const r = await runRef.current({ progress: (p) => taskCtl.progress(p) })
+      const r = await runRef.current({ progress: (p, stage) => taskCtl.progress(p, stage) })
       if (r?.ok) {
         onSuccessRef.current?.(r, taskCtl)
         taskCtl.done(r.doneUrl || r.url || '')

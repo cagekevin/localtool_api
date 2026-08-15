@@ -46,7 +46,9 @@ async function generateAsync({ provider, url, genBody, timeoutMs }, onProgress) 
   // 提交
   let taskId
   try {
+    onProgress?.(10, '正在连接本地服务…')
     const res = await proxyRequest({ provider, url, method: 'POST', body: genBody })
+    onProgress?.(20, '已提交到生成网关…')
     const json = await res.json()
     const data = json?.data ?? json
     const tasks = Array.isArray(data) ? data : (Array.isArray(json) ? json : [])
@@ -74,7 +76,7 @@ async function generateAsync({ provider, url, genBody, timeoutMs }, onProgress) 
       if (pd?.status === 'failed' || pd?.status === 'error') {
         return fail(pd?.error?.message || pd?.error || '上游任务失败')
       }
-      onProgress?.(Math.min(90, Math.round((Date.now() - start) / 5000) * 10))
+      onProgress?.(30 + Math.min(60, Math.round((Date.now() - start) / 5000) * 10), '上游生成中…')
     } catch (e) {
       return fail(`轮询失败：${e?.message || '轮询异常'}`)
     }

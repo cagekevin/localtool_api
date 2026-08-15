@@ -147,11 +147,8 @@ function maskKey(key: string): string {
   return '••••••••' + key.slice(-4);
 }
 
-/** 读 key：优先 process.env，兜底读 env 文件（热更新后 process.env 已同步，此处兜底初次读取） */
-export function readProviderKey(id: string): string {
-  const envName = providerKeyEnv(id);
-  const fromEnv = process.env[envName];
-  if (fromEnv) return fromEnv;
+/** 读 env 文件里指定键的值（带引号剥离）；读不到返回 null */
+function readEnvFileValue(envName: string): string | null {
   try {
     const raw = fs.readFileSync(ENV_FILE, 'utf-8');
     for (const line of raw.split(/\r?\n/)) {
@@ -162,6 +159,25 @@ export function readProviderKey(id: string): string {
       return val;
     }
   } catch { /* noop */ }
+  return null;
+}
+
+/** 读 provider 的 key：优先 process.env，兜底读 env 文件。
+ *  modelscope（魔搭）特殊：若未单独配 API_PROVIDER_MODELSCOPE_KEY，
+ *  兜底复用 LLM_CHAT_API_KEY（AI 助手在 .env 里已填的唯一一份魔搭 key），
+ *  避免「前端 API 设置选魔搭走 /api/proxy」时因键名不同读到空 key 而上游 401。 */
+export function readProviderKey(id: string): string {
+  const envName = providerKeyEnv(id);
+  const fromEnv = process.env[envName];
+  if (fromEnv) return fromEnv;
+  const fromFile = readEnvFileValue(envName);
+  if (fromFile) return fromFile;
+  // modelscope 兜底：复用 AI 助手 LLM 通道的 key
+  if (id === 'modelscope') {
+    if (process.env.LLM_CHAT_API_KEY) return process.env.LLM_CHAT_API_KEY;
+    const fallback = readEnvFileValue('LLM_CHAT_API_KEY');
+    if (fallback) return fallback;
+  }
   return '';
 }
 
@@ -255,8 +271,8 @@ function normalizeProvider(input: Partial<ApiProvider> & { api_key?: string }, p
   const isPrimary = input.isPrimary === true;
   const readonly = prev ? !!prev.readonly : false;
 
-  // readonly provider 不允许改核心字段
-  const base_url = readonly && prev ? prev.base_url : (typeof input.base_url === 'string' && input.base_url.trim() ? input.base_url.trim() : (prev?.base_url || ''));
+  // readonly provider 只锁结构字段；base_url 是部署环境地址，允许用户覆盖（空则回退旧值）
+  const base_url = typeof input.base_url === 'string' && input.base_url.trim() ? input.base_url.trim() : (prev?.base_url || '');
 
   const normModel = (m: any): ProviderModel | null => {
     if (!m || typeof m.id !== 'string') return null;

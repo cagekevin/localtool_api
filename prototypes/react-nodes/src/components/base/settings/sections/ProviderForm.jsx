@@ -86,28 +86,30 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
       <Section title="连接配置" desc="基础连接参数">
         <div className="grid grid-cols-2 gap-4">
           <Field label="平台名称">
-            <input value={p.name || ''} onChange={(e) => onUpdate({ name: e.target.value })} disabled={readonly} className={inputCls} placeholder="如：Lovart" />
+            {/* 平台名称是环境个性化字段，内置 provider 也可改（readonly 只锁核心结构字段） */}
+            <input value={p.name || ''} onChange={(e) => onUpdate({ name: e.target.value })} disabled={false} className={inputCls} placeholder="如：Lovart" />
           </Field>
           {/* protocol：接口风格。后端 resolveProviderTarget / effective_protocol 按它分派。禁止删 */}
           <Field label="协议">
-            <select value={p.protocol} onChange={(e) => onUpdate({ protocol: e.target.value })} disabled={readonly} className={selectCls}>
+            <select value={p.protocol} onChange={(e) => onUpdate({ protocol: e.target.value })} disabled={false} className={selectCls}>
               {PROTOCOLS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           <Field label="请求地址" hint="OpenAI 兼容端点或 localTool 网关">
-            <input value={p.base_url || ''} onChange={(e) => onUpdate({ base_url: e.target.value })} disabled={readonly} className={inputCls} placeholder="https://api.example.com 或 http://127.0.0.1:9004" />
+            {/* base_url 是环境部署地址，内置 provider 也应始终可改（readonly 只锁核心结构字段） */}
+            <input value={p.base_url || ''} onChange={(e) => onUpdate({ base_url: e.target.value })} disabled={false} className={inputCls} placeholder="https://api.example.com 或 http://127.0.0.1:9004" />
           </Field>
           {/* image_request_mode：图片请求形态（4 选 1），后端 generate_ai_image 据此发 body。
               不同平台支持的格式不同（agnes 会被嗅探成 openai-json）。契约必填字段，禁止删！ */}
           <Field label="图片请求形态">
-            <select value={p.image_request_mode || 'openai'} onChange={(e) => onUpdate({ image_request_mode: e.target.value })} disabled={readonly} className={selectCls}>
+            <select value={p.image_request_mode || 'openai'} onChange={(e) => onUpdate({ image_request_mode: e.target.value })} disabled={false} className={selectCls}>
               {REQUEST_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
           {/* image_mode：生图同步/异步。前端 imageApi.js 据此决定走 SSE 等待还是 task_id 轮询。
              本项目扩展字段（官方没有），localTool 透传，与协议无关。禁止删 */}
           <Field label="生图请求方式" hint="同步=等待结果返回；异步=先提交再轮询结果">
-            <select value={p.image_mode === 'async' ? 'async' : 'sync'} onChange={(e) => onUpdate({ image_mode: e.target.value })} disabled={readonly} className={selectCls}>
+            <select value={p.image_mode === 'async' ? 'async' : 'sync'} onChange={(e) => onUpdate({ image_mode: e.target.value })} disabled={false} className={selectCls}>
               <option value="sync">同步（等待结果）</option>
               <option value="async">异步（轮询任务）</option>
             </select>
@@ -119,12 +121,13 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
         <div className="flex items-center gap-2 max-w-xl">
           <div className="relative flex-1">
             <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
-            <input type={showKey ? 'text' : 'password'} value={keyValue} onChange={handleKeyChange} disabled={readonly} placeholder={hasSavedKey ? '已保存（输入新值覆盖）' : 'sk-...'} className={`${inputCls} pl-9`} />
+            {/* key 是每个用户独立的敏感信息(存 env)，即使内置 readonly provider 也应始终可填/改；readonly 只禁核心结构字段 */}
+            <input type={showKey ? 'text' : 'password'} value={keyValue} onChange={handleKeyChange} disabled={false} placeholder={hasSavedKey ? '已保存（输入新值覆盖）' : 'sk-...'} className={`${inputCls} pl-9`} />
           </div>
           <button type="button" onClick={() => setShowKey((v) => !v)} className="p-2.5 text-gray-400 hover:text-white hover:bg-surface-hover rounded-lg transition-colors cursor-pointer border-none bg-transparent" title={showKey ? '隐藏' : '显示'}>
             {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
-          {hasSavedKey && !readonly && (
+          {hasSavedKey && (
             <button type="button" onClick={handleClearKey} className="p-2.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="清除 Key">
               <Trash2 size={16} />
             </button>
@@ -152,7 +155,7 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
       <ModelSection p={p} onUpdate={onUpdate} />
 
       <div className="flex items-center gap-2 flex-wrap bg-surface border border-edge-subtle rounded-xl px-5 py-4">
-        {!p.isPrimary && !readonly && (
+        {!p.isPrimary && (
           <button type="button" onClick={onSetPrimary} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-yellow-300 hover:bg-yellow-500/10 border border-yellow-500/40 transition-colors cursor-pointer">
             <Star size={14} /> 设为主供应商
           </button>
@@ -160,11 +163,9 @@ export default function ProviderForm({ p, testing, fetching, testResult, onUpdat
         {p.isPrimary && (
           <span className="inline-flex items-center gap-1.5 text-sm text-gray-400"><Star size={14} className="fill-gray-400" /> 当前主供应商</span>
         )}
-        {!readonly && (
-          <button type="button" onClick={onRemove} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg ml-auto text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent">
-            <Trash2 size={14} /> 删除此配置
-          </button>
-        )}
+        <button type="button" onClick={onRemove} className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg ml-auto text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent">
+          <Trash2 size={14} /> 删除此配置
+        </button>
       </div>
     </div>
   )

@@ -80,8 +80,13 @@ async function generateSync({ provider, url, genBody }, onProgress) {
   } catch { /* 解析失败则原样 */ }
 
   try {
+    onProgress?.(10, '正在连接本地服务…')
     const res = await proxyRequest({ provider, url: waitUrl, method: 'POST', body: genBody })
-    const imgUrl = await readSseImageUrl(res, onProgress)
+    // 响应头到达 → localTool 已连上并转发到网关/上游
+    onProgress?.(20, '已转发到生成网关…')
+    // 上游 SSE progress(0-100) 归一化映射到 [30,90]，避免覆盖阶段基准
+    const stageProgress = (p) => onProgress?.(30 + Math.round(Math.min(100, Math.max(0, p || 0)) * 0.6), '上游生成中…')
+    const imgUrl = await readSseImageUrl(res, stageProgress)
     return imgUrl ? ok(imgUrl) : fail('上游未返回图片')
   } catch (e) {
     return /^网络错误/.test(e?.message || '') ? fail(e.message) : fail(`生图失败：${e?.message || '同步请求异常'}`)
@@ -93,7 +98,9 @@ async function generateAsync({ provider, url, genBody, timeoutMs }, onProgress) 
   // 提交
   let taskId
   try {
+    onProgress?.(10, '正在连接本地服务…')
     const res = await proxyRequest({ provider, url, method: 'POST', body: genBody })
+    onProgress?.(20, '已提交到生成网关…')
     const json = await res.json()
     const data = json?.data ?? json
     const tasks = Array.isArray(data) ? data : (Array.isArray(json) ? json : [])
@@ -121,7 +128,7 @@ async function generateAsync({ provider, url, genBody, timeoutMs }, onProgress) 
       if (pd?.status === 'failed' || pd?.status === 'error') {
         return fail(pd?.error?.message || pd?.error || '上游任务失败')
       }
-      onProgress?.(Math.min(90, Math.round((Date.now() - start) / 3000) * 10))
+      onProgress?.(30 + Math.min(60, Math.round((Date.now() - start) / 3000) * 10), '上游生成中…')
     } catch (e) {
       return fail(`轮询失败：${e?.message || '轮询异常'}`)
     }
@@ -130,21 +137,62 @@ async function generateAsync({ provider, url, genBody, timeoutMs }, onProgress) 
 }
 
 /**
+ * 比例 × 清晰度档位 → 精确像素 查表（复刻官方 H_.jsx oe 表）。
+ * 官方生图节点不把「9:16 + 1K」原样传给上游，而是查这张表转成固定像素
+ * （如 9:16+1K → 880x1776），避免不同 AI/网关对比例档位理解不一致而自由换算。
+ * @type {Record<string, Record<string,string>>}
+ */
+const RATIO_PIXEL_TABLE = {
+  '1:1': { '1K': '1024x1024', '2K': '2048x2048', '4K': '2880x2880' },
+  '16:9': { '1K': '1776x880', '2K': '2048x1152', '4K': '3840x2160' },
+  '9:16': { '1K': '880x1776', '2K': '1152x2048', '4K': '2160x3840' },
+  '3:2': { '1K': '1536x1024', '2K': '2048x1360', '4K': '3504x2336' },
+  '2:3': { '1K': '1024x1536', '2K': '1360x2048', '4K': '2336x3504' },
+  '21:9': { '1K': '2048x880', '2K': '2048x880', '4K': '3840x1648' },
+  '9:21': { '1K': '880x2048', '2K': '880x2048', '4K': '1648x3840' },
+  '1:3': { '1K': '688x2048', '2K': '688x2048', '4K': '1280x3840' },
+  '3:1': { '1K': '2048x688', '2K': '2048x688', '4K': '3840x1280' },
+  '2:1': { '1K': '2048x1024', '2K': '2048x1024', '4K': '3840x1920' },
+  '1:2': { '1K': '1024x2048', '2K': '1024x2048', '4K': '1920x3840' },
+  '4:3': { '1K': '1024x768', '2K': '2304x1728', '4K': '2880x2160' },
+  '3:4': { '1K': '768x1024', '2K': '1728x2304', '4K': '2160x2880' },
+}
+const DEFAULT_PIXEL = '1024x1024'
+
+/**
+ * 比例 + 档位 → 精确像素（查表，复刻官方）。
+ *  - 比例 Auto / 空 → 返回 ''（不指定 size）
+ *  - 档位查不到 → 回退该比例的 '1K'；比例也查不到 → 兜底 DEFAULT_PIXEL
+ * @param {string} ratio  比例，如 '9:16' / 'Auto'
+ * @param {string} size   档位，如 '1K' / '2K' / '4K'
+ * @returns {string} 像素字符串（'880x1776'）或 ''（Auto 不指定）
+ */
+export function resolveImagePixel(ratio, size) {
+  if (!ratio || ratio === 'Auto' || ratio === 'auto') return ''
+  const byRatio = RATIO_PIXEL_TABLE[ratio] || {}
+  return byRatio[size] || byRatio['1K'] || DEFAULT_PIXEL
+}
+
+/**
  * 生图（文生图 / 图生图）。
- * 网关契约：size 接受「比例(如 1:1)」或「精确像素」；resolution 接受清晰度档位(如 1K/2K)。
- * 网关只认驼峰 aspectRatio（无 size 时才当 size 用）→ 这里比例放 size、档位放 resolution。
+ * 尺寸处理对齐官方：把「比例 + 档位」查表转成精确像素 size（避免不同 AI 理解错位），
+ * 同时保留 image_size（档位）与 resolution 供网关/apimart 使用。
+ *  - apimart(Lovart) 网关：size 给像素，网关 parse_size 直接命中精确像素分支原样用。
+ *  - openai 直连（魔搭等）：size=像素 是 OpenAI 标准格式，可直接被接受。
  * 参考图（图生图）：网关 /v1/images/generations 认 image_urls 字段，blob: 由 refImage 先转 data base64。
  * @param {object} opts
- *   - provider, prompt, model, size, n, aspectRatio
- *   - images?: string[]
+ *   - provider, prompt, model, size(档位 1K/2K), n, aspectRatio(比例), quality(质量), images?
  * @param {function} [onProgress] (percent)
  * @returns {{ ok:boolean, url?:string, error?:string }}
  */
-export async function generateImage({ provider, prompt, model, size, n, aspectRatio, images }, onProgress) {
+export async function generateImage({ provider, prompt, model, size, n, aspectRatio, quality, images }, onProgress) {
   const genBody = { prompt, model, n: n || 1 }
-  const hasRatio = aspectRatio && aspectRatio !== 'Auto'
-  genBody.size = hasRatio ? aspectRatio : (size || '')
+  const hasRatio = aspectRatio && aspectRatio !== 'Auto' && aspectRatio !== 'auto'
+  // 比例非 Auto → 查表转精确像素作 size；否则用传入的档位/默认
+  genBody.size = hasRatio ? resolveImagePixel(aspectRatio, size || '1K') : (size || '')
   if (size && hasRatio) genBody.resolution = size
+  if (size) genBody.image_size = String(size).toUpperCase()
+  if (quality && quality !== 'auto') genBody.quality = quality
   const refImages = await resolveRefImages(images)
   if (refImages.length > 0) genBody.image_urls = refImages
 

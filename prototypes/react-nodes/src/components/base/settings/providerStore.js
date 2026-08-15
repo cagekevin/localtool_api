@@ -100,7 +100,7 @@ export function add() {
 
 export function remove(id) {
   const target = state.providers.find((p) => p.id === id)
-  if (!target || target.readonly) return
+  if (!target) return
   let next = state.providers.filter((p) => p.id !== id)
   if (target.isPrimary && next.length) next = next.map((p, i) => (i === 0 ? { ...p, isPrimary: true } : p))
   setState({

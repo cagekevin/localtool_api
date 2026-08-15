@@ -93,18 +93,19 @@ export function reportGenerate(nodeId, type, prompt, meta = {}) {
   const task = {
     id: genId(), nodeId, type, prompt,
     modelName: meta.modelName || '', channelName: meta.channelName || '',
-    status: 'running', progress: 0, errorMsg: '', resultUrl: '',
+    status: 'running', progress: 0, errorMsg: '', resultUrl: '', stageLabel: '',
     createdAt: Date.now()
   }
   tasks = [task, ...tasks]
   notify()
   persist(task) // 后端持久化
   return {
-    // 更新进度
-    progress: (p) => {
-      tasks = tasks.map((t) => (t.id === task.id ? { ...t, status: 'running', progress: p } : t))
+    // 更新进度（可带阶段文案，如「已转发到生成网关…」，供任务中心展示当前进行到哪一步）
+    progress: (p, stage) => {
+      const stageLabel = typeof stage === 'string' && stage ? stage : task.stageLabel || ''
+      tasks = tasks.map((t) => (t.id === task.id ? { ...t, status: 'running', progress: p, stageLabel } : t))
       notify()
-      persist({ ...task, status: 'running', progress: p }) // 同步后端进度
+      persist({ ...task, status: 'running', progress: p, stageLabel }) // 同步后端进度
     },
     // 标记完成（可带结果缩略图）
     done: (resultUrl) => {

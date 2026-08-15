@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
+import { useReactFlow } from '@xyflow/react'
 import {
   Image as ImageIcon, Plus, ZoomIn, Crop, Pencil, Send, Download, Link as LinkIcon,
   AlertCircle, X, Coins, Zap
@@ -20,6 +21,7 @@ import { useNodeGeneration } from './base/useNodeGeneration.js'
 import { useProviders, load as loadProviders } from './base/settings/providerStore.js'
 import { generateImage } from './base/imageApi.js'
 import { useNodePrefs } from './base/nodePrefs.js'
+import { useSyncNodeData } from './base/useSyncNodeData.js'
 import { buildAllModels, resolveProviderModel } from './base/providerModels.js'
 
 /**
@@ -43,20 +45,24 @@ export default function PromptNode({ id, data, selected }) {
   const [imageSize, setImageSize] = useState(data.imageSize || imgPrefs.imageSize || '1K')
   const [quality, setQuality] = useState(data.quality || 'auto')
   const [selectedModel, setSelectedModel] = useState(data.selectedModel || imgPrefs.model || '')
-  const [apiFormat, setApiFormat] = useState(data.apiFormat || 'auto')
   const [count, setCount] = useState(data.count || 1)
   const [imageUrl, setImageUrl] = useState(data.imageUrl || '')
   const [showImgMenu, setShowImgMenu] = useState(false)
-  const [showFormatMenu, setShowFormatMenu] = useState(false)
   const [showCountMenu, setShowCountMenu] = useState(false)
+  // 同步 Agent(update_node) 写入 node.data 的外部变更到本地 state：
+  // 否则 Agent 改了 data.aspectRatio / selectedModel，UI 与生成参数仍用旧 state。
+  useSyncNodeData(data, { aspectRatio: setAspectRatio, selectedModel: setSelectedModel, quality: setQuality, imageSize: setImageSize })
+  const { setNodes } = useReactFlow()
+  // 用户手动选择 → 写回 node.data，让 data 始终是真实状态（Agent read_canvas 读到最新）
+  const patchData = useCallback((patch) => {
+    setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)))
+  }, [id, setNodes])
   const fileRef = useRef(null)
   const promptInputRef = useRef(null) // 提示词 textarea ref（供面板右下角手柄拖拽改尺寸）
   // 三个下拉菜单容器（画质/格式/数量）：ref 绑外层 relative，使「按钮+菜单」都在内，点外部才关
   const imgMenuRef = useRef(null)
-  const formatMenuRef = useRef(null)
   const countMenuRef = useRef(null)
   useOutsideClick(imgMenuRef, showImgMenu, () => setShowImgMenu(false))
-  useOutsideClick(formatMenuRef, showFormatMenu, () => setShowFormatMenu(false))
   useOutsideClick(countMenuRef, showCountMenu, () => setShowCountMenu(false))
 
   // 输入框尺寸写回 node.data（基座 useNodeResize，复刻官方 inputWidth/inputHeight）
@@ -104,6 +110,7 @@ export default function PromptNode({ id, data, selected }) {
         size: imageSize,
         n: count,
         aspectRatio,
+        quality,
         images: refUrls,
       }, (pct) => progress(Math.max(15, Math.min(98, Math.round(pct)))))
     },
@@ -122,11 +129,6 @@ export default function PromptNode({ id, data, selected }) {
     { value: 'low', label: '低质量' },
     { value: 'medium', label: '中质量' },
     { value: 'high', label: '高质量' }
-  ]
-  const formatOptions = [
-    { label: '自动检测', value: 'auto' },
-    { label: 'OpenAI 格式', value: 'openai' },
-    { label: 'Gemini 格式', value: 'gemini' }
   ]
   const costMap = { 'dall-e-3': 4 }
 
@@ -292,15 +294,15 @@ export default function PromptNode({ id, data, selected }) {
                   <div className="absolute bottom-full left-0 mb-1 w-56 bg-surface-1 border border-edge rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                     <div>
                       <div className="text-caption text-gray-500 mb-2">画质</div>
-                      <div className="flex gap-1.5">{sizeOptions.map((s) => <button key={s} type="button" className={`flex-1 py-1.5 text-caption-sm rounded-md border transition-colors ${imageSize === s ? 'bg-surface-hover-strong border-edge-strong text-white' : 'bg-surface border-transparent text-gray-400 hover:bg-surface-hover'}`} onClick={() => { setImageSize(s); setImgPrefs({ imageSize: s }) }}>{s}</button>)}</div>
+                      <div className="flex gap-1.5">{sizeOptions.map((s) => <button key={s} type="button" className={`flex-1 py-1.5 text-caption-sm rounded-md border transition-colors ${imageSize === s ? 'bg-surface-hover-strong border-edge-strong text-white' : 'bg-surface border-transparent text-gray-400 hover:bg-surface-hover'}`} onClick={() => { setImageSize(s); setImgPrefs({ imageSize: s }); patchData({ imageSize: s }) }}>{s}</button>)}</div>
                     </div>
                     <div>
                       <div className="text-caption text-gray-500 mb-2">比例</div>
-                      <div className="flex flex-wrap gap-1.5">{ratioOptions.map((r) => <button key={r} type="button" className={`px-3 py-1.5 text-caption-sm rounded-md border transition-colors ${aspectRatio === r ? 'bg-surface-hover-strong border-edge-strong text-white' : 'bg-surface border-transparent text-gray-400 hover:bg-surface-hover'}`} onClick={() => { setAspectRatio(r); setImgPrefs({ aspectRatio: r }) }}>{r}</button>)}</div>
+                      <div className="flex flex-wrap gap-1.5">{ratioOptions.map((r) => <button key={r} type="button" className={`px-3 py-1.5 text-caption-sm rounded-md border transition-colors ${aspectRatio === r ? 'bg-surface-hover-strong border-edge-strong text-white' : 'bg-surface border-transparent text-gray-400 hover:bg-surface-hover'}`} onClick={() => { setAspectRatio(r); setImgPrefs({ aspectRatio: r }); patchData({ aspectRatio: r }) }}>{r}</button>)}</div>
                     </div>
                     <div>
                       <div className="text-caption text-gray-500 mb-2">渲染质量</div>
-                      <div className="flex gap-1.5">{qualityOptions.map((q) => <button key={q.value} type="button" className={`flex-1 py-1.5 text-caption-sm rounded-md border transition-colors ${quality === q.value ? 'bg-surface-hover-strong border-edge-strong text-white' : 'bg-surface border-transparent text-gray-400 hover:bg-surface-hover'}`} onClick={() => setQuality(q.value)}>{q.label}</button>)}</div>
+                      <div className="flex gap-1.5">{qualityOptions.map((q) => <button key={q.value} type="button" className={`flex-1 py-1.5 text-caption-sm rounded-md border transition-colors ${quality === q.value ? 'bg-surface-hover-strong border-edge-strong text-white' : 'bg-surface border-transparent text-gray-400 hover:bg-surface-hover'}`} onClick={() => { setQuality(q.value); patchData({ quality: q.value }) }}>{q.label}</button>)}</div>
                     </div>
                   </div>
                 )}
@@ -309,25 +311,11 @@ export default function PromptNode({ id, data, selected }) {
               {/* 模型选择（基座 ModelSelect；选择即记住，跨节点复用） */}
               <ModelSelect
                 value={selectedModel}
-                onChange={(m) => { setSelectedModel(m); setImgPrefs({ model: m }) }}
+                onChange={(m) => { setSelectedModel(m); setImgPrefs({ model: m }); patchData({ selectedModel: m }) }}
                 models={models}
                 costMap={costMap}
                 placeholder="选择模型"
               />
-
-              {/* 请求格式 */}
-              <div ref={formatMenuRef} className="relative nodrag flex items-center">
-                <div className="w-[1px] h-3 bg-surface-3 flex-shrink-0 mr-1.5" />
-                <button className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded text-caption-sm text-gray-300 transition-colors cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowFormatMenu((v) => !v) }} title="请求格式">
-                  <span className="truncate">{formatOptions.find((f) => f.value === apiFormat)?.label}</span>
-                </button>
-                {showFormatMenu && (
-                  <div className="absolute bottom-full left-0 mb-1 w-32 bg-surface-1 border border-edge rounded-lg shadow-xl p-2 z-50 block nodrag" onClick={(e) => e.stopPropagation()}>
-                    <div className="text-caption text-gray-500 mb-2 px-1">请求格式</div>
-                    {formatOptions.map((f) => <button key={f.value} className={`w-full block mb-1 last:mb-0 text-left px-2 py-1.5 text-caption-sm rounded-md transition-colors truncate ${apiFormat === f.value ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setApiFormat(f.value); setShowFormatMenu(false) }}>{f.label}</button>)}
-                  </div>
-                )}
-              </div>
 
               {/* 预设：打开提示词库弹窗 → 使用后新建文本节点 */}
               <PromptLibraryButton category="image" />

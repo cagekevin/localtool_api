@@ -140,19 +140,28 @@ export default function TaskCenter() {
         )}
       </div>
 
-      {/* 大图预览弹窗（点击缩略图打开；右下角显示像素，如 1920×1080） */}
+      {/* 大图预览弹窗（点击缩略图打开；右下角显示像素，如 1920×1080）；图片可拖拽到画布成为节点 */}
       {previewUrl && (
         <div className="absolute inset-0 z-20 bg-black/85 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
             <img
               src={previewUrl}
               alt="预览"
-              className="max-h-[80vh] max-w-full rounded-lg object-contain"
+              draggable
+              onDragStart={(e) => {
+                // 拖到画布时复用「URL 文本拖入」通道（useAssetDropPaste.onDrop → isAssetUrl → imageNode）
+                try { e.dataTransfer.setData('text/plain', previewUrl); e.dataTransfer.effectAllowed = 'copy' } catch { /* ignore */ }
+              }}
+              className="max-h-[80vh] max-w-full rounded-lg object-contain cursor-grab active:cursor-grabbing"
               onLoad={(e) => {
                 const el = e.currentTarget
                 if (el.naturalWidth && el.naturalHeight) setPreviewDims({ w: el.naturalWidth, h: el.naturalHeight })
               }}
             />
+            {/* 拖拽提示角标 */}
+            <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white/80 text-caption-sm pointer-events-none select-none">
+              按住拖到画布添加
+            </span>
             {/* 右下角像素角标 */}
             {previewDims && (
               <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-white text-caption-sm pointer-events-none">
@@ -180,6 +189,8 @@ function CleanItem({ label, onClick, danger }) {
 // 单条任务卡片（对齐官方 jn.jsx）
 function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove, onPreview }) {
   const [showData, setShowData] = useState(false)
+  // 缩略图像素尺寸（缩略图 onLoad 读取 naturalWidth/Height，右下角显示，无需打开大图）
+  const [thumbDims, setThumbDims] = useState(null)
   const TypeIcon = TYPE_ICON[task.type] || ImageIcon
   const dot = statusDotClass(task.status)
   const statusText = statusLabel(task.status, task.progress)
@@ -255,10 +266,17 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove, onP
       {/* 时间 */}
       <div className="text-caption text-faint">{fmtTime(task.createdAt)}</div>
 
-      {/* 运行中进度条 */}
+      {/* 运行中：阶段文案 + 进度条 */}
       {isActive && (
-        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-400 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(0, task.progress || 0))}%` }} />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5 text-caption text-blue-300/80">
+            <span className="text-caption-sm">{task.stageLabel || '生成中…'}</span>
+            <span className="text-subtle">·</span>
+            <span className="text-caption-sm tabular-nums">{Math.min(100, Math.max(0, task.progress || 0))}%</span>
+          </div>
+          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-400 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(0, task.progress || 0))}%` }} />
+          </div>
         </div>
       )}
 
@@ -270,7 +288,7 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove, onP
         </div>
       )}
 
-      {/* 已完成缩略图：点击打开大图预览（右下角显示像素）；视频点击大图播放 */}
+      {/* 已完成缩略图：点击打开大图预览；图片右下角常显像素（无需打开大图）；视频点击大图播放 */}
       {isCompleted && task.resultUrl && (
         <div
           className="relative w-full h-[72px] rounded-lg overflow-hidden bg-surface-muted group cursor-pointer"
@@ -279,7 +297,26 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove, onP
           {task.type === 'video' ? (
             <video src={task.resultUrl} className="w-full h-full object-cover" muted />
           ) : (
-            <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${task.resultUrl})` }} />
+            <img
+              src={task.resultUrl}
+              alt={task.modelName || '结果图'}
+              draggable
+              onDragStart={(e) => {
+                // 拖到画布时复用「URL 文本拖入」通道 → imageNode
+                try { e.dataTransfer.setData('text/plain', task.resultUrl); e.dataTransfer.effectAllowed = 'copy' } catch { /* ignore */ }
+              }}
+              onLoad={(e) => {
+                const el = e.currentTarget
+                if (el.naturalWidth && el.naturalHeight) setThumbDims({ w: el.naturalWidth, h: el.naturalHeight })
+              }}
+              className="w-full h-full object-cover block cursor-grab active:cursor-grabbing"
+            />
+          )}
+          {/* 图片右下角像素角标（常显） */}
+          {task.type === 'image' && thumbDims && (
+            <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white/90 text-[10px] leading-none pointer-events-none select-none">
+              {thumbDims.w}×{thumbDims.h}
+            </span>
           )}
           <button className="absolute top-1 right-1 w-6 h-6 rounded-md bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none" onClick={downloadResult} title="下载结果">
             <Download size={12} />

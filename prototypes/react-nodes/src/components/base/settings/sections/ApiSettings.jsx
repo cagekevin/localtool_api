@@ -132,7 +132,6 @@ export default function ApiSettings() {
 }
 
 function ProviderListItem({ p, active, onSelect, onRemove }) {
-  const readonly = !!p.readonly
   return (
     <div
       className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors border ${active ? 'bg-surface-active border-edge' : 'border-transparent hover:bg-surface-1'}`}
@@ -143,16 +142,14 @@ function ProviderListItem({ p, active, onSelect, onRemove }) {
         {p.protocol === 'openai' ? 'OpenAI' : 'apimart'}
       </span>
       {p.isPrimary && <Star size={12} className="text-gray-400 fill-gray-400" />}
-      {!readonly && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onRemove() }}
-          className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity border-none bg-transparent cursor-pointer p-0.5"
-          title="删除供应商"
-        >
-          <Trash2 size={13} />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onRemove() }}
+        className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity border-none bg-transparent cursor-pointer p-0.5"
+        title="删除供应商"
+      >
+        <Trash2 size={13} />
+      </button>
     </div>
   )
 }
