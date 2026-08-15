@@ -10,7 +10,7 @@ import {
   useEdgesState,
   useReactFlow
 } from '@xyflow/react'
-import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy, Zap, RefreshCw } from 'lucide-react'
+import { Type, Image as ImageIcon, Clapperboard, Trash2, Copy, Zap, RefreshCw, Folder, FolderOpen } from 'lucide-react'
 import CanvasToolbar from './components/base/CanvasToolbar.jsx'
 import ArrangeConfirm from './components/base/ArrangeConfirm.jsx'
 import { useArrangeCanvas } from './components/base/useArrangeCanvas.js'
@@ -52,6 +52,7 @@ import { useLocalToolStatus } from './components/base/useLocalToolStatus.js'
 import LocalToolConnectModal from './components/base/LocalToolConnectModal.jsx'
 import EmptyCanvasGuide from './components/base/EmptyCanvasGuide.jsx'
 import { initTasks } from './components/base/taskStore.js'
+import { createGroupFromNodes, ungroupNodes } from './components/base/groupNodes.js'
 
 /* ======================================================================
  * 【区 1】常量与配置区
@@ -597,6 +598,7 @@ function Canvas() {
     const node = nodesRef.current.find((n) => n.id === state.nodeId)
     if (!node) return []
     const isImageLike = node.type === 'imageNode' || node.type === 'promptNode'
+    const isGroup = node.type === 'group'
     const items = [
       { key: 'duplicate', icon: <Copy size={16} className="text-gray-300" />, label: '复制', onClick: () => copySelectedNodes(node.id) }
     ]
@@ -606,6 +608,21 @@ function Canvas() {
         icon: <ImageIcon size={16} className="text-gray-300" />,
         label: '复制图片',
         onClick: () => copyNodeImage(node.id)
+      })
+    }
+    // group 节点：取消编组（治根：与 Agent 共用 ungroupNodes）
+    if (isGroup) {
+      items.push({
+        key: 'ungroup',
+        icon: <FolderOpen size={16} className="text-gray-300" />,
+        label: '取消编组',
+        onClick: () => {
+          const res = ungroupNodes(nodesRef.current, node.id)
+          if (res.ok) {
+            setNodes(res.nodes)
+            history.record({ nodes: res.nodes, edges: edgesRef.current })
+          }
+        }
       })
     }
     items.push(
@@ -643,30 +660,51 @@ function Canvas() {
     [menu.state, buildFromConnection, addNode, posAtMenu]
   )
 
-  // 多选菜单：复制 / 删除（对齐官方多选右键：复制选中节点组到剪贴板，粘贴时重建）
-  const selectionMenuItems = () => [
-    {
-      key: 'duplicate',
-      icon: <Copy size={16} className="text-gray-300" />,
-      label: '复制',
-      onClick: () => copySelectedNodes()
-    },
-    { type: 'divider' },
-    {
-      key: 'delete',
-      icon: <Trash2 size={16} className="text-red-400" />,
-      label: '删除',
-      danger: true,
-      onClick: () => {
-        const sel = nodesRef.current.filter((n) => n.selected).map((n) => n.id)
-        const nextNodes = nodesRef.current.filter((n) => !sel.includes(n.id))
-        const nextEdges = edgesRef.current.filter((e) => !sel.includes(e.source) && !sel.includes(e.target))
-        setNodes(nextNodes)
-        setEdges(nextEdges)
-        history.record({ nodes: nextNodes, edges: nextEdges })
-      }
+  // 多选菜单：编组 / 复制 / 删除（对齐官方多选右键：复制选中节点组到剪贴板，粘贴时重建）
+  const selectionMenuItems = () => {
+    const selectedIds = nodesRef.current.filter((n) => n.selected).map((n) => n.id)
+    const items = []
+    // 编组：选中≥2个普通节点时可用（治根：与 Agent group_nodes 共用 createGroupFromNodes）
+    if (selectedIds.length >= 2) {
+      items.push({
+        key: 'group',
+        icon: <Folder size={16} className="text-gray-300" />,
+        label: '编组',
+        onClick: () => {
+          const res = createGroupFromNodes(nodesRef.current, selectedIds)
+          if (res.ok) {
+            setNodes(res.nodes)
+            history.record({ nodes: res.nodes, edges: edgesRef.current })
+          }
+        }
+      })
+      items.push({ type: 'divider' })
     }
-  ]
+    items.push(
+      {
+        key: 'duplicate',
+        icon: <Copy size={16} className="text-gray-300" />,
+        label: '复制',
+        onClick: () => copySelectedNodes()
+      },
+      { type: 'divider' },
+      {
+        key: 'delete',
+        icon: <Trash2 size={16} className="text-red-400" />,
+        label: '删除',
+        danger: true,
+        onClick: () => {
+          const sel = nodesRef.current.filter((n) => n.selected).map((n) => n.id)
+          const nextNodes = nodesRef.current.filter((n) => !sel.includes(n.id))
+          const nextEdges = edgesRef.current.filter((e) => !sel.includes(e.source) && !sel.includes(e.target))
+          setNodes(nextNodes)
+          setEdges(nextEdges)
+          history.record({ nodes: nextNodes, edges: nextEdges })
+        }
+      }
+    )
+    return items
+  }
 
   // 根据菜单类型分发到对应配置（单一数据源：拖线复用 canvas 菜单，故无独立 connection 分支）
   const menuItems = (state) => {

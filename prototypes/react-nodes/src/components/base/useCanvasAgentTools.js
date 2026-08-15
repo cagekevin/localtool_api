@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import { getPaletteNode, defaultNodeData } from './NodePalette.jsx'
 import { runNodeGeneration } from './taskStore.js'
+import { createGroupFromNodes } from './groupNodes.js'
 
 /**
  * ════════════════════════════════════════════════════════════════
@@ -418,18 +419,18 @@ const moveNodeTool = {
   }
 }
 
-/** 编组（group_nodes）—— 把多个节点放进一个编组（假实现，标注真链路） */
+/** 编组（group_nodes）—— 把多个节点放进一个编组（真实现：与右键「编组」共用 createGroupFromNodes） */
 const groupNodesTool = {
   name: 'group_nodes',
-  description: '把多个节点编入一个编组。',
+  description: '把多个节点编入一个编组。节点需至少 2 个且均非 group 类型、未在其它组内。',
   parameters: { type: 'object', properties: { nodeIds: { type: 'array', items: { type: 'string' } } }, required: ['nodeIds'] },
   execute(args, ctx) {
     const ids = Array.isArray(args.nodeIds) ? args.nodeIds.map(String) : []
-    if (ids.length < 1) return { ok: false, error: 'nodeIds 至少 1 个' }
-    // 真链路：建 group 节点 + 把目标节点设为 children。当前原型假实现，仅校验存在。
-    const missing = ids.filter((i) => !ctx.getNodes().some((n) => n.id === i))
-    if (missing.length) return { ok: false, error: `以下节点不存在：${missing.join('、')}` }
-    return { ok: true, data: { grouped: ids, note: '原型阶段：未真正建编组节点' } }
+    if (ids.length < 2) return { ok: false, error: 'nodeIds 至少 2 个' }
+    const res = createGroupFromNodes(ctx.getNodes(), ids)
+    if (!res.ok) return { ok: false, error: res.error || '编组失败' }
+    ctx.setNodes(res.nodes)
+    return { ok: true, data: { groupId: res.groupId, grouped: ids } }
   }
 }
 
