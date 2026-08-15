@@ -29,6 +29,33 @@ body,
   font-size: inherit;
 }
 
+/* ===== 编组节点：覆盖 React Flow 默认 .react-flow__node-group =====
+ * 默认样式自带 border + padding:10px + 背景 + 圆角，会导致「两层边框」：
+ * 外层正方形带边框、内层 GroupNode 圆角大。这里清掉外层装饰，只保留内层 GroupNode 的样式。 */
+.react-flow__node-group.yimao-group-node {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  width: auto;
+  height: auto;
+  text-align: left;
+}
+/* 编组节点选中时：去掉 React Flow 默认的蓝色/亮色选中 box-shadow，
+ * 只保留 NodeShell 的灰色 border-edge-strong 边框，与其它节点一致。
+ *
+ * 【可能原因（仅推测，未完全确认）】只有编组节点出现选中蓝边，其它节点（type 为
+ * textNode / imageNode 等自定义类型）没有，推测是 React Flow 默认主题给
+ * `.react-flow__node-group.selectable.selected` 套了一层 `box-shadow`
+ * （--xy-node-boxshadow-selected，默认 `0 0 0 0.5px #999`），在深色画布上
+ * 放大/与背景叠加后看起来偏蓝/偏亮；而其它节点类型不匹配该选择器，故不受影响。
+ * 这里对编组节点显式 box-shadow:none 清除。 */
+.react-flow__node-group.yimao-group-node.selectable.selected,
+.react-flow__node-group.yimao-group-node.selectable:focus,
+.react-flow__node-group.yimao-group-node.selectable:focus-visible {
+  box-shadow: none;
+}
+
 /* ===== 节点选中白色柔光（复刻编译 CSS .react-flow__node.selected） ===== */
 .react-flow__node.selected {
   filter: drop-shadow(0 0 40px #ffffff26) drop-shadow(0 0 80px #ffffff1a);

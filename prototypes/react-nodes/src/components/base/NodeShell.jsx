@@ -102,14 +102,17 @@ export default function NodeShell({
   className = '',
   style: extraStyle = {},
   wrapperRef,
+  syncSize = true,
   children
 }) {
-  // 比例同步：改比例时同步 wrapper 尺寸
-  const ratio = useSizeSync(id, aspectRatio, {
+  // 比例同步：改比例时同步 wrapper 尺寸。
+  // syncSize=false（如编组节点）：不强制同步尺寸，尺寸完全由 ReactFlow 节点 style 决定，
+  // 否则 useSizeSync 的 Auto 分支会把高度强制设成 defaultHeight，覆盖 group 实际尺寸。
+  const ratio = syncSize ? useSizeSync(id, aspectRatio, {
     mode: sizeMode,
     defaultHeight,
     baseSize
-  })
+  }) : null
   const effectiveKeepAspect = keepAspect || !!ratio
 
   // 主容器背景层（所有节点共同的纯视觉外壳：背景/圆角/边框/阴影/选中边框）。

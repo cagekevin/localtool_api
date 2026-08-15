@@ -1,19 +1,17 @@
 /**
  * 通用编组能力（治根：Agent group_nodes 与右键「编组」共用同一套逻辑）。
- *
- * 依赖 React Flow 父子节点机制：子节点设 parentId 挂在 group 下，position 为相对父节点坐标。
- * 本模块是纯函数：输入当前节点数组 + 目标 id → 输出新的节点数组。由调用方（右键菜单 /
- * Agent 工具）用 setNodes / ctx.setNodes 应用。保持纯函数便于测试与两端复用。
- *
- * 为什么不放在 GroupNode.jsx：编组动作是「对多个节点的画布操作」，不属于单个节点内部渲染。
- * 与 useNodeGeneration / getNodeOutput 同一方法论——把能力收敛到统一入口，UI 与 Agent 复用。
+ * 依据 React Flow 官方 Sub Flows 推荐实现：
+ *  - 父节点(group) 必须在 nodes 数组中先于子节点声明（unshift 到开头）
+ *  - 子节点设 parentId + 相对坐标，加 extent:'parent' 限制不拖出 group 边界
+ *  - ungroupNodes：parentId/extent 置空 + 坐标转回绝对
+ * 纯函数，由右键菜单 / Agent 工具用 setNodes 应用，UI 与两端复用。
  */
 
-/** 节点的实际尺寸（style 优先，其次 measured，兜底默认） */
+/** 节点的实际尺寸（style 优先，其次 measured，兜底默认 420/420，对齐官方） */
 function nodeSize(n) {
   return {
-    w: Number(n.style?.width) || n.measured?.width || 150,
-    h: Number(n.style?.height) || n.measured?.height || 80,
+    w: Number(n.style?.width) || n.measured?.width || 420,
+    h: Number(n.style?.height) || n.measured?.height || 420,
   }
 }
 
@@ -29,9 +27,9 @@ export function createGroupFromNodes(nodes, selectedIds) {
   const targets = nodes.filter(
     (n) => ids.includes(n.id) && n.type !== 'group' && !n.parentId
   )
-  if (!targets.length) return { ok: false, error: '没有可编组的节点' }
+  if (targets.length < 2) return { ok: false, error: '至少选择 2 个可编组的节点' }
 
-  // 计算外接矩形（用节点绝对坐标 + 尺寸）
+  // 计算外接矩形（用节点绝对坐标 + 尺寸，兜底 420）
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   for (const n of targets) {
     const { w, h } = nodeSize(n)
@@ -40,11 +38,11 @@ export function createGroupFromNodes(nodes, selectedIds) {
     maxX = Math.max(maxX, n.position.x + w)
     maxY = Math.max(maxY, n.position.y + h)
   }
-  const pad = 24
+  const pad = 40 // 对齐官方：外接矩形四周各留 40px
   const gx = minX - pad
   const gy = minY - pad
-  const gw = Math.max(120, maxX - minX + pad * 2)
-  const gh = Math.max(80, maxY - minY + pad * 2)
+  const gw = maxX - minX + pad * 2
+  const gh = maxY - minY + pad * 2
   const groupId = `group-${Date.now().toString(36)}`
 
   const groupNode = {
@@ -52,8 +50,12 @@ export function createGroupFromNodes(nodes, selectedIds) {
     type: 'group',
     position: { x: gx, y: gy },
     style: { width: gw, height: gh },
+    // 官方推荐：父节点有 style 尺寸时同时设 initialWidth/Height，保证首次测量前尺寸确定
+    initialWidth: gw,
+    initialHeight: gh,
+    // 覆盖 React Flow 默认 .react-flow__node-group（自带 border/padding/背景 → 两层边框）
+    className: 'yimao-group-node',
     data: { name: '编组' },
-    selected: false,
   }
 
   const next = nodes.map((n) =>
@@ -63,11 +65,14 @@ export function createGroupFromNodes(nodes, selectedIds) {
           parentId: groupId,
           // 子节点 position 转相对父节点坐标
           position: { x: n.position.x - gx, y: n.position.y - gy },
+          // 注意：不设 extent:'parent'，让组内节点能自由拖出 group（用户要求「移得出去」）。
+          // 拖动消失的根因是父节点未前置（已用 unshift 修复），而非 extent。
           selected: false,
         }
       : n
   )
-  next.push(groupNode)
+  // 官方要求：父节点必须在 nodes 数组中先于子节点声明，否则 React Flow 无法正确建立父子关系
+  next.unshift(groupNode)
   return { ok: true, nodes: next, groupId }
 }
 
@@ -86,7 +91,7 @@ export function ungroupNodes(nodes, groupId) {
     .filter((n) => n.id !== groupId)
     .map((n) =>
       n.parentId === groupId
-        ? { ...n, parentId: undefined, position: { x: n.position.x + gx, y: n.position.y + gy } }
+        ? { ...n, parentId: undefined, extent: undefined, position: { x: n.position.x + gx, y: n.position.y + gy } }
         : n
     )
   return { ok: true, nodes: next }

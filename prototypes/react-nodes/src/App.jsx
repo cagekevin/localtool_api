@@ -366,6 +366,34 @@ function Canvas() {
     history.record({ nodes: nextNodes, edges: edgesRef.current })
   }, [setNodes, history])
 
+  // 编组选中节点（Ctrl+G；与右键菜单/Agent 共用 createGroupFromNodes）
+  const groupSelected = useCallback(() => {
+    const selectedIds = nodesRef.current.filter((n) => n.selected).map((n) => n.id)
+    if (selectedIds.length === 0) {
+      showToast('请先选中要编组的节点', { type: 'warning' })
+      return
+    }
+    const res = createGroupFromNodes(nodesRef.current, selectedIds)
+    if (res.ok) {
+      setNodes(res.nodes)
+      history.record({ nodes: res.nodes, edges: edgesRef.current })
+      showToast('已编组', { type: 'success' })
+    } else {
+      showToast(res.error || '编组失败', { type: 'warning' })
+    }
+  }, [setNodes, history])
+
+  // 取消所选 group（Ctrl+Shift+G；与右键菜单/Agent 共用 ungroupNodes）
+  const ungroupSelected = useCallback(() => {
+    const selected = nodesRef.current.find((n) => n.selected && n.type === 'group')
+    if (!selected) return
+    const res = ungroupNodes(nodesRef.current, selected.id)
+    if (res.ok) {
+      setNodes(res.nodes)
+      history.record({ nodes: res.nodes, edges: edgesRef.current })
+    }
+  }, [setNodes, history])
+
   // 复制选中节点组到系统剪贴板（对齐官方 Ci，H_.jsx:9966-10024）。
   // 格式 {type:'mutiwindow-nodes', nodes, edges, originalIds}，data 去掉函数与运行时字段，
   // 粘贴时（onPaste）解析 JSON 重建节点组（含连线），与官方完全一致。
@@ -725,6 +753,8 @@ function Canvas() {
     onSelectAll: selectAll,
     onDuplicate: duplicateSelected,
     onArrange: arrangeCanvas,
+    onGroup: groupSelected,
+    onUngroup: ungroupSelected,
     onAdd: (type) => {
       // 若处于「拖线」菜单态（复用 canvas 菜单但 state 带 connection）：建下游并自动连线
       const conn = menu.state?.connection
@@ -882,6 +912,90 @@ function Canvas() {
 
   const proOptions = useMemo(() => ({ hideAttribution: true }), [])
 
+  // 折叠 group 时隐藏其子节点（React Flow 官方推荐用 hidden 字段，替代自研 opacity 方案）。
+  // hidden:true 让 React Flow 原生不渲染、不交互、不占布局；展开时自动恢复。
+  // GroupNode.toggleCollapse 折叠时已设子节点 hidden，这里对「加载快照即折叠」的 group 兜底处理。
+  const visibleNodes = useMemo(() => {
+    const collapsedGroups = new Set(
+      nodes.filter((n) => n.type === 'group' && n.data?.collapsed).map((n) => n.id)
+    )
+    if (collapsedGroups.size === 0) return nodes
+    return nodes.map((n) =>
+      n.parentId && collapsedGroups.has(n.parentId) ? { ...n, hidden: true } : n
+    )
+  }, [nodes])
+
+  // 拖拽节点结束（onNodeDragStop）：
+  // 1) 拖入成组：节点落入某 group 范围内 → 设为该 group 子节点（parentId + 相对坐标）
+  // 2) 拖出离组：原 group 子节点拖出其父边界 → 解除 parentId（转绝对坐标），group 保留
+  // group 尺寸只由用户手动拖动调整，不根据子节点自动伸缩。
+  const handleNodeDragStop = React.useCallback((_evt, dragged) => {
+    if (!dragged || dragged.type === 'group') return
+    let cur = nodesRef.current
+    let changed = false
+
+    // ---- 1&2) 拖入/拖出判定 ----
+    // 绝对坐标辅助（递归求父绝对位置）
+    const absPosOf = (id) => {
+      let x = 0, y = 0, nodeId = id
+      let guard = 0
+      while (nodeId && guard++ < 20) {
+        const n = cur.find((nn) => nn.id === nodeId)
+        if (!n) break
+        x += n.position.x; y += n.position.y
+        nodeId = n.parentId
+      }
+      return { x, y }
+    }
+    // 判定节点是否「大部分在 group 内」：重叠面积 ≥ 子节点面积的一半（50%）即算组内。
+    // 这样比中心点判定更宽松直观：只要子节点一半以上落进 group，就算归组。
+    const insideGroup = (nodeAbs, g) => {
+      const gAbs = absPosOf(g.id)
+      const gW = Number(g.style?.width) || g.measured?.width || 0
+      const gH = Number(g.style?.height) || g.measured?.height || 0
+      const nW = Number(dragged.measured?.width) || Number(dragged.style?.width) || 100
+      const nH = Number(dragged.measured?.height) || Number(dragged.style?.height) || 60
+      const overlapW = Math.max(0, Math.min(nodeAbs.x + nW, gAbs.x + gW) - Math.max(nodeAbs.x, gAbs.x))
+      const overlapH = Math.max(0, Math.min(nodeAbs.y + nH, gAbs.y + gH) - Math.max(nodeAbs.y, gAbs.y))
+      const overlap = overlapW * overlapH
+      const nodeArea = nW * nH
+      return nodeArea > 0 && overlap / nodeArea >= 0.5
+    }
+
+    const draggedAbs = { x: dragged.position.x + (dragged.parentId ? absPosOf(dragged.parentId).x : 0), y: dragged.position.y + (dragged.parentId ? absPosOf(dragged.parentId).y : 0) }
+    // 候选 group：非折叠、不包含被拖节点自身；按面积小→大（优先最内层）
+    const groups = cur
+      .filter((n) => n.type === 'group' && !n.data?.collapsed && n.id !== dragged.id)
+      .sort((a, b) => (Number(a.style?.width) || 0) * (Number(a.style?.height) || 0) - (Number(b.style?.width) || 0) * (Number(b.style?.height) || 0))
+    const newParent = groups.find((g) => insideGroup(draggedAbs, g))
+
+    if (newParent && dragged.parentId !== newParent.id) {
+      // 拖入/更换父组：转为该 group 子节点
+      const pAbs = absPosOf(newParent.id)
+      cur = cur.map((n) =>
+        n.id === dragged.id
+          ? { ...n, parentId: newParent.id, position: { x: draggedAbs.x - pAbs.x, y: draggedAbs.y - pAbs.y } }
+          : n
+      )
+      changed = true
+    } else if (!newParent && dragged.parentId) {
+      // 拖出原组：解除 parentId，转绝对坐标（group 保留）
+      const parent = cur.find((n) => n.id === dragged.parentId)
+      if (parent) {
+        const pAbs = absPosOf(parent.id)
+        cur = cur.map((n) =>
+          n.id === dragged.id
+            ? { ...n, parentId: undefined, extent: undefined, position: { x: draggedAbs.x, y: draggedAbs.y } }
+            : n
+        )
+        changed = true
+      }
+    }
+
+    // group 尺寸只由用户手动拖动调整，不根据子节点自动伸缩
+    if (changed) setNodes(cur)
+  }, [setNodes])
+
   /* ====================================================================
    * 【区 6】渲染区
    * ReactFlow 画布 + 覆盖层（右键菜单）
@@ -912,10 +1026,11 @@ function Canvas() {
         {/* 内容区：画布为基座，多开/设置整页覆盖（官方 visible/invisible 覆盖层形态） */}
         <div ref={menu.containerRef} className="relative flex-1 min-h-0">
         <ReactFlow
-          nodes={nodes}
+          nodes={visibleNodes}
           edges={edges}
           onNodesChange={onNodesChangeForEdges}
           onEdgesChange={onEdgesChange}
+          onNodeDragStop={handleNodeDragStop}
           onConnect={onConnect}
           onConnectEnd={onConnectEnd}
           onEdgeDoubleClick={onEdgeDoubleClick}

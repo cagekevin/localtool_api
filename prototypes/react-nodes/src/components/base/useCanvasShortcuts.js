@@ -12,12 +12,14 @@ import { isEditableTarget } from './hooks.js'
  *  - onUndo / onRedo          Ctrl+Z / Ctrl+Shift+Z 或 Ctrl+Y
  *  - onSelectAll              Ctrl+A
  *  - onDuplicate              Ctrl+D
+ *  - onGroup                  Ctrl+G 编组选中节点
+ *  - onUngroup                Ctrl+Shift+G 取消所选 group 编组
  *  - onArrange                Ctrl+L 自动排版（dagre，复刻 H_.jsx Ui）
  *  - onAdd(type)              Q / W / E 快速添加文本/图片/视频
  *  - getPosition()            快速添加节点时的坐标（默认基于当前鼠标不可得时返回 0,0）
  */
 export function useCanvasShortcuts(handlers = {}) {
-  const { onUndo, onRedo, onSelectAll, onDuplicate, onArrange, onAdd } = handlers
+  const { onUndo, onRedo, onSelectAll, onDuplicate, onGroup, onUngroup, onArrange, onAdd } = handlers
 
   // 有选中文本（复刻 H_.jsx:11427-11434 n）
   const hasSelectionText = useCallback(() => {
@@ -53,6 +55,11 @@ export function useCanvasShortcuts(handlers = {}) {
       if (key === 'z') { e.preventDefault(); onUndo?.(); return }
       if (key === 'y') { e.preventDefault(); onRedo?.(); return }
 
+      // 编组 / 取消编组（Ctrl+G / Ctrl+Shift+G）：
+      // 提前处理、不因「有文本选中」跳过 —— 编组是画布操作，任意时刻都应可触发
+      if (key === 'g' && e.shiftKey) { e.preventDefault(); onUngroup?.(); return }
+      if (key === 'g') { e.preventDefault(); onGroup?.(); return }
+
       // 选中文本时跳过（复刻 H_.jsx:11493-11517）
       if (hasSelectionText()) return
 
@@ -64,5 +71,5 @@ export function useCanvasShortcuts(handlers = {}) {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [hasSelectionText, onUndo, onRedo, onSelectAll, onDuplicate, onArrange, onAdd])
+  }, [hasSelectionText, onUndo, onRedo, onSelectAll, onDuplicate, onGroup, onUngroup, onArrange, onAdd])
 }

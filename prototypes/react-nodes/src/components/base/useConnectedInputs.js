@@ -146,6 +146,20 @@ export function useConnectedInputs(nodeId) {
       .forEach((e) => {
         const src = nodes.find((n) => n.id === e.source)
         if (!src) return
+        // 编组作为出口：聚合组内所有子节点（非隐藏）的产出，统一接到下游。
+        // 这样把文本/图片等拖进 group 范围内（成为子节点），下游连到 group 的 source 口即可收到全部。
+        if (src.type === 'group') {
+          nodes
+            .filter((n) => n.parentId === src.id && !n.hidden)
+            .forEach((child) => {
+              const r = getNodeOutput(child)
+              out.images.push(...r.images)
+              out.texts.push(...r.texts)
+              out.videos.push(...r.videos)
+              out.audios.push(...r.audios)
+            })
+          return
+        }
         const r = getNodeOutput(src, e.sourceHandle)
         out.images.push(...r.images)
         out.texts.push(...r.texts)
