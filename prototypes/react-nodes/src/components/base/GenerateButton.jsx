@@ -34,7 +34,7 @@ export default function GenerateButton({
             onClick={(e) => { e.stopPropagation(); onRefresh() }}
           >
             <RefreshCw size={12} />
-            <span className="text-[10px]">刷新</span>
+            <span className="text-caption">刷新</span>
           </button>
         )}
         <div
@@ -56,7 +56,7 @@ export default function GenerateButton({
       onClick={(e) => { e.stopPropagation(); onGenerate() }}
     >
       {showCost && cost != null && (
-        <span className={`flex items-center gap-0.5 mr-2 text-[11px] ${costColor} tabular-nums`} title="预计消耗">
+        <span className={`flex items-center gap-0.5 mr-2 text-caption-sm ${costColor} tabular-nums`} title="预计消耗">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
             <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
             <path d="M12 7v10M9 10.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5c0 3.5-6 2-6 5 0 1.4 1.3 2.5 3 2.5s3-1.1 3-2.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

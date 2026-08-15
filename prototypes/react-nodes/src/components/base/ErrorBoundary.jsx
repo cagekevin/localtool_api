@@ -44,8 +44,8 @@ export default class ErrorBoundary extends React.Component {
             </div>
             {/* 标题 */}
             <div className="flex flex-col items-center gap-1.5">
-              <h2 className="text-[17px] font-semibold text-white m-0">画面出错了</h2>
-              <p className="text-[12px] text-muted m-0 leading-[1.6]">
+              <h2 className="text-lg font-semibold text-white m-0">画面出错了</h2>
+              <p className="text-body-xs text-muted m-0 leading-[1.6]">
                 画布遇到了异常，请重新载入。<br />
                 你的画布进度已保存在本地，重新载入不会丢失。
               </p>
@@ -53,10 +53,10 @@ export default class ErrorBoundary extends React.Component {
             {/* 错误详情（可展开） */}
             {err && (
               <details className="w-full text-left bg-surface-raised border border-edge-faint rounded-lg overflow-hidden">
-                <summary className="px-3 py-2 text-[11px] text-muted cursor-pointer select-none hover:text-[#bbb]">
+                <summary className="px-3 py-2 text-caption-sm text-muted cursor-pointer select-none hover:text-[#bbb]">
                   错误详情
                 </summary>
-                <pre className="m-0 px-3 pb-3 text-[10px] text-red-400/90 overflow-auto max-h-[120px] whitespace-pre-wrap break-all">
+                <pre className="m-0 px-3 pb-3 text-caption text-red-400/90 overflow-auto max-h-[120px] whitespace-pre-wrap break-all">
                   {err.message || String(err)}
                 </pre>
               </details>
@@ -64,13 +64,13 @@ export default class ErrorBoundary extends React.Component {
             {/* 按钮 */}
             <div className="flex items-center gap-3">
               <button
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[13px] font-medium transition-colors cursor-pointer border-none"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-body-sm font-medium transition-colors cursor-pointer border-none"
                 onClick={this.handleReload}
               >
                 <RotateCcw size={15} /> 重新载入
               </button>
               <button
-                className="px-5 py-2.5 rounded-xl bg-surface-hover hover:bg-surface-hover-strong text-body text-[13px] transition-colors cursor-pointer border-none"
+                className="px-5 py-2.5 rounded-xl bg-surface-hover hover:bg-surface-hover-strong text-body text-body-sm transition-colors cursor-pointer border-none"
                 onClick={this.handleHardReload}
               >
                 强制刷新

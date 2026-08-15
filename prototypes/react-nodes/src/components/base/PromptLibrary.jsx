@@ -130,7 +130,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               placeholder="搜索标题或提示词内容"
-              className="w-full h-[34px] bg-surface border border-edge rounded-[10px] pl-9 pr-3 text-body text-[13px] outline-none focus:border-edge-strong box-border"
+              className="w-full h-[34px] bg-surface border border-edge rounded-[10px] pl-9 pr-3 text-body text-body-sm outline-none focus:border-edge-strong box-border"
             />
           </div>
           <button className="ml-auto w-8 h-8 flex items-center justify-center bg-transparent hover:bg-surface-hover rounded-lg text-muted hover:text-white cursor-pointer" onClick={onClose} title="关闭">
@@ -142,13 +142,13 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
           {/* 左侧导航 */}
           <div className="w-[170px] border-r border-edge-subtle p-4 pr-3 flex flex-col gap-1.5 flex-shrink-0">
             <button
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-[13px] transition-all cursor-pointer text-left border-none ${activeTab === 'mine' ? 'bg-surface-2 text-white font-medium' : 'text-muted hover:bg-surface-2 hover:text-primary bg-transparent'}`}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-body-sm transition-all cursor-pointer text-left border-none ${activeTab === 'mine' ? 'bg-surface-2 text-white font-medium' : 'text-muted hover:bg-surface-2 hover:text-primary bg-transparent'}`}
               onClick={() => setActiveTab('mine')}
             >
               <List size={16} /> 我的提示词
             </button>
             <button
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-[13px] transition-all cursor-pointer text-left border-none ${activeTab === 'recent' ? 'bg-surface-2 text-white font-medium' : 'text-muted hover:bg-surface-2 hover:text-primary bg-transparent'}`}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-body-sm transition-all cursor-pointer text-left border-none ${activeTab === 'recent' ? 'bg-surface-2 text-white font-medium' : 'text-muted hover:bg-surface-2 hover:text-primary bg-transparent'}`}
               onClick={() => setActiveTab('recent')}
             >
               <Clock size={16} /> 最近使用
@@ -215,7 +215,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
                         {card.content || '(空)'}
                       </p>
                       <div className="flex items-center justify-between mt-1">
-                        <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium ${TYPE_TAG_CLASS[card.category] || 'bg-white/10 text-secondary'}`}>
+                        <span className={`px-2 py-0.5 rounded-md text-caption-sm font-medium ${TYPE_TAG_CLASS[card.category] || 'bg-white/10 text-secondary'}`}>
                           {card.category ? TYPE_LABEL[card.category] : '通用'}
                         </span>
                         <button
@@ -238,7 +238,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
       {isModalOpen && createPortal(
         <div className="fixed inset-0 z-modal-raise bg-black/60 flex items-center justify-center" onClick={() => { setEditingIndex(-1); setShowNewForm(false) }}>
           <div className="w-[520px] bg-surface border border-edge rounded-2xl p-6 flex flex-col gap-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-[15px] font-semibold text-white m-0">{showNewForm ? '新建提示词' : '编辑提示词'}</h3>
+            <h3 className="text-base-sm font-semibold text-white m-0">{showNewForm ? '新建提示词' : '编辑提示词'}</h3>
             <div className="flex gap-2.5">
               <div className="flex flex-col gap-1.5 flex-[2]">
                 <label className="text-xs text-muted">标题</label>
@@ -246,7 +246,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
                   placeholder="标题"
                   value={formData.title}
                   onChange={(e) => setFormData((d) => ({ ...d, title: e.target.value }))}
-                  className="bg-input border border-edge rounded-[10px] px-3 py-2.5 text-body text-[13px] outline-none focus:border-edge-strong box-border"
+                  className="bg-input border border-edge rounded-[10px] px-3 py-2.5 text-body text-body-sm outline-none focus:border-edge-strong box-border"
                 />
               </div>
               <div className="flex flex-col gap-1.5 flex-1">
@@ -254,7 +254,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData((d) => ({ ...d, type: e.target.value }))}
-                  className="bg-input border border-edge rounded-[10px] px-3 py-2.5 text-body text-[13px] outline-none focus:border-edge-strong box-border"
+                  className="bg-input border border-edge rounded-[10px] px-3 py-2.5 text-body text-body-sm outline-none focus:border-edge-strong box-border"
                 >
                   {CATEGORY_OPTIONS.map((o) => <option key={o.value || 'all'} value={o.value}>{o.value ? o.label : '通用'}</option>)}
                 </select>
@@ -266,7 +266,7 @@ export default function PromptLibrary({ open, onClose, onUse, defaultCategory = 
                 placeholder="提示词内容"
                 value={formData.prompt}
                 onChange={(e) => setFormData((d) => ({ ...d, prompt: e.target.value }))}
-                className="bg-input border border-edge rounded-[10px] px-3 py-2.5 text-body text-[13px] outline-none focus:border-edge-strong resize-none h-[160px] leading-[1.6] box-border"
+                className="bg-input border border-edge rounded-[10px] px-3 py-2.5 text-body text-body-sm outline-none focus:border-edge-strong resize-none h-[160px] leading-[1.6] box-border"
               />
             </div>
             <div className="flex items-center justify-between mt-1">

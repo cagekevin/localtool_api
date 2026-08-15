@@ -166,10 +166,10 @@ export default function AccountsSettings() {
                 value={formCookies}
                 onChange={(e) => setFormCookies(e.target.value)}
                 placeholder="[可选] 手动粘贴 Cookie (JSON 或 key=value; 格式)"
-                className="w-full bg-surface border border-edge rounded px-3 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500 h-16 resize-none font-mono nowheel nopan"
+                className="w-full bg-surface border border-edge rounded px-3 py-1.5 text-caption text-gray-300 focus:outline-none focus:border-blue-500 h-16 resize-none font-mono nowheel nopan"
               />
             </div>
-            <div className="text-[10px] text-gray-500 mt-2">* 默认自动抓取当前标签页 Cookie。若填写上方 Cookie 则优先使用。</div>
+            <div className="text-caption text-gray-500 mt-2">* 默认自动抓取当前标签页 Cookie。若填写上方 Cookie 则优先使用。</div>
           </div>
         </div>
       )}
@@ -234,7 +234,7 @@ export default function AccountsSettings() {
                 <div className="font-bold text-gray-200 truncate text-sm w-full text-center px-2">{e.name}</div>
                 {isActive && (
                   <div className="absolute top-0 left-0 w-0 h-0 border-t-[32px] border-r-[32px] border-t-blue-500 border-r-transparent rounded-tl-xl z-10">
-                    <div className="absolute -top-[28px] left-[6px] text-[12px] text-white font-bold">√</div>
+                    <div className="absolute -top-[28px] left-[6px] text-body-xs text-white font-bold">√</div>
                   </div>
                 )}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">

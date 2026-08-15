@@ -35,16 +35,16 @@ function Reasoning({ text, streaming }) {
       <button
         type="button"
         onClick={() => { setOpen(!open); setDone(false) }}
-        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-gray-400 hover:text-gray-300 transition-colors"
+        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-caption-sm text-gray-400 hover:text-gray-300 transition-colors"
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? 'rotate-90' : ''}`}>
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <span className="font-medium">{streaming ? '思考中...' : done ? '已思考' : '思考过程'}</span>
-        {!streaming && <span className="ml-auto text-[10px] text-gray-600">{open ? '点击折叠' : '点击展开'}</span>}
+        {!streaming && <span className="ml-auto text-caption text-gray-600">{open ? '点击折叠' : '点击展开'}</span>}
       </button>
       {open && (
-        <div className="px-3 pb-2 pt-0.5 text-[12px] text-gray-500 whitespace-pre-wrap break-words border-t border-edge-subtle leading-relaxed">
+        <div className="px-3 pb-2 pt-0.5 text-body-xs text-gray-500 whitespace-pre-wrap break-words border-t border-edge-subtle leading-relaxed">
           {text}
           {streaming && <span className="inline-block w-1 h-3 bg-gray-600 ml-0.5 animate-pulse align-middle" />}
         </div>
@@ -61,7 +61,7 @@ function ToolCallChip({ name, args }) {
     display = Object.entries(obj).map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
   } catch { /* keep raw */ }
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-purple-300 bg-purple-950/30 border border-purple-800/30 rounded-md px-2 py-0.5">
+    <span className="inline-flex items-center gap-1 text-caption-sm text-purple-300 bg-purple-950/30 border border-purple-800/30 rounded-md px-2 py-0.5">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
       </svg>
@@ -129,7 +129,7 @@ export default function AgentMessage({ message }) {
     } catch { /* keep raw */ }
     return (
       <div className="flex justify-start">
-        <div className="max-w-[85%] text-[11px] text-gray-500 bg-canvas border border-edge-subtle rounded-md px-2 py-1">
+        <div className="max-w-[85%] text-caption-sm text-gray-500 bg-canvas border border-edge-subtle rounded-md px-2 py-1">
           <span className={ok ? 'text-green-500' : 'text-red-400'}>{'●'}</span>
           {' '}
           {text}

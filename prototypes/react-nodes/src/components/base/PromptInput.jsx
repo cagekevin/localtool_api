@@ -67,7 +67,7 @@ const PromptInput = forwardRef(function PromptInput(
       <div ref={mentionRef} className="flex-1 relative shrink-0">
         <textarea
           ref={setTextareaRef}
-          className="w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nodrag nowheel nopan resize-none"
+          className="w-full bg-transparent text-base-sm text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nodrag nowheel nopan resize-none"
           style={{
             width: inputWidth ? `${inputWidth}px` : undefined,
             height: inputHeight ? `${inputHeight}px` : '80px',
@@ -95,8 +95,8 @@ const PromptInput = forwardRef(function PromptInput(
             <div className="p-2 flex-1 overflow-y-auto custom-scrollbar nowheel nopan nodrag">
               {all.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-600 gap-2">
-                  <span className="text-[11px]">暂无素材</span>
-                  <span className="text-[10px]">上传图片或连接其他节点后可用 @ 引用</span>
+                  <span className="text-caption-sm">暂无素材</span>
+                  <span className="text-caption">上传图片或连接其他节点后可用 @ 引用</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-1.5">
@@ -111,11 +111,11 @@ const PromptInput = forwardRef(function PromptInput(
                       ) : (
                         <div className="w-full h-full bg-surface-1 flex flex-col items-center justify-center p-1 text-center">
                           <LinkIcon size={16} className="text-blue-400 opacity-80 mb-1" />
-                          <span className="text-[8px] text-gray-400 truncate w-full">{item.label}</span>
+                          <span className="text-2xs text-gray-400 truncate w-full">{item.label}</span>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <span className="text-[10px] text-white">选择</span>
+                        <span className="text-caption text-white">选择</span>
                       </div>
                     </div>
                   ))}

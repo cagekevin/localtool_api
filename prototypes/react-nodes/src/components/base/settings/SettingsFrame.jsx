@@ -24,7 +24,7 @@ export default function SettingsFrame() {
       {/* 左侧栏 */}
       <aside className="w-48 bg-canvas border-r-0 flex flex-col p-3 z-10 flex-shrink-0">
         <div className="px-3 py-2 mb-1">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">设置</span>
+          <span className="text-caption text-gray-500 uppercase tracking-wider">设置</span>
         </div>
 
         {SECTIONS.map((s) => {

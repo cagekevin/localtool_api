@@ -163,7 +163,7 @@ export default function GeneratingOverlay({ label = '生成中...', backgroundUr
 
       {/* 右上角状态区：label + 旋转圆环加载器 */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
-        <span className="text-[11px] font-medium tracking-wider text-white/80">{label}</span>
+        <span className="text-caption-sm font-medium tracking-wider text-white/80">{label}</span>
         <div className="relative w-6 h-6 flex items-center justify-center">
           {/* 呼吸光晕 */}
           <div
@@ -181,10 +181,10 @@ export default function GeneratingOverlay({ label = '生成中...', backgroundUr
       {/* 左下角灵感 Tips 轮播（对齐官方 Di.jsx） */}
       <div className="relative z-10 max-w-[78%] pl-5 pr-4">
         <div className="flex flex-col items-start text-left">
-          <span className="text-[11px] tracking-[0.3em] text-white/35 mb-2" style={{ fontFamily: '"Songti SC", "STSong", "SimSun", serif' }}>TIPS</span>
+          <span className="text-caption-sm tracking-[0.3em] text-white/35 mb-2" style={{ fontFamily: '"Songti SC", "STSong", "SimSun", serif' }}>TIPS</span>
           <p
             key={tipIdx}
-            className="text-[17px] leading-[1.7] text-white/85"
+            className="text-lg leading-[1.7] text-white/85"
             style={{
               fontFamily: '"Songti SC", "STSong", "SimSun", "Noto Serif SC", serif',
               fontWeight: 500,

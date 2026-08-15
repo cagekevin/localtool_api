@@ -350,7 +350,7 @@ export default function VideoExtractNode({ id, data, selected }) {
             {extractedImages.length > 0 && (
               <button
                 onClick={copyAll}
-                className="absolute top-2 right-2 z-10 text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 px-2 py-1 rounded bg-surface-1/90 hover:bg-surface-hover-strong transition-colors cursor-pointer border-none"
+                className="absolute top-2 right-2 z-10 text-caption text-blue-400 hover:text-blue-300 flex items-center gap-1 px-2 py-1 rounded bg-surface-1/90 hover:bg-surface-hover-strong transition-colors cursor-pointer border-none"
               >
                 <Copy size={12} /> 复制全部
               </button>
@@ -499,7 +499,7 @@ export default function VideoExtractNode({ id, data, selected }) {
             {showConfig && (
               <div className="flex flex-col gap-4 bg-surface-black border border-edge rounded-lg p-4 mt-1">
                 <div className="flex flex-col gap-2">
-                  <span className="text-[11px] text-gray-400 font-medium">抽帧模式</span>
+                  <span className="text-caption-sm text-gray-400 font-medium">抽帧模式</span>
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
@@ -514,7 +514,7 @@ export default function VideoExtractNode({ id, data, selected }) {
                 </div>
                 {mode === 'count' && (
                   <div className="flex flex-col gap-2">
-                    <span className="text-[11px] text-gray-400 font-medium">提取总张数</span>
+                    <span className="text-caption-sm text-gray-400 font-medium">提取总张数</span>
                     <input
                       type="number"
                       min="1"
@@ -527,7 +527,7 @@ export default function VideoExtractNode({ id, data, selected }) {
                 )}
                 {mode === 'interval' && (
                   <div className="flex flex-col gap-2">
-                    <span className="text-[11px] text-gray-400 font-medium">间隔秒数 (秒)</span>
+                    <span className="text-caption-sm text-gray-400 font-medium">间隔秒数 (秒)</span>
                     <input
                       type="number"
                       min="0.5"
@@ -542,8 +542,8 @@ export default function VideoExtractNode({ id, data, selected }) {
                 {mode === 'smart' && (
                   <div className="flex flex-col gap-2">
                     <div className="flex justify-between">
-                      <span className="text-[11px] text-gray-400 font-medium">检测敏感度</span>
-                      <span className="text-[11px] text-gray-500">{sensitivity}</span>
+                      <span className="text-caption-sm text-gray-400 font-medium">检测敏感度</span>
+                      <span className="text-caption-sm text-gray-500">{sensitivity}</span>
                     </div>
                     <input
                       type="range"
@@ -553,7 +553,7 @@ export default function VideoExtractNode({ id, data, selected }) {
                       onChange={(e) => setSensitivity(Number(e.target.value))}
                       className="w-full accent-white"
                     />
-                    <span className="text-[10px] text-gray-500">数值越高越容易触发截图</span>
+                    <span className="text-caption text-gray-500">数值越高越容易触发截图</span>
                   </div>
                 )}
               </div>

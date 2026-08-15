@@ -53,11 +53,11 @@ export default function ModelSelect({
       {showDivider && <div className="w-[1px] h-3 bg-surface-3 flex-shrink-0 mr-1.5" />}
       <button
         type="button"
-        className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
+        className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded text-caption-sm text-gray-300 transition-colors cursor-pointer"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
         title={value ? `${value}（${selectedBadge.label}）` : '选择模型'}
       >
-        <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${selectedBadge.className}`}>
+        <span className={`shrink-0 px-1 rounded text-meta leading-[14px] border bg-white/10 ${selectedBadge.className}`}>
           {selectedBadge.label}
         </span>
         <span className="whitespace-nowrap">{selectedItem?.label || value || placeholder}</span>
@@ -76,15 +76,15 @@ export default function ModelSelect({
               <div
                 key={m.id}
                 role="button"
-                className={`flex items-center gap-1.5 mb-1 last:mb-0 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors cursor-pointer ${selected ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`}
+                className={`flex items-center gap-1.5 mb-1 last:mb-0 text-left px-2 py-1.5 text-caption-sm rounded-md transition-colors cursor-pointer ${selected ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`}
                 onMouseDown={(e) => { e.preventDefault(); onChange(m.id); setOpen(false) }}
               >
-                <span className={`shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 ${itemBadge.className}`}>
+                <span className={`shrink-0 px-1 rounded text-meta leading-[14px] border bg-white/10 ${itemBadge.className}`}>
                   {itemBadge.label}
                 </span>
                 <span className="flex-1 whitespace-nowrap">{m.label || m.id}</span>
                 {cost != null && (
-                  <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-orange-400 tabular-nums">
+                  <span className="shrink-0 inline-flex items-center gap-0.5 text-caption text-orange-400 tabular-nums">
                     <Coins className="w-2.5 h-2.5" strokeWidth={2.5} />{cost}
                   </span>
                 )}

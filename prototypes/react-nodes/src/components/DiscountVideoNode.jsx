@@ -221,7 +221,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
           {videoUrl && !loading && !error && hideVideo && (
             <div className="flex flex-col items-center justify-center gap-1 absolute inset-0 bg-surface-muted">
               <Clapperboard size={24} className="text-gray-700" />
-              <span className="text-[10px] text-gray-500">性能模式已隐藏</span>
+              <span className="text-caption text-gray-500">性能模式已隐藏</span>
             </div>
           )}
           {videoUrl && !hideVideo && (
@@ -273,7 +273,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
                 </div>
               ))}
               {connected.texts.map((t, i) => (
-                <div key={t.id || i} className="h-8 px-2 bg-surface-hover border border-edge-muted rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-surface-hover-strong hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
+                <div key={t.id || i} className="h-8 px-2 bg-surface-hover border border-edge-muted rounded flex items-center gap-1 text-caption text-gray-300 hover:bg-surface-hover-strong hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
                   <LinkIcon size={10} />
                   <span className="max-w-[80px] truncate">{t.label || '参考文本'}</span>
                 </div>
@@ -287,7 +287,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
             <div className="flex-1 nodrag relative shrink-0">
               <textarea
                 ref={promptInputRef}
-                className="w-full bg-transparent text-[15px] text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nowheel nopan nodrag resize-none"
+                className="w-full bg-transparent text-base-sm text-gray-200 outline-none leading-relaxed placeholder-gray-600 font-sans custom-scrollbar nowheel nopan nodrag resize-none"
                 style={{
                   width: data.inputWidth ? `${data.inputWidth}px` : undefined,
                   height: data.inputHeight ? `${data.inputHeight}px` : '80px',
@@ -308,7 +308,7 @@ export default function DiscountVideoNode({ id, data, selected }) {
               {/* 比例/分辨率/时长（ref 绑外层 relative，点外部才关） */}
               <div ref={ratioMenuRef} className="relative nodrag flex items-center">
                 <button
-                  className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded text-[11px] text-gray-300 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 h-6 px-2 bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded text-caption-sm text-gray-300 transition-colors cursor-pointer"
                   onClick={(e) => { e.stopPropagation(); setShowRatioMenu((v) => !v) }}
                   title="选择比例和时长"
                 >
@@ -318,26 +318,26 @@ export default function DiscountVideoNode({ id, data, selected }) {
                 {showRatioMenu && (
                   <div className="absolute bottom-full left-0 mb-1 w-72 bg-surface-1 border border-edge rounded-lg shadow-xl p-3 z-50 flex flex-col gap-3 max-h-none overflow-visible nopan nodrag" onClick={(e) => e.stopPropagation()}>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-2 px-1">比例</div>
+                      <div className="text-caption text-gray-500 mb-2 px-1">比例</div>
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {ratioOptions.map((o) => (
-                          <button key={o.value} className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${ratio === o.value ? 'bg-surface-3 text-white' : 'bg-surface-raised text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setRatio(o.value); setVidPrefs({ size: o.value }) }}>{o.label}</button>
+                          <button key={o.value} className={`px-3 py-1.5 text-caption-sm rounded-md transition-colors ${ratio === o.value ? 'bg-surface-3 text-white' : 'bg-surface-raised text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setRatio(o.value); setVidPrefs({ size: o.value }) }}>{o.label}</button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-2 px-1">分辨率</div>
+                      <div className="text-caption text-gray-500 mb-2 px-1">分辨率</div>
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {resOptions.map((r) => (
-                          <button key={r} className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${resolution === r ? 'bg-surface-3 text-white' : 'bg-surface-raised text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setResolution(r); setVidPrefs({ resolution: r }) }}>{r}</button>
+                          <button key={r} className={`px-3 py-1.5 text-caption-sm rounded-md transition-colors ${resolution === r ? 'bg-surface-3 text-white' : 'bg-surface-raised text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setResolution(r); setVidPrefs({ resolution: r }) }}>{r}</button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-gray-500 mb-2 px-1">时长 (秒)</div>
+                      <div className="text-caption text-gray-500 mb-2 px-1">时长 (秒)</div>
                       <div className="flex flex-wrap gap-1.5 px-1">
                         {durationOptions.map((d) => (
-                          <button key={d} type="button" className={`px-3 py-1.5 text-[11px] rounded-md transition-colors ${String(d) === seconds ? 'bg-surface-3 text-white' : 'bg-surface-raised text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setSeconds(d); setVidPrefs({ seconds: String(d) }) }}>{d}s</button>
+                          <button key={d} type="button" className={`px-3 py-1.5 text-caption-sm rounded-md transition-colors ${String(d) === seconds ? 'bg-surface-3 text-white' : 'bg-surface-raised text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`} onClick={() => { setSeconds(d); setVidPrefs({ seconds: String(d) }) }}>{d}s</button>
                         ))}
                       </div>
                     </div>

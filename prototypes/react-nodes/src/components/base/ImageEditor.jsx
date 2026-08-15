@@ -541,7 +541,7 @@ export default function ImageEditor({ imageUrl, initialTool = 'pencil', onSave, 
         <button type="button" onClick={zoomOut} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-surface-hover-strong" title="缩小 (滚轮)">
           <ZoomOut size={15} />
         </button>
-        <button type="button" onClick={resetZoom} className="px-2 text-[11px] text-gray-200 tabular-nums min-w-[44px] text-center hover:text-white" title="重置为 100%（空格拖动平移）">
+        <button type="button" onClick={resetZoom} className="px-2 text-caption-sm text-gray-200 tabular-nums min-w-[44px] text-center hover:text-white" title="重置为 100%（空格拖动平移）">
           {Math.round(zoom * 100)}%
         </button>
         <button type="button" onClick={zoomIn} className="p-1.5 rounded text-gray-300 hover:text-white hover:bg-surface-hover-strong" title="放大 (滚轮)">

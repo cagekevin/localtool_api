@@ -20,7 +20,7 @@ export default function NodeTitle({ label, defaultTitle, icon, className = '', f
 
   return (
     <div
-      className={`${floating ? 'absolute -top-6 left-0 z-30' : 'mb-1 self-start'} flex items-center gap-1.5 text-[11px] text-gray-400 drag-handle cursor-move ${className || ''}`}
+      className={`${floating ? 'absolute -top-6 left-0 z-30' : 'mb-1 self-start'} flex items-center gap-1.5 text-caption-sm text-gray-400 drag-handle cursor-move ${className || ''}`}
     >
       {icon}
       {editing ? (
@@ -43,7 +43,7 @@ export default function NodeTitle({ label, defaultTitle, icon, className = '', f
           }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
-          className="nodrag nowheel nopan w-32 rounded border border-edge-muted bg-surface-black px-1.5 py-0.5 text-[11px] text-gray-200 outline-none focus:border-blue-500"
+          className="nodrag nowheel nopan w-32 rounded border border-edge-muted bg-surface-black px-1.5 py-0.5 text-caption-sm text-gray-200 outline-none focus:border-blue-500"
           autoFocus
         />
       ) : (

@@ -155,7 +155,7 @@ export default function ImageNode({ id, data, selected }) {
             <div className="absolute inset-0 flex items-center justify-center bg-[#121212]">
               <div className="flex flex-col items-center gap-1 opacity-60">
                 <ImageIcon size={18} className="text-gray-600" />
-                <span className="text-[9px] text-gray-500">性能模式已隐藏</span>
+                <span className="text-meta text-gray-500">性能模式已隐藏</span>
               </div>
             </div>
           )}
@@ -227,7 +227,7 @@ export default function ImageNode({ id, data, selected }) {
           {type === 'text' && (
             <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-2">
               <FileText size={24} className="text-gray-400 mb-2" />
-              <span className="text-[10px] text-gray-500">文本/数据文件</span>
+              <span className="text-caption text-gray-500">文本/数据文件</span>
             </div>
           )}
           {/* 空态 */}

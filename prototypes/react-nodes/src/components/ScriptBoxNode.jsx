@@ -102,9 +102,9 @@ export default function ScriptBoxNode({ id, data, selected }) {
         {/* 顶部标题栏 */}
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.08] w-full drag-handle cursor-move shrink-0">
           <Clapperboard size={14} className="text-gray-500" />
-          <span className="text-[13px] text-gray-300 font-medium">{d.projectName || '剧本盒子'}</span>
+          <span className="text-body-sm text-gray-300 font-medium">{d.projectName || '剧本盒子'}</span>
           {genMask && (
-            <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-[#262626] px-2.5 py-1 rounded-full">
+            <span className="flex items-center gap-1.5 text-caption-sm text-gray-400 bg-[#262626] px-2.5 py-1 rounded-full">
               <Loader2 size={11} className="animate-spin text-emerald-400" />
               生成中 {d.genChars || 0} 字 · {genSecs}s
             </span>
@@ -173,8 +173,8 @@ function StepNav({ step, setStep, shots, assets }) {
                 <text x="14" y="18" textAnchor="middle" fontSize="11" fontWeight="600" fill={active ? '#fff' : '#9ca3af'}>{s.n}</text>
               </svg>
               <span className="text-left">
-                <span className={`block text-[12px] font-medium ${active ? 'text-white' : 'text-gray-500'}`}>{s.title}</span>
-                <span className="block text-[10px] text-gray-500">{s.desc}</span>
+                <span className={`block text-body-xs font-medium ${active ? 'text-white' : 'text-gray-500'}`}>{s.title}</span>
+                <span className="block text-caption text-gray-500">{s.desc}</span>
               </span>
             </button>
             {k < steps.length - 1 && <div className="w-10 h-px bg-surface-hover-strong" />}

@@ -89,7 +89,7 @@ export default function FullscreenModal({ open, title = '编辑输入', onClose,
             <span>{title}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-gray-500">Esc 关闭 · 点击空白处关闭</span>
+            <span className="text-caption-sm text-gray-500">Esc 关闭 · 点击空白处关闭</span>
             <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" onClick={onClose} title="关闭全屏">
               <X size={16} />
             </button>

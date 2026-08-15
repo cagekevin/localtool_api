@@ -66,14 +66,14 @@ export default function TaskCenter() {
       {/* 过滤工具栏（标题由 LeftPanel 外壳提供；这里只放过滤与清理） */}
       <div className="h-[44px] bg-surface-active border-b border-edge-faint flex items-center px-3 gap-2 flex-shrink-0">
         <button
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12px] transition-colors cursor-pointer border-none ${showFilter ? 'bg-surface-hover-strong text-white' : 'text-secondary hover:text-white hover:bg-surface-hover-2'}`}
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-body-xs transition-colors cursor-pointer border-none ${showFilter ? 'bg-surface-hover-strong text-white' : 'text-secondary hover:text-white hover:bg-surface-hover-2'}`}
           onClick={() => setShowFilter((v) => !v)}
         >
           <Filter size={14} /> 过滤
         </button>
-        <span className="text-[11px] text-muted">{runningCount} 生成中 · {failedCount} 失败</span>
+        <span className="text-caption-sm text-muted">{runningCount} 生成中 · {failedCount} 失败</span>
         <div className="ml-auto flex items-center gap-1">
-          <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] text-muted hover:text-white hover:bg-surface-hover-2 transition-colors cursor-pointer border-none" onClick={() => setCleanOpen((v) => !v)}>
+          <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-caption-sm text-muted hover:text-white hover:bg-surface-hover-2 transition-colors cursor-pointer border-none" onClick={() => setCleanOpen((v) => !v)}>
             <Trash2 size={12} /> 清理 <ChevronDown size={11} />
           </button>
           <div className="relative">
@@ -97,14 +97,14 @@ export default function TaskCenter() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索提示词或渠道..."
-              className="w-full h-[32px] bg-input border border-edge rounded-lg pl-8 pr-3 text-primary text-[12px] outline-none focus:border-edge-strong box-border"
+              className="w-full h-[32px] bg-input border border-edge rounded-lg pl-8 pr-3 text-primary text-body-xs outline-none focus:border-edge-strong box-border"
             />
           </div>
           <div className="flex items-center gap-2">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="flex-1 h-[32px] bg-input border border-edge rounded-lg px-2 text-[12px] text-primary outline-none focus:border-edge-strong box-border">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="flex-1 h-[32px] bg-input border border-edge rounded-lg px-2 text-body-xs text-primary outline-none focus:border-edge-strong box-border">
               {STATUS_FILTERS.map((f) => <option key={f.key || 's_all'} value={f.key}>{f.label}</option>)}
             </select>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="flex-1 h-[32px] bg-input border border-edge rounded-lg px-2 text-[12px] text-primary outline-none focus:border-edge-strong box-border">
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="flex-1 h-[32px] bg-input border border-edge rounded-lg px-2 text-body-xs text-primary outline-none focus:border-edge-strong box-border">
               {TYPE_FILTERS.map((f) => <option key={f.key || 't_all'} value={f.key}>{f.label}</option>)}
             </select>
           </div>
@@ -141,7 +141,7 @@ export default function TaskCenter() {
 
 function CleanItem({ label, onClick, danger }) {
   return (
-    <button className={`w-full flex items-center px-2 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer border-none text-left ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-[#bbb] hover:bg-surface-hover-2 hover:text-white'}`} onClick={onClick}>
+    <button className={`w-full flex items-center px-2 py-1.5 rounded-md text-caption-sm transition-colors cursor-pointer border-none text-left ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-[#bbb] hover:bg-surface-hover-2 hover:text-white'}`} onClick={onClick}>
       {label}
     </button>
   )
@@ -185,10 +185,10 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
       {/* 第一行：状态圆点+文案 · 类型+模型 | 操作 */}
       <div className="flex items-center gap-1.5 min-w-0">
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
-        <span className={`text-[11px] flex-shrink-0 ${task.status === 'failed' ? 'text-red-400' : isActive ? 'text-blue-400' : 'text-emerald-400'}`}>{statusText}</span>
+        <span className={`text-caption-sm flex-shrink-0 ${task.status === 'failed' ? 'text-red-400' : isActive ? 'text-blue-400' : 'text-emerald-400'}`}>{statusText}</span>
         <span className="text-subtle">·</span>
-        <span className="flex items-center gap-1 text-[11px] text-body flex-shrink-0"><TypeIcon size={11} /> {typeLabel(task.type)}</span>
-        {task.modelName && <span className="text-[10px] text-faint truncate flex-shrink-0">{task.modelName}</span>}
+        <span className="flex items-center gap-1 text-caption-sm text-body flex-shrink-0"><TypeIcon size={11} /> {typeLabel(task.type)}</span>
+        {task.modelName && <span className="text-caption text-faint truncate flex-shrink-0">{task.modelName}</span>}
         <div className="ml-auto flex items-center gap-1 flex-shrink-0">
           <button className="w-6 h-6 flex items-center justify-center rounded-md text-muted hover:text-white hover:bg-surface-hover-2 transition-colors cursor-pointer border-none" title="复制提示词" onClick={onCopy}>
             <Copy size={12} />
@@ -218,12 +218,12 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
       </div>
 
       {/* 提示词 */}
-      <p className="text-[12px] text-secondary leading-[1.5] m-0" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      <p className="text-body-xs text-secondary leading-[1.5] m-0" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {task.prompt || '(无提示词)'}
       </p>
 
       {/* 时间 */}
-      <div className="text-[10px] text-faint">{fmtTime(task.createdAt)}</div>
+      <div className="text-caption text-faint">{fmtTime(task.createdAt)}</div>
 
       {/* 运行中进度条 */}
       {isActive && (
@@ -235,8 +235,8 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
       {/* 错误块 */}
       {task.status === 'failed' && task.errorMsg && (
         <div className="flex items-center gap-2 bg-red-500/5 border border-red-500/20 rounded-lg px-2 py-1.5">
-          <span className="text-[12px]">⚠️</span>
-          <span className="text-[11px] text-red-400/90 truncate flex-1">{task.errorMsg}</span>
+          <span className="text-body-xs">⚠️</span>
+          <span className="text-caption-sm text-red-400/90 truncate flex-1">{task.errorMsg}</span>
         </div>
       )}
 
@@ -255,11 +255,11 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
       )}
 
       {/* 展开请求/响应数据 */}
-      <button className="flex items-center gap-1 text-[10px] text-faint hover:text-secondary transition-colors cursor-pointer border-none bg-transparent" onClick={() => setShowData((v) => !v)}>
+      <button className="flex items-center gap-1 text-caption text-faint hover:text-secondary transition-colors cursor-pointer border-none bg-transparent" onClick={() => setShowData((v) => !v)}>
         <ChevronDown size={11} className={`transition-transform ${showData ? 'rotate-180' : ''}`} /> 请求/响应数据
       </button>
       {showData && (
-        <pre className="text-[10px] text-faint bg-surface-muted border border-[#242424] rounded-lg p-2 overflow-auto max-h-[140px] whitespace-pre-wrap">
+        <pre className="text-caption text-faint bg-surface-muted border border-[#242424] rounded-lg p-2 overflow-auto max-h-[140px] whitespace-pre-wrap">
 {JSON.stringify({ id: task.id, nodeId: task.nodeId, status: task.status, type: task.type, modelName: task.modelName, channelName: task.channelName, prompt: task.prompt, createdAt: task.createdAt }, null, 2)}
         </pre>
       )}
@@ -269,7 +269,7 @@ function TaskCard({ task, moreOpen, onToggleMore, onCopy, onRetry, onRemove }) {
 
 function MenuBtn({ icon: Icon, label, onClick, danger }) {
   return (
-    <button className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-colors cursor-pointer border-none text-left ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-body hover:bg-surface-hover-2 hover:text-white'}`} onClick={onClick}>
+    <button className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-caption-sm transition-colors cursor-pointer border-none text-left ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-body hover:bg-surface-hover-2 hover:text-white'}`} onClick={onClick}>
       <Icon size={12} /> {label}
     </button>
   )

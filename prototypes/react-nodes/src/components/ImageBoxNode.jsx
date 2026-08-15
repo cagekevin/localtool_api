@@ -400,21 +400,21 @@ export default function ImageBoxNode({ id, data, selected }) {
         <div className="flex items-center gap-1 nodrag">
           {expanded && images.length > 0 && (
             <>
-              <button className="px-1.5 py-0.5 rounded hover:bg-surface-hover-strong text-gray-400 hover:text-white inline-flex items-center gap-1 text-[10px] cursor-pointer border-none" title={allSelected ? '取消全选' : '全选'} onClick={(e) => { e.stopPropagation(); toggleSelectAll() }}>
+              <button className="px-1.5 py-0.5 rounded hover:bg-surface-hover-strong text-gray-400 hover:text-white inline-flex items-center gap-1 text-caption cursor-pointer border-none" title={allSelected ? '取消全选' : '全选'} onClick={(e) => { e.stopPropagation(); toggleSelectAll() }}>
                 {allSelected ? <ListChecks size={10} /> : <Check size={10} />}
                 <span>全选</span>
               </button>
               {selectedIds.length > 0 && (
                 <>
-                  <span className="text-gray-300 text-[10px]">已选 {selectedIds.length}</span>
-                  <button className="px-1.5 py-0.5 rounded hover:bg-surface-hover-strong hover:text-red-400 text-gray-400 inline-flex items-center gap-1 text-[10px] cursor-pointer border-none" title="删除已选" onClick={(e) => { e.stopPropagation(); removeSelected() }}>
+                  <span className="text-gray-300 text-caption">已选 {selectedIds.length}</span>
+                  <button className="px-1.5 py-0.5 rounded hover:bg-surface-hover-strong hover:text-red-400 text-gray-400 inline-flex items-center gap-1 text-caption cursor-pointer border-none" title="删除已选" onClick={(e) => { e.stopPropagation(); removeSelected() }}>
                     <Trash2 size={10} />
                   </button>
                 </>
               )}
             </>
           )}
-          <button className="px-1.5 py-0.5 rounded hover:bg-surface-hover-strong text-gray-400 hover:text-white inline-flex items-center gap-1 text-[10px] transition-colors cursor-pointer border-none" title={expanded ? '折叠为单图' : '展开为缩略图网格'} onClick={(e) => { e.stopPropagation(); toggleExpand() }}>
+          <button className="px-1.5 py-0.5 rounded hover:bg-surface-hover-strong text-gray-400 hover:text-white inline-flex items-center gap-1 text-caption transition-colors cursor-pointer border-none" title={expanded ? '折叠为单图' : '展开为缩略图网格'} onClick={(e) => { e.stopPropagation(); toggleExpand() }}>
             {expanded ? <List size={11} /> : <Grid2X2 size={11} />}
             <span>{expanded ? '折叠' : '展开'}</span>
           </button>
@@ -472,7 +472,7 @@ export default function ImageBoxNode({ id, data, selected }) {
               <div className="w-12 h-12 rounded-xl bg-surface-1 border border-dashed border-edge-muted group-hover:border-blue-500/50 flex flex-col items-center justify-center transition-all">
                 <Plus size={20} className="text-gray-600 group-hover:text-blue-500/80 transition-colors" />
               </div>
-              <span className="text-[10px] text-gray-500 mt-2">拖拽 / 粘贴 / 点击添加图片</span>
+              <span className="text-caption text-gray-500 mt-2">拖拽 / 粘贴 / 点击添加图片</span>
             </div>
           )}
 
@@ -495,7 +495,7 @@ export default function ImageBoxNode({ id, data, selected }) {
                   <button className="w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer border-none" title="上一张" onClick={(e) => { e.stopPropagation(); prev() }}>
                     <ChevronLeftIcon />
                   </button>
-                  <span className="px-1 text-[10px] text-white tabular-nums select-none">{activeIndex + 1}/{images.length}</span>
+                  <span className="px-1 text-caption text-white tabular-nums select-none">{activeIndex + 1}/{images.length}</span>
                   <button className="w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer border-none" title="下一张" onClick={(e) => { e.stopPropagation(); next() }}>
                     <ChevronRightIcon />
                   </button>
@@ -566,7 +566,7 @@ export default function ImageBoxNode({ id, data, selected }) {
                       >
                         {isSel ? <Check size={10} /> : <Plus size={10} />}
                       </button>
-                      {isActive && <span className="absolute bottom-1 left-1 px-1 py-px rounded bg-blue-500 text-white text-[8px] font-medium">默认</span>}
+                      {isActive && <span className="absolute bottom-1 left-1 px-1 py-px rounded bg-blue-500 text-white text-2xs font-medium">默认</span>}
                       <div className="absolute top-1 right-1" data-thumb-menu>
                         <button
                           className={`w-4 h-4 rounded bg-black/60 text-gray-200 hover:bg-blue-500 hover:text-white flex items-center justify-center transition-opacity cursor-pointer border-none ${menuIndex === index ? 'opacity-100' : 'opacity-0 group-hover/thumb:opacity-100'}`}
@@ -634,26 +634,26 @@ export default function ImageBoxNode({ id, data, selected }) {
             const close = () => { setMenuIndex(null); setMenuPos(null) }
             return (
               <>
-                <button className="w-full text-left px-2 py-1.5 text-[11px] text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { copyImage(img.url); close() }}>
+                <button className="w-full text-left px-2 py-1.5 text-caption-sm text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { copyImage(img.url); close() }}>
                   <Copy size={11} className="text-gray-400" />
                   <span>复制图片</span>
                 </button>
-                <button className="w-full text-left px-2 py-1.5 text-[11px] text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { downloadUrl(img.url, img.label); close() }}>
+                <button className="w-full text-left px-2 py-1.5 text-caption-sm text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { downloadUrl(img.url, img.label); close() }}>
                   <Download size={11} className="text-gray-400" />
                   <span>下载</span>
                 </button>
-                <button className="w-full text-left px-2 py-1.5 text-[11px] text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { setZoomView(img.url); close() }}>
+                <button className="w-full text-left px-2 py-1.5 text-caption-sm text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { setZoomView(img.url); close() }}>
                   <ZoomIn size={11} className="text-gray-400" />
                   <span>放大查看</span>
                 </button>
                 {idx !== activeIndex && (
-                  <button className="w-full text-left px-2 py-1.5 text-[11px] text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { setActive(idx); close() }}>
+                  <button className="w-full text-left px-2 py-1.5 text-caption-sm text-gray-300 hover:bg-surface-hover-strong hover:text-white rounded flex items-center gap-2 cursor-pointer" onClick={() => { setActive(idx); close() }}>
                     <Grid2X2 size={11} className="text-gray-400" />
                     <span>设为默认</span>
                   </button>
                 )}
                 <div className="h-[1px] bg-surface-hover-strong my-1" />
-                <button className="w-full text-left px-2 py-1.5 text-[11px] text-red-400 hover:bg-surface-hover-strong rounded flex items-center gap-2 cursor-pointer" onClick={() => { removeAt(idx); close() }}>
+                <button className="w-full text-left px-2 py-1.5 text-caption-sm text-red-400 hover:bg-surface-hover-strong rounded flex items-center gap-2 cursor-pointer" onClick={() => { removeAt(idx); close() }}>
                   <Trash2 size={11} />
                   <span>从盒子删除</span>
                 </button>

@@ -559,7 +559,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
           setMenu(null)
         }
       }}
-      className={`w-full flex items-center gap-2 px-2 py-1 text-[11px] text-left rounded transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : danger ? 'text-red-300 hover:bg-red-500/15' : 'text-gray-200 hover:bg-blue-500/15'} cursor-pointer`}
+      className={`w-full flex items-center gap-2 px-2 py-1 text-caption-sm text-left rounded transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : danger ? 'text-red-300 hover:bg-red-500/15' : 'text-gray-200 hover:bg-blue-500/15'} cursor-pointer`}
     >
       {icon}
       <span>{label}</span>
@@ -569,7 +569,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
   return (
     <div className="space-y-2">
       {/* 画布尺寸 */}
-      <div className="flex items-center gap-1.5 text-[10px] text-gray-400 nodrag flex-wrap">
+      <div className="flex items-center gap-1.5 text-caption text-gray-400 nodrag flex-wrap">
         <span>画布</span>
         <input
           type="number" min={64} max={4096}
@@ -694,7 +694,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
 
       {/* 涂抹工具栏 */}
       {paintLayerId && (
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-300 bg-surface-raised border border-orange-500/40 rounded p-1.5 nodrag">
+        <div className="flex flex-wrap items-center gap-1.5 text-caption text-gray-300 bg-surface-raised border border-orange-500/40 rounded p-1.5 nodrag">
           <button className={`px-1.5 py-0.5 rounded border cursor-pointer ${brushMode === 'erase' ? 'bg-orange-500/15 border-orange-500/60 text-orange-300' : 'bg-surface-hover border-edge text-gray-300'}`} onClick={() => setBrushMode('erase')}>擦除</button>
           <button className={`px-1.5 py-0.5 rounded border cursor-pointer ${brushMode === 'restore' ? 'bg-orange-500/15 border-orange-500/60 text-orange-300' : 'bg-surface-hover border-edge text-gray-300'}`} onClick={() => setBrushMode('restore')}>恢复</button>
           <span className="ml-1">笔刷</span>
@@ -709,12 +709,12 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
 
       {/* 图层列表 */}
       <div className="bg-surface-raised border border-edge rounded p-1.5 max-h-[180px] overflow-y-auto nodrag">
-        <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-1">
+        <div className="flex items-center gap-1 text-caption text-gray-400 mb-1">
           <Box size={11} />
           <span>图层（{layers.length}）</span>
         </div>
         {sortedLayers.length === 0 ? (
-          <div className="text-[10px] text-gray-500 py-2 text-center">连线一张图即作为新图层导入</div>
+          <div className="text-caption text-gray-500 py-2 text-center">连线一张图即作为新图层导入</div>
         ) : (
           sortedLayers.map((layer) => {
             const isDragging = dragLayerId === layer.id
@@ -765,7 +765,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
                   setDragLayerId(null)
                   setOverLayerId(null)
                 }}
-                className={`flex items-center gap-1 px-1 py-0.5 rounded text-[10px] cursor-grab active:cursor-grabbing transition-colors
+                className={`flex items-center gap-1 px-1 py-0.5 rounded text-caption cursor-grab active:cursor-grabbing transition-colors
                   ${selectedId === layer.id ? 'bg-blue-500/15' : 'hover:bg-white/5'}
                   ${isDragging ? 'opacity-40' : ''}
                   ${isOver ? 'ring-1 ring-blue-400 bg-blue-400/10' : ''}
@@ -802,7 +802,7 @@ export default function OverlayEditor({ state, onChange, upstreamUrls }) {
 
       {/* 属性面板 */}
       {selectedLayer && !paintLayerId && (
-        <div className="flex items-center gap-1.5 text-[10px] text-gray-400 nodrag">
+        <div className="flex items-center gap-1.5 text-caption text-gray-400 nodrag">
           <span>不透明</span>
           <input type="range" min={0} max={100} value={Math.round(selectedLayer.opacity * 100)} onChange={(e) => updateLayer(selectedLayer.id, { opacity: parseInt(e.target.value, 10) / 100 })} className="w-20 accent-blue-400" />
           <span>{Math.round(selectedLayer.opacity * 100)}%</span>

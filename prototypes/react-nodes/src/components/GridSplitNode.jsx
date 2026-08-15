@@ -583,7 +583,7 @@ export default function GridSplitNode({ id, data, selected }) {
   const modeBtn = (mode, label, icon, title) => (
     <button
       key={mode}
-      className={`px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 border transition-colors cursor-pointer ${
+      className={`px-1.5 py-0.5 rounded text-caption flex items-center gap-1 border transition-colors cursor-pointer ${
         splitMode === mode ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white'
       }`}
       onClick={() => setSplitMode(mode)}
@@ -608,7 +608,7 @@ export default function GridSplitNode({ id, data, selected }) {
         }}
         title={`点击切出: ${titlePattern.replace('{num}', String(i + 1))}`}
       >
-        <span className="absolute top-0.5 left-0.5 text-[8px] text-white/90 bg-black/50 px-1 rounded-sm font-mono pointer-events-none scale-75 origin-top-left">
+        <span className="absolute top-0.5 left-0.5 text-2xs text-white/90 bg-black/50 px-1 rounded-sm font-mono pointer-events-none scale-75 origin-top-left">
           {i + 1}
         </span>
         {connectedCells.has(i) && (
@@ -649,7 +649,7 @@ export default function GridSplitNode({ id, data, selected }) {
             }}
             title="拖动调整位置 / Shift+点击删除"
           >
-            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-blue-400/90 shadow-[0_0_4px_rgba(59,130,246,0.8)]" />
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-blue-400/90 shadow-glow-blue" />
           </div>
         ))}
         {vLines.map((pos, i) => (
@@ -669,7 +669,7 @@ export default function GridSplitNode({ id, data, selected }) {
             }}
             title="拖动调整位置 / Shift+点击删除"
           >
-            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-blue-400/90 shadow-[0_0_4px_rgba(59,130,246,0.8)]" />
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-blue-400/90 shadow-glow-blue" />
           </div>
         ))}
       </>
@@ -705,7 +705,7 @@ export default function GridSplitNode({ id, data, selected }) {
             style={{ left: `${c.cx * 100}%`, top: `${c.cy * 100}%` }}
           >
             <button
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono cursor-pointer border ${
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-meta font-mono cursor-pointer border ${
                 activeLasso === c.id ? 'bg-blue-500 text-white border-blue-300' : 'bg-black/70 text-white border-white/30 hover:bg-blue-500/80'
               }`}
               onClick={(e) => {
@@ -777,8 +777,8 @@ export default function GridSplitNode({ id, data, selected }) {
                 {renderLasso()}
               </div>
             </div>
-            {splitMode === 'manual' && <div className="mt-1 text-[10px] text-gray-500 leading-tight">双击空白加水平线，Shift+双击加垂直线；拖动线移动；Shift+点击线删除。</div>}
-            {splitMode === 'lasso' && <div className="mt-1 text-[10px] text-gray-500 leading-tight">按住鼠标在图上画一圈即可生成一个透明形状，可以画多个；点击编号切出当前块，Shift+点击删除。</div>}
+            {splitMode === 'manual' && <div className="mt-1 text-caption text-gray-500 leading-tight">双击空白加水平线，Shift+双击加垂直线；拖动线移动；Shift+点击线删除。</div>}
+            {splitMode === 'lasso' && <div className="mt-1 text-caption text-gray-500 leading-tight">按住鼠标在图上画一圈即可生成一个透明形状，可以画多个；点击编号切出当前块，Shift+点击删除。</div>}
           </div>
         ) : (
           <div className="h-16 flex flex-col items-center justify-center text-gray-600 bg-surface-muted rounded border border-dashed border-edge">
@@ -794,7 +794,7 @@ export default function GridSplitNode({ id, data, selected }) {
                 {GRID_PRESETS.map((p) => (
                   <button
                     key={p.label}
-                    className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                    className={`text-caption px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                       rows === p.rows && cols === p.cols
                         ? 'bg-blue-500/15 border-blue-500/60 text-blue-300'
                         : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'
@@ -806,7 +806,7 @@ export default function GridSplitNode({ id, data, selected }) {
                   </button>
                 ))}
                 <button
-                  className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                  className={`text-caption px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                     showCustom ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'
                   }`}
                   onClick={() => setShowCustom((v) => !v)}
@@ -815,7 +815,7 @@ export default function GridSplitNode({ id, data, selected }) {
                 </button>
               </div>
               {showCustom && (
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                <div className="flex items-center gap-1.5 text-caption text-gray-400">
                   <span>行</span>
                   <input
                     type="number" min={1} max={20} value={rows}
@@ -835,7 +835,7 @@ export default function GridSplitNode({ id, data, selected }) {
           )}
 
           {splitMode === 'manual' && (
-            <div className="flex items-center justify-between text-[10px] text-gray-400">
+            <div className="flex items-center justify-between text-caption text-gray-400">
               <span>{rowCount} 行 × {colCount} 列 = {closedCount} 块</span>
               <button
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong cursor-pointer"
@@ -849,7 +849,7 @@ export default function GridSplitNode({ id, data, selected }) {
           )}
 
           {splitMode === 'lasso' && (
-            <div className="flex items-center justify-between text-[10px] text-gray-400">
+            <div className="flex items-center justify-between text-caption text-gray-400">
               <span>已绘制 {closedCount} 块</span>
               <div className="flex items-center gap-1">
                 <button
@@ -886,7 +886,7 @@ export default function GridSplitNode({ id, data, selected }) {
           {/* 批量切分 */}
           <div className="flex items-center gap-2">
             <label
-              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] border cursor-pointer transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 rounded text-caption border cursor-pointer transition-colors ${
                 sendToImageBox ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'
               }`}
               title="勾选后未连接图片盒子也会自动新建一个并送入；下游已连图片盒子时会直接送入"
@@ -994,7 +994,7 @@ export default function GridSplitNode({ id, data, selected }) {
             </div>
           </div>
         </div>
-        <div className="px-4 py-2 bg-black/60 border-t border-white/10 text-[11px] text-gray-300 leading-snug">
+        <div className="px-4 py-2 bg-black/60 border-t border-white/10 text-caption-sm text-gray-300 leading-snug">
           按住鼠标在图上画一圈生成一个透明形状；起点或终点贴近图片边缘时会自动吸附到该边，并沿边自动闭合多边形（适合切人物 / 主体）。Shift + 点击编号可删除形状。
         </div>
       </div>,

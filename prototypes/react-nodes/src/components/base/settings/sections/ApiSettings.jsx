@@ -98,11 +98,11 @@ export default function ApiSettings() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-base text-gray-100 truncate">{selected.name || '未命名供应商'}</h3>
                     {selected.isPrimary && <Star size={14} className="text-gray-400 fill-gray-400" />}
-                    {selected.readonly && <span className="text-[10px] text-gray-500 bg-surface-1 px-2 py-0.5 rounded-full">内置</span>}
+                    {selected.readonly && <span className="text-caption text-gray-500 bg-surface-1 px-2 py-0.5 rounded-full">内置</span>}
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{selected.base_url || '未设置请求地址'}</p>
                 </div>
-                <span className={`text-[11px] px-2.5 py-1 rounded-full ${selected.protocol === 'openai' ? 'text-emerald-400 bg-emerald-500/10' : 'text-sky-400 bg-sky-500/10'}`}>
+                <span className={`text-caption-sm px-2.5 py-1 rounded-full ${selected.protocol === 'openai' ? 'text-emerald-400 bg-emerald-500/10' : 'text-sky-400 bg-sky-500/10'}`}>
                   {selected.protocol === 'openai' ? 'OpenAI 兼容' : 'apimart'}
                 </span>
               </div>
@@ -139,7 +139,7 @@ function ProviderListItem({ p, active, onSelect, onRemove }) {
       onClick={onSelect}
     >
       <span className={`flex-1 truncate text-sm ${active ? 'text-white' : 'text-gray-300'}`}>{p.name || p.id}</span>
-      <span className={`text-[10px] px-1.5 py-0.5 rounded font-normal ${p.protocol === 'openai' ? 'text-emerald-400 bg-emerald-500/10' : 'text-sky-400 bg-sky-500/10'}`}>
+      <span className={`text-caption px-1.5 py-0.5 rounded font-normal ${p.protocol === 'openai' ? 'text-emerald-400 bg-emerald-500/10' : 'text-sky-400 bg-sky-500/10'}`}>
         {p.protocol === 'openai' ? 'OpenAI' : 'apimart'}
       </span>
       {p.isPrimary && <Star size={12} className="text-gray-400 fill-gray-400" />}

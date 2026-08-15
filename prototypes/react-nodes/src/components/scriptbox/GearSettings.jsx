@@ -84,8 +84,8 @@ export default function GearSettings({ data, updateData, onClose }) {
     <div className="absolute inset-0 z-modal flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="w-[760px] h-[600px] max-h-[88vh] bg-surface-menu border border-edge-faint rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] shrink-0">
-          <div className="text-[13px] text-gray-200 font-medium">总体设置</div>
-          <button className="text-gray-500 hover:text-white text-[16px] hover:bg-white/5 rounded-md w-6 h-6 flex items-center justify-center" onClick={onClose}>×</button>
+          <div className="text-body-sm text-gray-200 font-medium">总体设置</div>
+          <button className="text-gray-500 hover:text-white text-base hover:bg-white/5 rounded-md w-6 h-6 flex items-center justify-center" onClick={onClose}>×</button>
         </div>
 
         {/* 标签页 */}
@@ -94,7 +94,7 @@ export default function GearSettings({ data, updateData, onClose }) {
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`shrink-0 px-3.5 py-1.5 text-[12px] rounded-lg transition-colors ${tab === k ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
+              className={`shrink-0 px-3.5 py-1.5 text-body-xs rounded-lg transition-colors ${tab === k ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
             >{n}</button>
           ))}
         </div>
@@ -105,11 +105,11 @@ export default function GearSettings({ data, updateData, onClose }) {
               <Section title="画面比例">
                 <div className="flex gap-1.5 flex-wrap">
                   {ratios.map((r) => (
-                    <button key={r} onClick={() => setAspectRatio(r)} className={`px-2.5 py-1 text-[11px] rounded-lg border transition-colors ${aspectRatio === r ? 'border-white/50 text-white bg-white/10' : 'border-white/[0.06] text-gray-400 hover:border-white/20 hover:text-gray-200'}`}>{r}</button>
+                    <button key={r} onClick={() => setAspectRatio(r)} className={`px-2.5 py-1 text-caption-sm rounded-lg border transition-colors ${aspectRatio === r ? 'border-white/50 text-white bg-white/10' : 'border-white/[0.06] text-gray-400 hover:border-white/20 hover:text-gray-200'}`}>{r}</button>
                   ))}
-                  <button onClick={() => setAspectRatio('custom')} className={`px-2.5 py-1 text-[11px] rounded-lg border transition-colors ${aspectRatio === 'custom' ? 'border-white/50 text-white bg-white/10' : 'border-white/[0.06] text-gray-400 hover:border-white/20'}`}>自定义</button>
+                  <button onClick={() => setAspectRatio('custom')} className={`px-2.5 py-1 text-caption-sm rounded-lg border transition-colors ${aspectRatio === 'custom' ? 'border-white/50 text-white bg-white/10' : 'border-white/[0.06] text-gray-400 hover:border-white/20'}`}>自定义</button>
                 </div>
-                {aspectRatio === 'custom' && <input value={customAspectRatio} onChange={(e) => setCustomAspectRatio(e.target.value)} placeholder="如 2:1" className="mt-2 w-28 bg-surface-strong border border-white/[0.06] rounded-md px-2 py-1 text-[11px] text-gray-200 outline-none focus:border-white/20 nodrag" />}
+                {aspectRatio === 'custom' && <input value={customAspectRatio} onChange={(e) => setCustomAspectRatio(e.target.value)} placeholder="如 2:1" className="mt-2 w-28 bg-surface-strong border border-white/[0.06] rounded-md px-2 py-1 text-caption-sm text-gray-200 outline-none focus:border-white/20 nodrag" />}
               </Section>
 
               <Section title="模型">
@@ -129,9 +129,9 @@ export default function GearSettings({ data, updateData, onClose }) {
 
               <Section title="全局约束">
                 <div className="grid grid-cols-3 gap-3">
-                  <Field label="图片"><textarea value={imageConstraint} onChange={(e) => setImageConstraint(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-16 focus:border-white/20 custom-scrollbar nodrag nowheel" /></Field>
-                  <Field label="视频"><textarea value={videoConstraint} onChange={(e) => setVideoConstraint(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-16 focus:border-white/20 custom-scrollbar nodrag nowheel" /></Field>
-                  <Field label="自定义"><textarea value={customGlobalConstraint} onChange={(e) => setCustomGlobalConstraint(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-16 focus:border-white/20 custom-scrollbar nodrag nowheel" /></Field>
+                  <Field label="图片"><textarea value={imageConstraint} onChange={(e) => setImageConstraint(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-16 focus:border-white/20 custom-scrollbar nodrag nowheel" /></Field>
+                  <Field label="视频"><textarea value={videoConstraint} onChange={(e) => setVideoConstraint(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-16 focus:border-white/20 custom-scrollbar nodrag nowheel" /></Field>
+                  <Field label="自定义"><textarea value={customGlobalConstraint} onChange={(e) => setCustomGlobalConstraint(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-16 focus:border-white/20 custom-scrollbar nodrag nowheel" /></Field>
                 </div>
               </Section>
             </div>
@@ -139,22 +139,22 @@ export default function GearSettings({ data, updateData, onClose }) {
 
           {tab === 'script' && (
             <Section title="剧本生成提示词（剧情 → 分镜）">
-              <textarea value={scriptPrompt} onChange={(e) => setScriptPrompt(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-64 focus:border-white/20 custom-scrollbar nodrag nowheel" />
+              <textarea value={scriptPrompt} onChange={(e) => setScriptPrompt(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-64 focus:border-white/20 custom-scrollbar nodrag nowheel" />
             </Section>
           )}
 
           {tab === 'shot' && (
             <Section title="分镜生成提示词（分镜 → 生图/生视频）">
-              <textarea value={shotPrompt} onChange={(e) => setShotPrompt(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-64 focus:border-white/20 custom-scrollbar nodrag nowheel" />
+              <textarea value={shotPrompt} onChange={(e) => setShotPrompt(e.target.value)} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-64 focus:border-white/20 custom-scrollbar nodrag nowheel" />
             </Section>
           )}
 
           {tab === 'image' && (
             <div className="flex flex-col gap-4">
-              <div className="text-[11px] text-gray-500">生图类型模板（AI 生图：关键帧 / 四宫格 / 九宫格 / 俯视调度图）</div>
+              <div className="text-caption-sm text-gray-500">生图类型模板（AI 生图：关键帧 / 四宫格 / 九宫格 / 俯视调度图）</div>
               {Object.entries(IMAGE_GEN_TYPES).map(([k, t]) => (
                 <Field key={k} label={t.label}>
-                  <textarea value={genTpl[k] || ''} onChange={(e) => setGenTpl({ ...genTpl, [k]: e.target.value })} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-36 focus:border-white/20 custom-scrollbar nodrag nowheel" />
+                  <textarea value={genTpl[k] || ''} onChange={(e) => setGenTpl({ ...genTpl, [k]: e.target.value })} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-36 focus:border-white/20 custom-scrollbar nodrag nowheel" />
                 </Field>
               ))}
             </div>
@@ -162,10 +162,10 @@ export default function GearSettings({ data, updateData, onClose }) {
 
           {tab === 'asset' && (
             <div className="flex flex-col gap-4">
-              <div className="text-[11px] text-gray-500">资产参考图模板（角色 / 场景 / 道具）</div>
+              <div className="text-caption-sm text-gray-500">资产参考图模板（角色 / 场景 / 道具）</div>
               {[['character', '角色'], ['scene', '场景'], ['prop', '道具']].map(([k, n]) => (
                 <Field key={k} label={n}>
-                  <textarea value={tpl[k] || ''} onChange={(e) => setTpl({ ...tpl, [k]: e.target.value })} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-[11px] outline-none h-28 focus:border-white/20 custom-scrollbar nodrag nowheel" />
+                  <textarea value={tpl[k] || ''} onChange={(e) => setTpl({ ...tpl, [k]: e.target.value })} className="w-full bg-surface-strong border border-white/[0.06] rounded-md p-2 text-gray-200 text-caption-sm outline-none h-28 focus:border-white/20 custom-scrollbar nodrag nowheel" />
                 </Field>
               ))}
             </div>
@@ -173,8 +173,8 @@ export default function GearSettings({ data, updateData, onClose }) {
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-3 border-t border-white/[0.06] shrink-0">
-          <button className="px-4 py-1.5 text-[12px] text-gray-400 hover:text-white" onClick={onClose}>取消</button>
-          <button className="px-4 py-1.5 text-[12px] bg-white/10 hover:bg-white/15 text-gray-100 rounded-lg transition-colors" onClick={save}>保存</button>
+          <button className="px-4 py-1.5 text-body-xs text-gray-400 hover:text-white" onClick={onClose}>取消</button>
+          <button className="px-4 py-1.5 text-body-xs bg-white/10 hover:bg-white/15 text-gray-100 rounded-lg transition-colors" onClick={save}>保存</button>
         </div>
       </div>
     </div>
@@ -182,13 +182,13 @@ export default function GearSettings({ data, updateData, onClose }) {
 }
 
 function Field({ label, children }) {
-  return <label className="block text-[11px] text-gray-500">{label}<div className="mt-1.5">{children}</div></label>
+  return <label className="block text-caption-sm text-gray-500">{label}<div className="mt-1.5">{children}</div></label>
 }
 
 function Section({ title, children }) {
   return (
     <div>
-      <div className="text-[11px] text-gray-500 mb-2">{title}</div>
+      <div className="text-caption-sm text-gray-500 mb-2">{title}</div>
       {children}
     </div>
   )

@@ -63,7 +63,7 @@ export default function LeftPanel() {
               >
                 <Icon size={17} />
                 {showBadge && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-semibold flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-meta font-semibold flex items-center justify-center">
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}
@@ -85,7 +85,7 @@ export default function LeftPanel() {
                 return (
                   <button
                     key={tab.key}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-[34px] rounded-lg text-[13px] transition-colors cursor-pointer border-none ${isActive ? 'bg-surface-1 text-white font-medium' : 'text-muted hover:text-body hover:bg-surface-faint'}`}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-[34px] rounded-lg text-body-sm transition-colors cursor-pointer border-none ${isActive ? 'bg-surface-1 text-white font-medium' : 'text-muted hover:text-body hover:bg-surface-faint'}`}
                     onClick={() => setActiveTab(tab.key)}
                   >
                     <Icon size={14} />

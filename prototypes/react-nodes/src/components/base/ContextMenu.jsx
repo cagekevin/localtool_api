@@ -66,7 +66,7 @@ export default function ContextMenu({ state, items, onClose, containerRef }) {
   return (
     <div
       ref={menuRef}
-      className="absolute z-dropdown bg-surface-menu border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 flex flex-col min-w-[208px]"
+      className="absolute z-dropdown bg-surface-menu border border-white/[0.04] rounded-2xl shadow-popover p-2 flex flex-col min-w-[208px]"
       style={{ top: pos.top, left: pos.left }}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
@@ -97,7 +97,7 @@ function renderItems(items, onClose) {
       return (
         <div key={item.key} className="relative group/sub">
           <button
-            className={`w-full text-left px-3.5 py-2 text-[11px] text-gray-400 hover:text-gray-200 rounded-xl flex items-center gap-2 justify-between transition-colors`}
+            className={`w-full text-left px-3.5 py-2 text-caption-sm text-gray-400 hover:text-gray-200 rounded-xl flex items-center gap-2 justify-between transition-colors`}
             onClick={(e) => e.stopPropagation()}
           >
             <span className="flex items-center gap-2">
@@ -111,7 +111,7 @@ function renderItems(items, onClose) {
               经过中间 8px gap 时仍算 hover（group-hover/sub），子菜单不会收起。
               这是官方防抖的常用技巧，删掉会出现"鼠标一过 gap 子菜单就消失"。 */}
           <div
-            className={`absolute left-full top-0 ml-2 bg-surface-menu border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 min-w-[200px] z-dropdown hidden group-hover/sub:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
+            className={`absolute left-full top-0 ml-2 bg-surface-menu border border-white/[0.04] rounded-2xl shadow-popover p-2 min-w-[200px] z-dropdown hidden group-hover/sub:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
           >
             {renderItems(item.submenu, onClose)}
           </div>
@@ -123,7 +123,7 @@ function renderItems(items, onClose) {
       return (
         <div key={item.key} className="relative group/tools">
           <button
-            className="w-full text-left px-3.5 py-2 text-[11px] text-gray-400 hover:text-gray-200 rounded-xl flex items-center gap-2 justify-between transition-colors"
+            className="w-full text-left px-3.5 py-2 text-caption-sm text-gray-400 hover:text-gray-200 rounded-xl flex items-center gap-2 justify-between transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="flex items-center gap-2">
@@ -133,13 +133,13 @@ function renderItems(items, onClose) {
           </button>
           {/* 分组子菜单（工具面板）：同样 group-hover 展开 + before 桥防抖（见上一条注释） */}
           <div
-            className={`absolute left-full top-0 ml-2 bg-surface-menu border border-white/[0.04] rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.85)] p-2 w-[300px] z-dropdown hidden group-hover/tools:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
+            className={`absolute left-full top-0 ml-2 bg-surface-menu border border-white/[0.04] rounded-2xl shadow-popover p-2 w-[300px] z-dropdown hidden group-hover/tools:block before:content-[''] before:absolute before:-left-3 before:top-0 before:w-3 before:h-full`}
           >
             <div className="grid grid-cols-2 gap-0.5">
               {item.items.map((child) => (
                 <button
                   key={child.key}
-                  className="flex items-center rounded-lg hover:bg-white/10 transition-colors px-2.5 py-1.5 text-[13px] text-gray-200 hover:text-white text-left gap-2"
+                  className="flex items-center rounded-lg hover:bg-white/10 transition-colors px-2.5 py-1.5 text-body-sm text-gray-200 hover:text-white text-left gap-2"
                   onClick={(e) => {
                     e.stopPropagation()
                     child.onClick?.(e)
@@ -149,7 +149,7 @@ function renderItems(items, onClose) {
                   {renderIcon(child.icon, 15, 'text-white shrink-0')}
                   <span className="truncate">{child.label}</span>
                   {child.badge && (
-                    <span className={`rounded px-1 py-0.5 text-[8px] font-semibold ${child.badge.tone === 'new' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-fuchsia-500/20 text-fuchsia-300'}`}>
+                    <span className={`rounded px-1 py-0.5 text-2xs font-semibold ${child.badge.tone === 'new' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-fuchsia-500/20 text-fuchsia-300'}`}>
                       {child.badge.text}
                     </span>
                   )}
@@ -179,7 +179,7 @@ function renderItems(items, onClose) {
           {renderIcon(item.icon, 16)}
           <span className="truncate">{item.label}</span>
         </span>
-        {item.shortcut && <span className="text-[11px] text-gray-500 ml-3 font-mono shrink-0">{item.shortcut}</span>}
+        {item.shortcut && <span className="text-caption-sm text-gray-500 ml-3 font-mono shrink-0">{item.shortcut}</span>}
       </button>
     )
   })

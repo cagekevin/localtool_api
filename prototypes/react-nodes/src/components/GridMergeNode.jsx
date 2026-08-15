@@ -371,7 +371,7 @@ export default function GridMergeNode({ id, data, selected }) {
   const modeBtn = (mode, label, icon, title) => (
     <button
       key={mode}
-      className={`px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 border transition-colors cursor-pointer ${
+      className={`px-1.5 py-0.5 rounded text-caption flex items-center gap-1 border transition-colors cursor-pointer ${
         mergeMode === mode ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white'
       }`}
       onClick={() => setMergeMode(mode)}
@@ -478,7 +478,7 @@ export default function GridMergeNode({ id, data, selected }) {
                       {n && (
                         <>
                           <img src={n} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
-                          <span className="absolute top-1 right-1 px-1 py-px rounded text-[9px] font-mono pointer-events-none ${isDragTo ? 'bg-blue-500 text-white' : 'bg-black/60 text-white/80'}">
+                          <span className="absolute top-1 right-1 px-1 py-px rounded text-meta font-mono pointer-events-none ${isDragTo ? 'bg-blue-500 text-white' : 'bg-black/60 text-white/80'}">
                             {t + 1}
                           </span>
                         </>
@@ -549,14 +549,14 @@ export default function GridMergeNode({ id, data, selected }) {
                       style={{ minWidth: longDirection === 'horizontal' ? 40 : 0, minHeight: longDirection === 'vertical' ? 40 : 0 }}
                     >
                       <img src={n} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
-                      <span className={`absolute m-1 px-1 py-px rounded text-[9px] font-mono pointer-events-none ${isDragTo ? 'bg-blue-500 text-white' : 'bg-black/60 text-white/80'}`}>
+                      <span className={`absolute m-1 px-1 py-px rounded text-meta font-mono pointer-events-none ${isDragTo ? 'bg-blue-500 text-white' : 'bg-black/60 text-white/80'}`}>
                         {t + 1}
                       </span>
                     </div>
                   )
                 })}
                 {longList.length === 0 && (
-                  <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-600">连线图片加入</div>
+                  <div className="w-full h-full flex items-center justify-center text-caption text-gray-600">连线图片加入</div>
                 )}
               </div>
             )}
@@ -572,10 +572,10 @@ export default function GridMergeNode({ id, data, selected }) {
         {/* 控制区 */}
         <div className="space-y-2 nodrag">
           {/* 背景 */}
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+          <div className="flex items-center gap-1.5 text-caption text-gray-400">
             <span>背景</span>
             <button
-              className={`px-1.5 py-0.5 rounded border text-[10px] transition-colors cursor-pointer ${bgColor === 'transparent' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white'}`}
+              className={`px-1.5 py-0.5 rounded border text-caption transition-colors cursor-pointer ${bgColor === 'transparent' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white'}`}
               onClick={() => setBgColor('transparent')}
               title="透明背景（导出 PNG 保留透明通道）"
             >
@@ -592,7 +592,7 @@ export default function GridMergeNode({ id, data, selected }) {
                 {GRID_PRESETS.map((p) => (
                   <button
                     key={p.label}
-                    className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                    className={`text-caption px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                       rows === p.rows && cols === p.cols ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'
                     }`}
                     onClick={() => { setRows(p.rows); setCols(p.cols); setGridText(`${p.rows}x${p.cols}`) }}
@@ -601,14 +601,14 @@ export default function GridMergeNode({ id, data, selected }) {
                   </button>
                 ))}
                 <button
-                  className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${showCustom ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'}`}
+                  className={`text-caption px-2 py-0.5 rounded border transition-colors cursor-pointer ${showCustom ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400 hover:text-white hover:border-edge-strong'}`}
                   onClick={() => setShowCustom((v) => !v)}
                 >
                   自定义
                 </button>
               </div>
               {showCustom && (
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                <div className="flex items-center gap-1.5 text-caption text-gray-400">
                   <span>行</span>
                   <input type="number" min={1} max={20} value={rows} onChange={(e) => { const v = clamp(parseInt(e.target.value || '1', 10) || 1, 1, 20); setRows(v); setGridText(`${v}x${cols}`) }} className="w-12 bg-surface-hover text-gray-200 rounded px-1.5 py-0.5 border border-edge outline-none" />
                   <span>×</span>
@@ -643,13 +643,13 @@ export default function GridMergeNode({ id, data, selected }) {
           {/* 长图参数 */}
           {mergeMode === 'longImage' && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[10px] text-gray-400">
+              <div className="flex items-center gap-2 text-caption text-gray-400">
                 <span>方向</span>
                 <button className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${longDirection === 'vertical' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400'}`} onClick={() => setLongDirection('vertical')}>垂直</button>
                 <button className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${longDirection === 'horizontal' ? 'bg-blue-500/15 border-blue-500/60 text-blue-300' : 'bg-surface-hover border-edge text-gray-400'}`} onClick={() => setLongDirection('horizontal')}>水平</button>
                 <span className="ml-auto">{longList.length} 张</span>
               </div>
-              <div className="flex items-center gap-2 text-[10px] text-gray-400">
+              <div className="flex items-center gap-2 text-caption text-gray-400">
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input type="checkbox" checked={longAutoSize} onChange={(e) => setLongAutoSize(e.target.checked)} className="accent-blue-500" />
                   跟随首图

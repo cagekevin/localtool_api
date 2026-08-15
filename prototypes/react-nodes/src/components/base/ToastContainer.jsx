@@ -53,10 +53,10 @@ export default function ToastContainer() {
   }
   // doc39 §3.2 状态色模板（/10 填充 + /30 描边 + 20px/0.15 柔光）
   const COLORS = {
-    success: 'from-green-500/10 to-emerald-500/10 border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.15)]',
-    error: 'from-red-500/10 to-rose-500/10 border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.15)]',
-    warning: 'from-yellow-500/10 to-amber-500/10 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.15)]',
-    info: 'from-blue-500/10 to-indigo-500/10 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]',
+    success: 'from-green-500/10 to-emerald-500/10 border-green-500/30 shadow-glow-success',
+    error: 'from-red-500/10 to-rose-500/10 border-red-500/30 shadow-glow-error',
+    warning: 'from-yellow-500/10 to-amber-500/10 border-yellow-500/30 shadow-glow-warning',
+    info: 'from-blue-500/10 to-indigo-500/10 border-blue-500/30 shadow-glow-info',
   }
 
   return createPortal(

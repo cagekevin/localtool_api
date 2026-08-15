@@ -254,7 +254,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
           {AI_ICON}
           <div>
             <div className="text-white text-sm font-medium">AI 助手</div>
-            <div className="text-[10px] text-yellow-500 font-medium">画布助手</div>
+            <div className="text-caption text-yellow-500 font-medium">画布助手</div>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -311,7 +311,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
               {attachments.map((a, i) => (
                 <span key={i} className="relative w-12 h-12 rounded-md overflow-hidden border border-edge group">
                   <img src={a.localUrl || a.url} alt="" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => removeAttachment(i)} className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-black text-white text-[10px] flex items-center justify-center rounded-bl-md" title="移除">×</button>
+                  <button type="button" onClick={() => removeAttachment(i)} className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-black text-white text-caption flex items-center justify-center rounded-bl-md" title="移除">×</button>
                 </span>
               ))}
               {uploading && (
@@ -341,7 +341,7 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                     <circle cx="12" cy="5" r="2" />
                     <path d="M12 7v4" />
                   </svg>
-                  <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
+                  <span className="shrink-0 px-1 rounded text-meta leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
                   <span className="truncate">{model}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${modelOpen ? 'rotate-180' : ''}`}>
                     <polyline points="6 9 12 15 18 9" />
@@ -356,10 +356,10 @@ export default function AgentPanel({ agentKey = 'canvas-assistant', systemPrompt
                         key={id}
                         type="button"
                         onClick={() => { setModel(id); setModelOpen(false) }}
-                        className={`w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-[11px] rounded-md transition-colors ${id === model ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`}
+                        className={`w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-caption-sm rounded-md transition-colors ${id === model ? 'bg-surface-hover-strong text-white' : 'text-gray-400 hover:bg-surface-hover hover:text-gray-200'}`}
                         title={id}
                       >
-                        <span className="shrink-0 px-1 rounded text-[9px] leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
+                        <span className="shrink-0 px-1 rounded text-meta leading-[14px] border bg-white/10 text-white/90 border-white/30">{agentProvider?.name || '内置'}</span>
                         <span className="flex-1 truncate font-mono">{id}</span>
                       </button>
                     ))}

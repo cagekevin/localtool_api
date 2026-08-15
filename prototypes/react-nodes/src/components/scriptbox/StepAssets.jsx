@@ -52,9 +52,9 @@ export default function StepAssets({ data, updateData, callbacks }) {
   return (
     <div className="flex flex-col gap-3">
       {/* 工具栏（统一风格/模型已在设置里配置，这里只保留素材操作，按钮靠左顶对齐） */}
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
-        <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-surface-1 hover:bg-surface-hover rounded" onClick={uploadAll}><Upload size={10} /> 上传全部素材</button>
-        <button className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-300 bg-surface-1 hover:bg-surface-hover rounded" onClick={batchGen}>
+      <div className="flex flex-wrap items-center gap-2 text-caption-sm text-gray-400">
+        <button className="flex items-center gap-1 px-2 py-1 text-caption text-gray-300 bg-surface-1 hover:bg-surface-hover rounded" onClick={uploadAll}><Upload size={10} /> 上传全部素材</button>
+        <button className="flex items-center gap-1 px-2 py-1 text-caption text-gray-300 bg-surface-1 hover:bg-surface-hover rounded" onClick={batchGen}>
           <Wand2 size={10} /> 批量生图{pickedCount ? `(${pickedCount})` : ''}
         </button>
       </div>
@@ -68,7 +68,7 @@ export default function StepAssets({ data, updateData, callbacks }) {
             const list = assets.filter((a) => a.category === c.k)
             return (
               <div key={c.k} className="flex flex-col gap-1.5 min-w-0">
-                <div className="flex items-center gap-1.5 text-[11px] text-gray-300">{c.icon}<span>{c.n}</span><span className="text-gray-500">{list.length}</span></div>
+                <div className="flex items-center gap-1.5 text-caption-sm text-gray-300">{c.icon}<span>{c.n}</span><span className="text-gray-500">{list.length}</span></div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {list.map((a) => {
                     const gi = assets.indexOf(a)
@@ -86,7 +86,7 @@ export default function StepAssets({ data, updateData, callbacks }) {
                       />
                     )
                   })}
-                  <button className="flex items-center justify-center gap-1 h-9 w-full border border-dashed border-edge hover:border-edge-strong rounded-lg text-[10px] text-gray-500 hover:text-gray-300" onClick={() => { const id = addAsset(updateData, c.k, assets); setEditIdx(id) }}>
+                  <button className="flex items-center justify-center gap-1 h-9 w-full border border-dashed border-edge hover:border-edge-strong rounded-lg text-caption text-gray-500 hover:text-gray-300" onClick={() => { const id = addAsset(updateData, c.k, assets); setEditIdx(id) }}>
                     <Plus size={10} /> 新增{c.n}
                   </button>
                 </div>
@@ -100,7 +100,7 @@ export default function StepAssets({ data, updateData, callbacks }) {
           {editIdx !== null && assets[editIdx] ? (
             <AssetPanel key={assets[editIdx].id} asset={assets[editIdx]} idx={editIdx} data={d} updateData={updateData} onGen={() => callbacks.onGenerateAssetImage?.(assets[editIdx].id)} onClose={() => setEditIdx(null)} />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-600 text-[11px] gap-2">
+            <div className="flex flex-col items-center justify-center h-full text-gray-600 text-caption-sm gap-2">
               <Package size={20} className="text-gray-700" />
               点击左侧资产卡片，在此编辑
             </div>
@@ -141,15 +141,15 @@ function AssetCard({ asset, idx, data, updateData, callbacks, onOpen, onTogglePi
       <div className="w-11 h-11 shrink-0 rounded-md overflow-hidden bg-surface-1 flex items-center justify-center cursor-pointer" onClick={onOpen}>
         {asset.loading ? <Loader2 size={13} className="animate-spin text-gray-400" />
           : asset.imageUrl ? <img src={asset.imageUrl} alt={asset.name} className="w-full h-full object-cover" />
-            : asset.has ? <span className="text-emerald-400 text-[12px]">✓</span>
-              : <span className="text-[10px] text-gray-500">+ 待生成</span>}
+            : asset.has ? <span className="text-emerald-400 text-body-xs">✓</span>
+              : <span className="text-caption text-gray-500">+ 待生成</span>}
       </div>
       <div className="min-w-0 flex-1 cursor-pointer" onClick={onOpen}>
-        <div className="text-[11px] text-gray-200 truncate">{asset.name}</div>
-        <div className="text-[9px] text-gray-500 truncate">{asset.description || '双击编辑'}</div>
+        <div className="text-caption-sm text-gray-200 truncate">{asset.name}</div>
+        <div className="text-meta text-gray-500 truncate">{asset.description || '双击编辑'}</div>
         {/* 视频上传状态 */}
         {asset.videoStatus && (
-          <div className={`flex items-center gap-1 text-[9px] mt-0.5 ${asset.videoStatus === 'uploaded' ? 'text-emerald-400' : asset.videoStatus === 'failed' ? 'text-red-400' : 'text-yellow-400'}`}>
+          <div className={`flex items-center gap-1 text-meta mt-0.5 ${asset.videoStatus === 'uploaded' ? 'text-emerald-400' : asset.videoStatus === 'failed' ? 'text-red-400' : 'text-yellow-400'}`}>
             {asset.videoStatus === 'uploading' && <Loader2 size={8} className="animate-spin" />}
             {asset.videoStatus === 'uploaded' ? '✓ 视频已上传' : asset.videoStatus === 'failed' ? '✗ 上传失败' : '上传中…'}
           </div>
@@ -177,7 +177,7 @@ function AssetCard({ asset, idx, data, updateData, callbacks, onOpen, onTogglePi
 
 function MenuItem({ icon, text, onClick, danger }) {
   return (
-    <button className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-[11px] text-left ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-gray-300 hover:bg-surface-hover'}`} onClick={onClick}>{icon}{text}</button>
+    <button className={`flex items-center gap-2 w-full px-2.5 py-1.5 text-caption-sm text-left ${danger ? 'text-red-400 hover:bg-red-500/10' : 'text-gray-300 hover:bg-surface-hover'}`} onClick={onClick}>{icon}{text}</button>
   )
 }
 
@@ -199,10 +199,10 @@ function AssetPanel({ asset, idx, data, updateData, onGen, onClose }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 text-[11px]">
+    <div className="flex flex-col gap-3 text-caption-sm">
       <div className="flex items-center justify-between">
-        <div className="text-[12px] text-gray-200 font-medium">编辑资产</div>
-        <button className="text-gray-500 hover:text-white text-[14px]" title="收起" onClick={onClose}>×</button>
+        <div className="text-body-xs text-gray-200 font-medium">编辑资产</div>
+        <button className="text-gray-500 hover:text-white text-sm" title="收起" onClick={onClose}>×</button>
       </div>
       <div className="flex flex-col gap-3">
         <label className="text-gray-400">名称
@@ -216,8 +216,8 @@ function AssetPanel({ asset, idx, data, updateData, onGen, onClose }) {
         </label>
       </div>
       <div className="flex gap-2">
-        <button className="flex-1 py-2 bg-[#27272a] hover:bg-[#313135] text-gray-200 text-[12px] rounded-lg" onClick={() => save(false)}>保存</button>
-        <button className="flex-1 py-2 bg-[#3a3a3a] hover:bg-[#454545] text-gray-200 text-[12px] rounded-lg" onClick={() => save(true)}>保存并生图</button>
+        <button className="flex-1 py-2 bg-[#27272a] hover:bg-[#313135] text-gray-200 text-body-xs rounded-lg" onClick={() => save(false)}>保存</button>
+        <button className="flex-1 py-2 bg-[#3a3a3a] hover:bg-[#454545] text-gray-200 text-body-xs rounded-lg" onClick={() => save(true)}>保存并生图</button>
       </div>
     </div>
   )

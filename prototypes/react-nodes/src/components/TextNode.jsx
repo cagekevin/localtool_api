@@ -252,7 +252,7 @@ export default function TextNode({ id, data, selected }) {
                 </div>
               ))}
               {refTexts.map((t, i) => (
-                <div key={t.id || i} className="h-8 px-2 bg-surface-hover border border-edge-muted rounded flex items-center gap-1 text-[10px] text-gray-300 hover:bg-surface-hover-strong hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
+                <div key={t.id || i} className="h-8 px-2 bg-surface-hover border border-edge-muted rounded flex items-center gap-1 text-caption text-gray-300 hover:bg-surface-hover-strong hover:border-blue-500 hover:text-blue-400 transition-colors cursor-help group/text" title={t.text || t.label}>
                   <LinkIcon size={10} />
                   <span className="max-w-[60px] truncate">{t.label || '参考文本'}</span>
                 </div>
@@ -276,7 +276,7 @@ export default function TextNode({ id, data, selected }) {
           {/* 底部：自动拆分 + 模型 + 预设 + 生成 */}
           <div className="flex items-center justify-between pt-2 border-t border-edge-faint">
             <div className="flex items-center gap-1.5">
-              <label className="flex items-center gap-1.5 cursor-pointer h-6 px-2 text-[11px] text-gray-400 hover:text-gray-200 select-none bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded transition-colors">
+              <label className="flex items-center gap-1.5 cursor-pointer h-6 px-2 text-caption-sm text-gray-400 hover:text-gray-200 select-none bg-transparent hover:bg-surface-hover border border-transparent hover:border-edge rounded transition-colors">
                 <input type="checkbox" checked={autoSplit} onChange={(e) => setAutoSplit(e.target.checked)} className="accent-blue-500 rounded sm:w-3 sm:h-3" />
                 自动拆分
               </label>

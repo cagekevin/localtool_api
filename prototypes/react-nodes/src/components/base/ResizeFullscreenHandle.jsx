@@ -96,7 +96,7 @@ export default function ResizeFullscreenHandle({
         <line x1="14" y1="13" x2="13" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       </svg>
       {hovered && (
-        <span className="absolute top-full right-0 mt-1 whitespace-nowrap px-2 py-1 rounded bg-black/85 text-white text-[10px] leading-none shadow-lg pointer-events-none z-40">
+        <span className="absolute top-full right-0 mt-1 whitespace-nowrap px-2 py-1 rounded bg-black/85 text-white text-caption leading-none shadow-lg pointer-events-none z-40">
           拖动改尺寸 · 双击全屏
         </span>
       )}
